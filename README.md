@@ -2,6 +2,7 @@
 
 [![Node](https://img.shields.io/badge/node-%E2%89%A522-brightgreen)](https://nodejs.org)
 [![Next.js](https://img.shields.io/badge/next.js-16-black)](https://nextjs.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Graph explorer front-end for [osint-engine](https://github.com/geldois/osint-engine).
 
@@ -19,7 +20,7 @@ Graph explorer front-end for [osint-engine](https://github.com/geldois/osint-eng
 
 ## Setup
 
-```sh
+```bash
 mise install  # pins Node LTS + pnpm
 pnpm install
 pnpm dev
