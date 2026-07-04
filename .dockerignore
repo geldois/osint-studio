@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.github
+*.md
+.prettierignore
+.prettierrc
+.markdownlint.jsonc
+.releaserc.json
+.env
+.env.*
+.vscode
