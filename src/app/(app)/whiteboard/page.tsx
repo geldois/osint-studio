@@ -15,6 +15,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { EntityNode } from "@/components/nodes/entity-node";
 import { useExpand } from "@/hooks/use-expand";
+import { RateLimitError } from "@/lib/api";
 import {
   apiEdgeToRfEdge,
   type EntityNode as EntityNodeType,
@@ -69,7 +70,22 @@ function Flow() {
 
 export default function WhiteboardPage() {
   const [cnpj, setCnpj] = useState("");
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const { mutate, isPending, error } = useExpand();
+
+  useEffect(() => {
+    if (retryAfterSeconds <= 0) {
+      return;
+    }
+    const interval = setInterval(() => {
+      setRetryAfterSeconds((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [retryAfterSeconds]);
+
+  const isBlocked = retryAfterSeconds > 0;
 
   return (
     <div className="flex h-full flex-col">
@@ -84,15 +100,30 @@ export default function WhiteboardPage() {
         />
         <button
           type="button"
-          disabled={isPending || cnpj.trim() === ""}
+          disabled={isPending || isBlocked || cnpj.trim() === ""}
           onClick={() => {
-            mutate({ cnpj: cnpj.trim(), anchorId: null });
+            mutate(
+              { cnpj: cnpj.trim(), anchorId: null },
+              {
+                onError: (mutationError) => {
+                  if (mutationError instanceof RateLimitError) {
+                    setRetryAfterSeconds(Math.ceil(mutationError.retryAfterSeconds));
+                  }
+                },
+              },
+            );
           }}
           className="rounded bg-white px-3 py-1.5 font-medium text-black text-sm disabled:opacity-50"
         >
           {isPending ? "Expandindo..." : "Expandir"}
         </button>
-        {error ? <span className="text-red-500 text-sm">{error.message}</span> : null}
+        {isBlocked ? (
+          <span className="text-amber-500 text-sm">
+            Limite de requisições atingido. Tente novamente em {retryAfterSeconds}s.
+          </span>
+        ) : error ? (
+          <span className="text-red-500 text-sm">{error.message}</span>
+        ) : null}
       </header>
 
       <div className="flex-1">
