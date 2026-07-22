@@ -1,5 +1,11 @@
 # TO-DO
 
+## chore(deploy)
+
+- `NEXT_PUBLIC_API_URL` is only ever set for local dev (defaults to `http://localhost:8000`); no Vercel deployment
+  exists yet. When it does, the production value and the backend's `CORS_ORIGINS` need to be configured together —
+  neither works without the other.
+
 ## feat(auth)
 
 - Token lives only in memory (Zustand, no `persist`); a page refresh drops it and
