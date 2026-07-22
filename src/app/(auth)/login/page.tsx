@@ -3,7 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { login, loginAsVisitor, RateLimitError } from "@/lib/api";
+import { API_URL, login, loginAsVisitor, RateLimitError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 
 export default function LoginPage() {
@@ -112,6 +112,15 @@ export default function LoginPage() {
         >
           {visitorMutation.isPending ? "Entrando..." : "Entrar como visitante"}
         </button>
+
+        <a
+          href={`${API_URL}/docs`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full rounded border border-border px-3 py-2 text-center font-medium"
+        >
+          Ver documentação da API
+        </a>
       </form>
     </main>
   );

@@ -1,10 +1,9 @@
 import { useAuthStore } from "@/store/auth";
 import type { GraphSchema, TokenResponse } from "@/types/api";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(
-  /\/+$/,
-  "",
-);
+export const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
+).replace(/\/+$/, "");
 
 export class RateLimitError extends Error {
   readonly retryAfterSeconds: number;
