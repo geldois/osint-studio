@@ -29,7 +29,12 @@ function parseRetryAfterSeconds(res: Response): number {
 }
 
 async function parseErrorDetail(res: Response): Promise<string> {
-  const { detail } = (await res.json()) as { detail: string };
+  const { detail } = (await res.json()) as {
+    detail: string | { msg: string }[];
+  };
+  if (Array.isArray(detail)) {
+    return detail.map((error) => error.msg).join(" ");
+  }
   return detail;
 }
 
