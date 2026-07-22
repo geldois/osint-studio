@@ -118,7 +118,7 @@ export default function WhiteboardPage() {
         </button>
         {isBlocked ? (
           <span className="text-amber-500 text-sm">
-            Limite de requisições atingido. Tente novamente em {retryAfterSeconds}s.
+            Limite atingido. Tente novamente em {retryAfterSeconds}s.
           </span>
         ) : error ? (
           <span className="text-red-500 text-sm">{error.message}</span>

@@ -9,7 +9,7 @@ export class RateLimitError extends Error {
   readonly retryAfterSeconds: number;
 
   constructor(retryAfterSeconds: number) {
-    super("Limite de requisições atingido.");
+    super("Limite atingido.");
     this.name = "RateLimitError";
     this.retryAfterSeconds = retryAfterSeconds;
   }

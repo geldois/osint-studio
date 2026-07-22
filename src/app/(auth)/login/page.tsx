@@ -72,6 +72,7 @@ export default function LoginPage() {
           }}
           placeholder="Usuário"
           autoComplete="username"
+          required
           className="w-full rounded border border-border bg-background px-3 py-2"
         />
         <input
@@ -82,6 +83,7 @@ export default function LoginPage() {
           }}
           placeholder="Senha"
           autoComplete="current-password"
+          required
           className="w-full rounded border border-border bg-background px-3 py-2"
         />
 
@@ -91,7 +93,7 @@ export default function LoginPage() {
           ) : null}
           {isBlocked ? (
             <p className="text-sm text-amber-500">
-              Limite de requisições atingido. Tente novamente em {retryAfterSeconds}s.
+              Limite atingido. Tente novamente em {retryAfterSeconds}s.
             </p>
           ) : null}
         </div>
