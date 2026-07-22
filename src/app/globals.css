@@ -28,3 +28,7 @@
   --border: #383838;
   --muted: #888888;
 }
+
+button:not(:disabled) {
+  cursor: pointer;
+}
