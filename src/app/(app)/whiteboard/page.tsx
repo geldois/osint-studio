@@ -4,7 +4,6 @@ import "@xyflow/react/dist/style.css";
 
 import {
   Background,
-  Controls,
   type NodeTypes,
   ReactFlow,
   ReactFlowProvider,
@@ -61,9 +60,9 @@ function Flow() {
       nodeTypes={NODE_TYPES}
       onNodesChange={onNodesChange}
       fitView
+      proOptions={{ hideAttribution: true }}
     >
       <Background />
-      <Controls />
     </ReactFlow>
   );
 }
