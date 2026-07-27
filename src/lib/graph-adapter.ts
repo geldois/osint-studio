@@ -88,7 +88,18 @@ export function nodeToRows(node: ApiNode): CardRow[] {
     case "phone":
       return [{ key: "telefone", value: node.number }];
     case "sanction":
-      return [{ key: "órgão", value: node.organ }];
+      return [
+        { key: "órgão", value: node.organ },
+        { key: "tipo", value: node.sanction_type },
+        { key: "órgão sancionador", value: node.sanctioning_body },
+        { key: "fundamentação legal", value: node.legal_basis.join(", ") || "—" },
+        { key: "início", value: node.start_date ?? "—" },
+        { key: "fim", value: node.end_date ?? "—" },
+        { key: "publicação", value: node.publication_date ?? "—" },
+        { key: "processo", value: node.process_number ?? "—" },
+        { key: "valor da multa", value: node.fine_amount ?? "—" },
+        { key: "publicação (link)", value: node.publication_link },
+      ];
   }
 }
 

@@ -84,7 +84,16 @@ export interface PhoneNode {
 export interface SanctionNode {
   id: string;
   type: "sanction";
+  end_date: string | null;
+  fine_amount: string | null;
+  legal_basis: string[];
   organ: "CEIS" | "CNEP";
+  process_number: string | null;
+  publication_date: string | null;
+  publication_link: string;
+  sanction_type: string;
+  sanctioning_body: string;
+  start_date: string | null;
 }
 
 export type ApiNode =
