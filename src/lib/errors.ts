@@ -24,3 +24,18 @@ export function translateError(error: unknown): string {
   }
   return "Erro desconhecido.";
 }
+
+const _CREDENTIAL_ERROR_CODES = new Set([
+  "EXTERNAL_CREDENTIAL_NOT_FOUND",
+  "EXTERNAL_CREDENTIAL_REJECTED",
+]);
+
+/** These surface via the settings button's warning icon instead of inline
+ * text, so callers building an on-screen error banner should filter them out. */
+export function isCredentialError(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.errorCode !== null &&
+    _CREDENTIAL_ERROR_CODES.has(error.errorCode)
+  );
+}

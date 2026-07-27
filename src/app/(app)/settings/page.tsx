@@ -1,9 +1,10 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { fetchCredentialStatus, saveCredential } from "@/lib/api";
+import { useCredentialStatus } from "@/hooks/use-credential-status";
+import { saveCredential } from "@/lib/api";
 import { translateError } from "@/lib/errors";
 import { useAuthStore } from "@/store/auth";
 import type { Provider } from "@/types/api";
@@ -87,10 +88,7 @@ export default function SettingsPage() {
 }
 
 function SettingsForm({ token }: { token: string }) {
-  const { data, error, isLoading } = useQuery({
-    queryKey: ["credential-status"],
-    queryFn: () => fetchCredentialStatus(token),
-  });
+  const { data, error, isLoading } = useCredentialStatus();
 
   return (
     <div className="mx-auto max-w-lg p-6">
