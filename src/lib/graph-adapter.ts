@@ -237,7 +237,11 @@ interface PositionedBox {
 // not a replacement for it.
 function separateOverlaps(boxes: PositionedBox[]): void {
   const PADDING = 24;
-  const MAX_PASSES = 12;
+  // A pairwise push-apart pass only resolves one overlapping pair per sweep in
+  // the worst case (a long chain of stacked siblings, e.g. a company with 40+
+  // directors) — 12 passes converged for small graphs but left large fan-outs
+  // still overlapping. Scale with node count so dense components fully settle.
+  const MAX_PASSES = Math.max(60, boxes.length * 4);
   for (let pass = 0; pass < MAX_PASSES; pass += 1) {
     let moved = false;
     for (let i = 0; i < boxes.length; i += 1) {
