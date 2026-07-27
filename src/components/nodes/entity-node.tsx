@@ -40,11 +40,11 @@ export function EntityNode({ data, selected }: NodeProps<EntityNodeType>) {
       </div>
       <div className="px-3 py-2">
         <table className="w-full border-collapse">
-          <tbody>
+          <tbody className="divide-y divide-border/60">
             {data.rows.map((row) => (
               <tr key={`${row.key}-${row.value}`} className="align-top">
-                <td className="whitespace-nowrap py-0.5 pr-3 opacity-50">{row.key}</td>
-                <td className="break-all py-0.5">{row.value}</td>
+                <td className="whitespace-nowrap py-1 pr-3 opacity-50">{row.key}</td>
+                <td className="break-all py-1">{row.value}</td>
               </tr>
             ))}
           </tbody>

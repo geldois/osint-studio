@@ -45,11 +45,21 @@ function Flow() {
   }, [rawNodes, rawEdges, roots, setNodes]);
 
   useEffect(() => {
-    if (nodesInitialized && needsLayoutRef.current && nodes.length > 0) {
-      needsLayoutRef.current = false;
-      setNodes(layoutGraph(nodes, edges));
-      void fitView({ duration: 300 });
+    if (!nodesInitialized || !needsLayoutRef.current || nodes.length === 0) {
+      return undefined;
     }
+    needsLayoutRef.current = false;
+    let cancelled = false;
+    void layoutGraph(nodes, edges).then((laidOut) => {
+      if (cancelled) {
+        return;
+      }
+      setNodes(laidOut);
+      void fitView({ duration: 300 });
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [nodesInitialized, nodes, edges, setNodes, fitView]);
 
   return (
