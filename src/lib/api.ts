@@ -94,3 +94,29 @@ export async function fetchGraph(cnpj: string, token: string): Promise<GraphSche
   }
   return res.json() as Promise<GraphSchema>;
 }
+
+/** 204 means no sanctions were found for this CPF/CNPJ — a valid empty result. */
+async function fetchSanctions(
+  path: "cnep" | "ceis",
+  cpfOrCnpj: string,
+  token: string,
+): Promise<GraphSchema | null> {
+  const res = await fetch(`${API_URL}/${path}/${cpfOrCnpj}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 204) {
+    return null;
+  }
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return res.json() as Promise<GraphSchema>;
+}
+
+export function fetchCNEP(cpfOrCnpj: string, token: string): Promise<GraphSchema | null> {
+  return fetchSanctions("cnep", cpfOrCnpj, token);
+}
+
+export function fetchCEIS(cpfOrCnpj: string, token: string): Promise<GraphSchema | null> {
+  return fetchSanctions("ceis", cpfOrCnpj, token);
+}
