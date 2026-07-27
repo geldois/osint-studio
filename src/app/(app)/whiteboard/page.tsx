@@ -11,7 +11,7 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EntityNode } from "@/components/nodes/entity-node";
 import { useExpand } from "@/hooks/use-expand";
 import { RateLimitError } from "@/lib/api";
@@ -19,6 +19,7 @@ import { translateError } from "@/lib/errors";
 import {
   apiEdgeToRfEdge,
   type EntityNode as EntityNodeType,
+  layoutGraph,
   projectGraph,
 } from "@/lib/graph-adapter";
 import { useGraphStore } from "@/store/graph";
@@ -29,30 +30,27 @@ function Flow() {
   const rawNodes = useGraphStore((s) => s.rawNodes);
   const rawEdges = useGraphStore((s) => s.rawEdges);
   const roots = useGraphStore((s) => s.roots);
-  const layout = useGraphStore((s) => s.layout);
   const { fitView } = useReactFlow();
 
   const [nodes, setNodes, onNodesChange] = useNodesState<EntityNodeType>([]);
   const nodesInitialized = useNodesInitialized();
+  const needsLayoutRef = useRef(false);
 
   const edges = useMemo(() => rawEdges.map(apiEdgeToRfEdge), [rawEdges]);
 
   useEffect(() => {
-    const { nodes: projected } = projectGraph(rawNodes, rawEdges, roots, layout);
-    setNodes((previous) => {
-      const byId = new Map(previous.map((node) => [node.id, node]));
-      return projected.map((node) => {
-        const existing = byId.get(node.id);
-        return existing ? { ...existing, data: node.data } : node;
-      });
-    });
-  }, [rawNodes, rawEdges, roots, layout, setNodes]);
+    const { nodes: projected } = projectGraph(rawNodes, rawEdges, roots);
+    needsLayoutRef.current = true;
+    setNodes(projected);
+  }, [rawNodes, rawEdges, roots, setNodes]);
 
   useEffect(() => {
-    if (nodesInitialized && nodes.length > 0) {
+    if (nodesInitialized && needsLayoutRef.current && nodes.length > 0) {
+      needsLayoutRef.current = false;
+      setNodes(layoutGraph(nodes, edges));
       void fitView({ duration: 300 });
     }
-  }, [nodesInitialized, nodes.length, fitView]);
+  }, [nodesInitialized, nodes, edges, setNodes, fitView]);
 
   return (
     <ReactFlow
@@ -103,7 +101,7 @@ export default function WhiteboardPage() {
           disabled={isPending || isBlocked || cnpj.trim() === ""}
           onClick={() => {
             mutate(
-              { cnpj: cnpj.trim(), anchorId: null },
+              { cnpj: cnpj.trim() },
               {
                 onError: (mutationError) => {
                   if (mutationError instanceof RateLimitError) {

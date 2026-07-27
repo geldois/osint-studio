@@ -6,7 +6,6 @@ import type { GraphSchema } from "@/types/api";
 
 interface ExpandVars {
   cnpj: string;
-  anchorId: string | null;
 }
 
 interface ExpandResult {
@@ -43,9 +42,9 @@ export function useExpand() {
 
       return { errors, schemas };
     },
-    onSuccess: ({ schemas }, { anchorId }) => {
+    onSuccess: ({ schemas }) => {
       for (const schema of schemas) {
-        mergeGraph(schema, anchorId);
+        mergeGraph(schema);
       }
     },
   });

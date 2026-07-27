@@ -6,7 +6,7 @@ import { useExpand } from "@/hooks/use-expand";
 import type { EntityNode as EntityNodeType } from "@/lib/graph-adapter";
 
 const nodeVariants = cva(
-  "flex w-full flex-col overflow-hidden rounded-md border-2 bg-surface text-foreground text-xs shadow",
+  "flex w-[280px] flex-col overflow-hidden rounded-md border-2 bg-surface text-foreground text-[13px] shadow-lg",
   {
     variants: {
       nodeType: {
@@ -26,13 +26,13 @@ const nodeVariants = cva(
   },
 );
 
-export function EntityNode({ id, data, selected }: NodeProps<EntityNodeType>) {
+export function EntityNode({ data, selected }: NodeProps<EntityNodeType>) {
   const { mutate, isPending } = useExpand();
   const cnpj = data.nodeType === "company" ? data.cnpj : null;
 
   return (
     <div className={nodeVariants({ nodeType: data.nodeType, isRoot: data.isRoot })}>
-      <NodeResizer minWidth={200} minHeight={100} isVisible={selected} />
+      <NodeResizer minWidth={220} minHeight={48} isVisible={selected} />
       <Handle type="target" position={Position.Top} />
       <div className="flex items-baseline justify-between gap-2 border-border border-b px-3 py-1.5">
         <span className="truncate font-medium">{data.label}</span>
@@ -43,8 +43,8 @@ export function EntityNode({ id, data, selected }: NodeProps<EntityNodeType>) {
           <tbody>
             {data.rows.map((row) => (
               <tr key={`${row.key}-${row.value}`} className="align-top">
-                <td className="whitespace-nowrap pr-3 opacity-50">{row.key}</td>
-                <td className="break-all">{row.value}</td>
+                <td className="whitespace-nowrap py-0.5 pr-3 opacity-50">{row.key}</td>
+                <td className="break-all py-0.5">{row.value}</td>
               </tr>
             ))}
           </tbody>
@@ -55,7 +55,7 @@ export function EntityNode({ id, data, selected }: NodeProps<EntityNodeType>) {
           type="button"
           disabled={isPending}
           onClick={() => {
-            mutate({ cnpj, anchorId: id });
+            mutate({ cnpj });
           }}
           className="border-border border-t bg-white/10 px-2 py-1 text-[10px] disabled:opacity-50"
         >

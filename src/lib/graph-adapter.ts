@@ -1,5 +1,11 @@
-import type { Edge, Node, XYPosition } from "@xyflow/react";
+import Dagre from "@dagrejs/dagre";
+import type { Edge, Node } from "@xyflow/react";
 import type { ApiEdge, ApiNode, NodeType } from "@/types/api";
+
+const DEFAULT_NODE_WIDTH = 280;
+const DEFAULT_NODE_HEIGHT = 120;
+const NODE_RANK_SEPARATION = 96;
+const NODE_SEPARATION = 64;
 
 export interface CardRow {
   key: string;
@@ -16,14 +22,6 @@ export type CardData = {
 };
 
 export type EntityNode = Node<CardData, "entity">;
-
-export interface NodeLayout {
-  position: XYPosition;
-  width?: number;
-  height?: number;
-}
-
-export type LayoutMap = Record<string, NodeLayout>;
 
 export function extractLabel(node: ApiNode): string {
   switch (node.type) {
@@ -103,19 +101,6 @@ export function nodeToRows(node: ApiNode): CardRow[] {
   }
 }
 
-export function radialPosition(
-  index: number,
-  count: number,
-  center: XYPosition,
-  radius: number,
-): XYPosition {
-  const angle = (2 * Math.PI * index) / count - Math.PI / 2;
-  return {
-    x: center.x + radius * Math.cos(angle),
-    y: center.y + radius * Math.sin(angle),
-  };
-}
-
 export function edgeKey(edge: ApiEdge): string {
   return `${edge.source_id}|${edge.target_id}|${edge.type}`;
 }
@@ -134,16 +119,12 @@ export function projectGraph(
   rawNodes: ApiNode[],
   rawEdges: ApiEdge[],
   roots: Set<string>,
-  layout: LayoutMap,
 ): { nodes: EntityNode[]; edges: Edge[] } {
-  const nodes = rawNodes.map((node): EntityNode => {
-    const nodeLayout = layout[node.id];
-    return {
+  const nodes = rawNodes.map(
+    (node): EntityNode => ({
       id: node.id,
       type: "entity",
-      position: nodeLayout?.position ?? { x: 0, y: 0 },
-      ...(nodeLayout?.width !== undefined ? { width: nodeLayout.width } : {}),
-      ...(nodeLayout?.height !== undefined ? { height: nodeLayout.height } : {}),
+      position: { x: 0, y: 0 },
       data: {
         label: extractLabel(node),
         nodeType: node.type,
@@ -151,7 +132,43 @@ export function projectGraph(
         cnpj: node.type === "company" ? node.cnpj : null,
         rows: nodeToRows(node),
       },
-    };
-  });
+    }),
+  );
   return { nodes, edges: rawEdges.map(apiEdgeToRfEdge) };
+}
+
+type DagreGraph = Parameters<typeof Dagre.layout>[0];
+
+export function layoutGraph(nodes: EntityNode[], edges: Edge[]): EntityNode[] {
+  // @dagrejs/dagre's own .d.ts leaves graphlib.Graph()'s constructor generics
+  // unresolved against layout()'s parameter type; tsc verifies this assignment
+  // is sound, the lint rule just can't see it through the upstream stub.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const graph: DagreGraph = new Dagre.graphlib.Graph().setDefaultEdgeLabel(
+    () => ({}),
+  );
+  graph.setGraph({
+    rankdir: "TB",
+    ranksep: NODE_RANK_SEPARATION,
+    nodesep: NODE_SEPARATION,
+  });
+
+  for (const node of nodes) {
+    graph.setNode(node.id, {
+      width: node.measured?.width ?? DEFAULT_NODE_WIDTH,
+      height: node.measured?.height ?? DEFAULT_NODE_HEIGHT,
+    });
+  }
+  for (const edge of edges) {
+    graph.setEdge(edge.source, edge.target);
+  }
+
+  Dagre.layout(graph);
+
+  return nodes.map((node) => {
+    const width = node.measured?.width ?? DEFAULT_NODE_WIDTH;
+    const height = node.measured?.height ?? DEFAULT_NODE_HEIGHT;
+    const { x, y } = graph.node(node.id) as { x: number; y: number };
+    return { ...node, position: { x: x - width / 2, y: y - height / 2 } };
+  });
 }
