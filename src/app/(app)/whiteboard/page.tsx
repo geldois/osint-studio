@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EntityNode } from "@/components/nodes/entity-node";
 import { useExpand } from "@/hooks/use-expand";
 import { RateLimitError } from "@/lib/api";
+import { translateError } from "@/lib/errors";
 import {
   apiEdgeToRfEdge,
   type EntityNode as EntityNodeType,
@@ -70,7 +71,7 @@ function Flow() {
 export default function WhiteboardPage() {
   const [cnpj, setCnpj] = useState("");
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
-  const { mutate, isPending, error } = useExpand();
+  const { mutate, isPending, error, data } = useExpand();
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) {
@@ -121,7 +122,11 @@ export default function WhiteboardPage() {
             Limite atingido. Tente novamente em {retryAfterSeconds}s.
           </span>
         ) : error ? (
-          <span className="text-red-500 text-sm">{error.message}</span>
+          <span className="text-red-500 text-sm">{translateError(error)}</span>
+        ) : data && data.errors.length > 0 ? (
+          <span className="text-amber-500 text-sm">
+            {data.errors.map(translateError).join(" ")}
+          </span>
         ) : null}
       </header>
 

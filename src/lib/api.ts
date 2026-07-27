@@ -1,5 +1,6 @@
+import { ApiError } from "@/lib/errors";
 import { useAuthStore } from "@/store/auth";
-import type { GraphSchema, TokenResponse } from "@/types/api";
+import type { CredentialStatus, GraphSchema, Provider, TokenResponse } from "@/types/api";
 
 export const API_URL = (
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
@@ -28,14 +29,13 @@ function parseRetryAfterSeconds(res: Response): number {
   return Number.isFinite(seconds) ? seconds : 60;
 }
 
-async function parseErrorDetail(res: Response): Promise<string> {
-  const { detail } = (await res.json()) as {
+async function parseApiError(res: Response): Promise<ApiError> {
+  const { detail, type } = (await res.json()) as {
     detail: string | { msg: string }[];
+    type: string | null;
   };
-  if (Array.isArray(detail)) {
-    return detail.map((error) => error.msg).join(" ");
-  }
-  return detail;
+  const message = Array.isArray(detail) ? detail.map((error) => error.msg).join(" ") : detail;
+  return new ApiError(message, type);
 }
 
 /** For unauthenticated endpoints (login, viewer-token): a 401 here means
@@ -45,21 +45,33 @@ async function throwForPublicEndpointError(res: Response): Promise<never> {
   if (res.status === 429) {
     throw new RateLimitError(parseRetryAfterSeconds(res));
   }
-  throw new Error(await parseErrorDetail(res));
+  throw await parseApiError(res);
 }
+
+/** A rejected external-provider API key (Portal da Transparência) also maps
+ * to 401, but it's the session's own JWT that's still valid — only the
+ * stored external credential is bad. Must not clear the session token. */
+const _EXTERNAL_CREDENTIAL_ERROR_CODES = new Set(["EXTERNAL_CREDENTIAL_REJECTED"]);
 
 /** For endpoints that require an existing session: a 401 here means the
  * token expired mid-use, so it clears the store — AuthGuard reacts to
  * token becoming null and redirects to /login on its own. */
 async function throwForAuthenticatedEndpointError(res: Response): Promise<never> {
   if (res.status === 401) {
+    const apiError = await parseApiError(res);
+    if (
+      apiError.errorCode !== null &&
+      _EXTERNAL_CREDENTIAL_ERROR_CODES.has(apiError.errorCode)
+    ) {
+      throw apiError;
+    }
     useAuthStore.getState().clearToken();
     throw new SessionExpiredError();
   }
   if (res.status === 429) {
     throw new RateLimitError(parseRetryAfterSeconds(res));
   }
-  throw new Error(await parseErrorDetail(res));
+  throw await parseApiError(res);
 }
 
 export async function login(
@@ -119,4 +131,32 @@ export function fetchCNEP(cpfOrCnpj: string, token: string): Promise<GraphSchema
 
 export function fetchCEIS(cpfOrCnpj: string, token: string): Promise<GraphSchema | null> {
   return fetchSanctions("ceis", cpfOrCnpj, token);
+}
+
+export async function fetchCredentialStatus(token: string): Promise<CredentialStatus[]> {
+  const res = await fetch(`${API_URL}/credentials`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return res.json() as Promise<CredentialStatus[]>;
+}
+
+export async function saveCredential(
+  provider: Provider,
+  apiKey: string,
+  token: string,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/credentials`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ api_key: apiKey, provider }),
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
 }

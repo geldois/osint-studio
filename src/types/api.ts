@@ -3,6 +3,13 @@ export interface TokenResponse {
   token_type: "bearer";
 }
 
+export type Provider = "PORTAL_TRANSPARENCIA";
+
+export interface CredentialStatus {
+  configured: boolean;
+  provider: Provider;
+}
+
 export type NodeType =
   "address" | "cnae" | "company" | "email" | "person" | "phone" | "sanction";
 
