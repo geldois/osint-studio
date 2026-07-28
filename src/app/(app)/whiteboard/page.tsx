@@ -24,8 +24,8 @@ import { useExpand } from "@/hooks/use-expand";
 import { RateLimitError } from "@/lib/api";
 import { translateError, visibleErrorMessages } from "@/lib/errors";
 import {
-  apiEdgeToRfEdge,
   type EntityNode as EntityNodeType,
+  groupEdgesByPair,
   layoutGraph,
   projectGraph,
 } from "@/lib/graph-adapter";
@@ -44,7 +44,7 @@ function Flow() {
 
   const [nodes, setNodes, onNodesChange] = useNodesState<EntityNodeType>([]);
 
-  const edges = useMemo(() => rawEdges.map(apiEdgeToRfEdge), [rawEdges]);
+  const edges = useMemo(() => groupEdgesByPair(rawEdges), [rawEdges]);
 
   // Kept in sync via effect (not during render) and read from inside the
   // async layout poll below. React Flow fires internal dimension-change

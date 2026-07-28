@@ -9,6 +9,7 @@ import {
   counterpartLabel,
   edgeAttributes,
   edgeTypeLabel,
+  nodeTypeLabel,
   relationshipsForNode,
 } from "@/lib/relationships";
 import { useGraphStore } from "@/store/graph";
@@ -17,6 +18,7 @@ import { useSelectionStore } from "@/store/selection";
 function NodePanel({ nodeId }: { nodeId: string }) {
   const rawNodes = useGraphStore((s) => s.rawNodes);
   const rawEdges = useGraphStore((s) => s.rawEdges);
+  const selectNode = useSelectionStore((s) => s.selectNode);
   const { mutate, isPending, error, data } = useExpand();
   const backgroundErrors = data ? visibleErrorMessages(data.errors) : [];
 
@@ -40,7 +42,7 @@ function NodePanel({ nodeId }: { nodeId: string }) {
         </span>
         <div className="min-w-0">
           <div className="truncate font-medium text-sm">{extractLabel(node)}</div>
-          <div className="text-[11px] text-muted uppercase">{node.type}</div>
+          <div className="text-[11px] text-muted uppercase">{nodeTypeLabel(node.type)}</div>
         </div>
       </div>
 
@@ -82,7 +84,18 @@ function NodePanel({ nodeId }: { nodeId: string }) {
                     <span className="opacity-50">{direction === "outgoing" ? "→" : "←"}</span>
                     <span className="text-muted">{edgeTypeLabel(edge.type)}</span>
                   </div>
-                  <div className="pl-4 font-medium">{counterpartLabel(counterpart)}</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      selectNode(counterpart.id);
+                    }}
+                    className="flex items-center gap-1.5 pl-4 text-left font-medium hover:underline"
+                  >
+                    <span className="shrink-0 opacity-70">
+                      <EntityIcon nodeType={counterpart.type} size={12} />
+                    </span>
+                    {counterpartLabel(counterpart)}
+                  </button>
                   {attributes.length > 0 ? (
                     <dl className="mt-1 space-y-0.5 pl-4">
                       {attributes.map((attribute) => (

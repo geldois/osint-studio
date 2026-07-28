@@ -2,6 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { History } from "lucide-react";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import { extractLabel, nodeToRows } from "@/lib/graph-adapter";
+import { nodeTypeLabel } from "@/lib/relationships";
 import type { ApiNode, NodeType } from "@/types/api";
 
 export interface TableRow {
@@ -47,7 +48,7 @@ export const columns: ColumnDef<TableRow>[] = [
     cell: ({ row }) => (
       <span className="flex items-center gap-1.5">
         <EntityIcon nodeType={row.original.nodeType} size={13} />
-        <span className="capitalize">{row.original.nodeType}</span>
+        <span>{nodeTypeLabel(row.original.nodeType)}</span>
       </span>
     ),
   },

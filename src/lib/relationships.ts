@@ -1,5 +1,19 @@
-import type { ApiEdge, ApiNode, EdgeType } from "@/types/api";
+import type { ApiEdge, ApiNode, EdgeType, NodeType } from "@/types/api";
 import { extractLabel } from "@/lib/graph-adapter";
+
+const NODE_TYPE_LABELS: Record<NodeType, string> = {
+  address: "Endereço",
+  cnae: "CNAE",
+  company: "Empresa",
+  email: "E-mail",
+  person: "Pessoa",
+  phone: "Telefone",
+  sanction: "Sanção",
+};
+
+export function nodeTypeLabel(type: NodeType): string {
+  return NODE_TYPE_LABELS[type];
+}
 
 const EDGE_TYPE_LABELS: Record<EdgeType, string> = {
   company_has_cnae: "possui CNAE",
@@ -59,7 +73,13 @@ export function relationshipsForNode(
       }
     }
   }
-  return relationships;
+  return relationships.sort((a, b) => {
+    const byEdgeType = edgeTypeLabel(a.edge.type).localeCompare(edgeTypeLabel(b.edge.type), "pt-BR");
+    if (byEdgeType !== 0) {
+      return byEdgeType;
+    }
+    return counterpartLabel(a.counterpart).localeCompare(counterpartLabel(b.counterpart), "pt-BR");
+  });
 }
 
 export function counterpartLabel(node: ApiNode): string {

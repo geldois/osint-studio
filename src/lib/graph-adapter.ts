@@ -4,7 +4,7 @@ import type { Edge, Node } from "@xyflow/react";
 import type { ApiEdge, ApiNode, NodeType } from "@/types/api";
 
 const DEFAULT_NODE_WIDTH = 208;
-const DEFAULT_NODE_HEIGHT = 48;
+const DEFAULT_NODE_HEIGHT = 64;
 const COMPONENT_MARGIN = 160;
 
 const elk = new ELK();
@@ -108,13 +108,49 @@ export function edgeKey(edge: ApiEdge): string {
   return `${edge.source_id}|${edge.target_id}|${edge.type}`;
 }
 
-export function apiEdgeToRfEdge(edge: ApiEdge): Edge {
-  return {
-    id: edgeKey(edge),
-    source: edge.source_id,
-    target: edge.target_id,
+export interface EdgeRelationship {
+  edgeId: string;
+  edgeType: ApiEdge["type"];
+  /** "forward" if this relationship's source_id is the RF edge's source
+   * (line points source → target); "backward" if it runs the other way. */
+  direction: "forward" | "backward";
+}
+
+export interface RelationshipEdgeData extends Record<string, unknown> {
+  relationships: EdgeRelationship[];
+}
+
+/** React Flow draws one line per array entry, so two relationships between
+ * the same pair of nodes (e.g. a person owns a company AND shares its
+ * address) would render as two overlapping lines each with their own
+ * marker. Grouping by unordered node pair collapses them into a single
+ * line with one marker carrying every relationship for that pair, so the
+ * UI shows one diamond + a stacked list instead of duplicates. */
+export function groupEdgesByPair(edges: ApiEdge[]): Edge<RelationshipEdgeData>[] {
+  const groups = new Map<
+    string,
+    { source: string; target: string; relationships: EdgeRelationship[] }
+  >();
+  for (const edge of edges) {
+    const pairKey = [edge.source_id, edge.target_id].sort().join("|");
+    let group = groups.get(pairKey);
+    if (group === undefined) {
+      group = { source: edge.source_id, target: edge.target_id, relationships: [] };
+      groups.set(pairKey, group);
+    }
+    group.relationships.push({
+      edgeId: edgeKey(edge),
+      edgeType: edge.type,
+      direction: edge.source_id === group.source ? "forward" : "backward",
+    });
+  }
+  return [...groups.entries()].map(([pairKey, group]) => ({
+    id: pairKey,
+    source: group.source,
+    target: group.target,
     type: "relationship",
-  };
+    data: { relationships: group.relationships },
+  }));
 }
 
 export function projectGraph(
@@ -137,7 +173,7 @@ export function projectGraph(
       },
     }),
   );
-  return { nodes, edges: rawEdges.map(apiEdgeToRfEdge) };
+  return { nodes, edges: groupEdgesByPair(rawEdges) };
 }
 
 function findConnectedComponents(nodeIds: string[], edges: Edge[]): string[][] {

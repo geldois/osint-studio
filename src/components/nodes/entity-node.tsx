@@ -4,6 +4,7 @@ import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { cva } from "class-variance-authority";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import type { EntityNode as EntityNodeType } from "@/lib/graph-adapter";
+import { nodeTypeLabel } from "@/lib/relationships";
 import { useSelectionStore } from "@/store/selection";
 
 const nodeVariants = cva(
@@ -44,7 +45,12 @@ export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
       <span className="mt-0.5 shrink-0 opacity-70">
         <EntityIcon nodeType={data.nodeType} />
       </span>
-      <span className="line-clamp-2 text-left font-medium leading-snug">{data.label}</span>
+      <span className="flex min-w-0 flex-col gap-0.5 text-left">
+        <span className="line-clamp-2 font-medium leading-snug">{data.label}</span>
+        <span className="text-[9px] text-muted uppercase tracking-wide">
+          {nodeTypeLabel(data.nodeType)}
+        </span>
+      </span>
       {data.isRoot ? (
         <span className="ml-auto mt-0.5 shrink-0 text-[9px] opacity-50">●</span>
       ) : null}
