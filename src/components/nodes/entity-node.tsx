@@ -28,7 +28,8 @@ const nodeVariants = cva(
 
 export function EntityNode({ data, selected }: NodeProps<EntityNodeType>) {
   const { mutate, isPending } = useExpand();
-  const cnpj = data.nodeType === "company" ? data.cnpj : null;
+  const expandableDocument =
+    data.nodeType === "company" ? data.cnpj : data.nodeType === "person" ? data.cpf : null;
 
   return (
     <div className={nodeVariants({ nodeType: data.nodeType, isRoot: data.isRoot })}>
@@ -50,12 +51,12 @@ export function EntityNode({ data, selected }: NodeProps<EntityNodeType>) {
           </tbody>
         </table>
       </div>
-      {cnpj !== null ? (
+      {expandableDocument !== null ? (
         <button
           type="button"
           disabled={isPending}
           onClick={() => {
-            mutate({ cnpj });
+            mutate({ document: expandableDocument });
           }}
           className="border-border border-t bg-white/10 px-2 py-1 text-[10px] disabled:opacity-50"
         >

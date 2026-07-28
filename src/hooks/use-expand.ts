@@ -1,11 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
-import { fetchCEIS, fetchCNEP, fetchGraph } from "@/lib/api";
+import { fetchCEIS, fetchCNEP, fetchGraph, fetchGraphByCpf } from "@/lib/api";
+import { isCpf } from "@/lib/document";
 import { useAuthStore } from "@/store/auth";
 import { useGraphStore } from "@/store/graph";
 import type { GraphSchema } from "@/types/api";
 
 interface ExpandVars {
-  cnpj: string;
+  document: string;
 }
 
 interface ExpandResult {
@@ -18,15 +19,17 @@ export function useExpand() {
   const mergeGraph = useGraphStore((s) => s.mergeGraph);
 
   return useMutation({
-    mutationFn: async ({ cnpj }: ExpandVars): Promise<ExpandResult> => {
+    mutationFn: async ({ document }: ExpandVars): Promise<ExpandResult> => {
       if (token === null) {
         throw new Error("Sessão expirada. Faça login novamente.");
       }
 
+      const fetchRootGraph = isCpf(document) ? fetchGraphByCpf : fetchGraph;
+
       const results = await Promise.allSettled([
-        fetchGraph(cnpj, token),
-        fetchCNEP(cnpj, token),
-        fetchCEIS(cnpj, token),
+        fetchRootGraph(document, token),
+        fetchCNEP(document, token),
+        fetchCEIS(document, token),
       ]);
 
       const schemas = results

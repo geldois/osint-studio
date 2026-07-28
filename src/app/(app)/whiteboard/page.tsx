@@ -112,7 +112,7 @@ function Flow() {
 }
 
 export default function WhiteboardPage() {
-  const [cnpj, setCnpj] = useState("");
+  const [query, setQuery] = useState("");
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const { mutate, isPending, error, data } = useExpand();
 
@@ -140,19 +140,19 @@ export default function WhiteboardPage() {
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-2 border-b border-border p-3">
         <input
-          value={cnpj}
+          value={query}
           onChange={(e) => {
-            setCnpj(e.target.value);
+            setQuery(e.target.value);
           }}
-          placeholder="CNPJ"
+          placeholder="CPF ou CNPJ"
           className="rounded border border-border bg-background px-3 py-1.5 text-sm"
         />
         <button
           type="button"
-          disabled={isPending || isBlocked || cnpj.trim() === ""}
+          disabled={isPending || isBlocked || query.trim() === ""}
           onClick={() => {
             mutate(
-              { cnpj: cnpj.trim() },
+              { document: query.trim() },
               {
                 onError: (mutationError) => {
                   if (mutationError instanceof RateLimitError) {

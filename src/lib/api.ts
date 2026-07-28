@@ -107,6 +107,16 @@ export async function fetchGraph(cnpj: string, token: string): Promise<GraphSche
   return res.json() as Promise<GraphSchema>;
 }
 
+export async function fetchGraphByCpf(cpf: string, token: string): Promise<GraphSchema> {
+  const res = await fetch(`${API_URL}/cpf/${cpf}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return res.json() as Promise<GraphSchema>;
+}
+
 /** 204 means no sanctions were found for this CPF/CNPJ — a valid empty result. */
 async function fetchSanctions(
   path: "cnep" | "ceis",

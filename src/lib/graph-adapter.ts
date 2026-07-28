@@ -20,6 +20,7 @@ export type CardData = {
   nodeType: NodeType;
   isRoot: boolean;
   cnpj: string | null;
+  cpf: string | null;
   rows: CardRow[];
 };
 
@@ -132,6 +133,7 @@ export function projectGraph(
         nodeType: node.type,
         isRoot: roots.has(node.id),
         cnpj: node.type === "company" ? node.cnpj : null,
+        cpf: node.type === "person" ? node.cpf : null,
         rows: nodeToRows(node),
       },
     }),
