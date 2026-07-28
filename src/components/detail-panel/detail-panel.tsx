@@ -5,6 +5,7 @@ import { EntityIcon } from "@/components/nodes/entity-icon";
 import { useExpand } from "@/hooks/use-expand";
 import { edgeKey, extractLabel, nodeToRows } from "@/lib/graph-adapter";
 import { translateError, visibleErrorMessages } from "@/lib/errors";
+import { canFetchDocumentType, type FetchDocumentType } from "@/lib/permissions";
 import {
   counterpartLabel,
   edgeAttributes,
@@ -12,6 +13,7 @@ import {
   nodeTypeLabel,
   relationshipsForNode,
 } from "@/lib/relationships";
+import { useAuthStore } from "@/store/auth";
 import { useGraphStore } from "@/store/graph";
 import { useSelectionStore } from "@/store/selection";
 
@@ -19,6 +21,7 @@ function NodePanel({ nodeId }: { nodeId: string }) {
   const rawNodes = useGraphStore((s) => s.rawNodes);
   const rawEdges = useGraphStore((s) => s.rawEdges);
   const selectNode = useSelectionStore((s) => s.selectNode);
+  const role = useAuthStore((s) => s.role);
   const { mutate, isPending, error, data } = useExpand();
   const backgroundErrors = data ? visibleErrorMessages(data.errors) : [];
 
@@ -31,8 +34,14 @@ function NodePanel({ nodeId }: { nodeId: string }) {
 
   const rows = nodeToRows(node);
   const relationships = relationshipsForNode(nodeId, rawEdges, nodeById);
+  const documentType: FetchDocumentType | null =
+    node.type === "company" ? "cnpj" : node.type === "person" ? "cpf" : null;
   const expandableDocument =
     node.type === "company" ? node.cnpj : node.type === "person" ? node.cpf : null;
+  const canExpand =
+    expandableDocument !== null &&
+    documentType !== null &&
+    canFetchDocumentType(role, documentType);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -113,7 +122,7 @@ function NodePanel({ nodeId }: { nodeId: string }) {
         )}
       </section>
 
-      {expandableDocument !== null ? (
+      {canExpand ? (
         <div className="space-y-2 p-4">
           <button
             type="button"
