@@ -13,11 +13,13 @@ import {
 } from "@xyflow/react";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DataTable } from "@/components/data-table/data-table";
 import { DetailPanel } from "@/components/detail-panel/detail-panel";
 import { RelationshipEdge } from "@/components/edges/relationship-edge";
 import { EntityNode } from "@/components/nodes/entity-node";
 import { SettingsMenu } from "@/components/settings-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ViewSwitch } from "@/components/view-switch";
 import { useExpand } from "@/hooks/use-expand";
 import { RateLimitError } from "@/lib/api";
 import { isCredentialError, translateError } from "@/lib/errors";
@@ -29,6 +31,7 @@ import {
 } from "@/lib/graph-adapter";
 import { useGraphStore } from "@/store/graph";
 import { useSelectionStore } from "@/store/selection";
+import { useViewStore } from "@/store/view";
 
 const NODE_TYPES: NodeTypes = { entity: EntityNode };
 const EDGE_TYPES: EdgeTypes = { relationship: RelationshipEdge };
@@ -124,6 +127,7 @@ function Flow() {
 }
 
 export default function WhiteboardPage() {
+  const view = useViewStore((s) => s.view);
   const [query, setQuery] = useState("");
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const { mutate, isPending, error, data } = useExpand();
@@ -224,10 +228,15 @@ export default function WhiteboardPage() {
       ) : null}
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1">
-          <ReactFlowProvider>
-            <Flow />
-          </ReactFlowProvider>
+        <div className="relative flex-1">
+          {view === "graph" ? (
+            <ReactFlowProvider>
+              <Flow />
+            </ReactFlowProvider>
+          ) : (
+            <DataTable />
+          )}
+          <ViewSwitch />
         </div>
         <DetailPanel />
       </div>
