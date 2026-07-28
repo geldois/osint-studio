@@ -10,8 +10,11 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
+import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EntityNode } from "@/components/nodes/entity-node";
+import { SettingsMenu } from "@/components/settings-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useExpand } from "@/hooks/use-expand";
 import { RateLimitError } from "@/lib/api";
 import { isCredentialError, translateError } from "@/lib/errors";
@@ -129,53 +132,87 @@ export default function WhiteboardPage() {
   }, [retryAfterSeconds]);
 
   const isBlocked = retryAfterSeconds > 0;
-  // Credential errors surface via the settings button's warning icon instead
+  // Credential errors surface via the settings menu's warning badge instead
   // (hover tooltip), so they're excluded here — and deduped, since a single
   // missing credential fails both the CNEP and CEIS fetches identically.
   const visibleErrors = data
     ? [...new Set(data.errors.filter((e) => !isCredentialError(e)).map(translateError))]
     : [];
+  const statusMessage = isBlocked
+    ? `Limite atingido. Tente novamente em ${String(retryAfterSeconds)}s.`
+    : error
+      ? translateError(error)
+      : visibleErrors.length > 0
+        ? visibleErrors.join(" ")
+        : null;
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-2 border-b border-border p-3">
-        <input
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-          }}
-          placeholder="CPF ou CNPJ"
-          className="rounded border border-border bg-background px-3 py-1.5 text-sm"
-        />
-        <button
-          type="button"
-          disabled={isPending || isBlocked || query.trim() === ""}
-          onClick={() => {
-            mutate(
-              { document: query.trim() },
-              {
-                onError: (mutationError) => {
-                  if (mutationError instanceof RateLimitError) {
-                    setRetryAfterSeconds(Math.ceil(mutationError.retryAfterSeconds));
-                  }
+      <header className="flex items-center justify-between gap-3 border-b border-border p-3">
+        <span className="font-semibold text-sm">OSINT Studio</span>
+
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search
+              size={14}
+              className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
+            />
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !isPending && !isBlocked && query.trim() !== "") {
+                  mutate(
+                    { document: query.trim() },
+                    {
+                      onError: (mutationError) => {
+                        if (mutationError instanceof RateLimitError) {
+                          setRetryAfterSeconds(Math.ceil(mutationError.retryAfterSeconds));
+                        }
+                      },
+                    },
+                  );
+                }
+              }}
+              placeholder="CPF ou CNPJ"
+              className="w-64 rounded border border-border bg-background py-1.5 pr-3 pl-8 text-sm"
+            />
+          </div>
+          <button
+            type="button"
+            disabled={isPending || isBlocked || query.trim() === ""}
+            onClick={() => {
+              mutate(
+                { document: query.trim() },
+                {
+                  onError: (mutationError) => {
+                    if (mutationError instanceof RateLimitError) {
+                      setRetryAfterSeconds(Math.ceil(mutationError.retryAfterSeconds));
+                    }
+                  },
                 },
-              },
-            );
-          }}
-          className="rounded bg-white px-3 py-1.5 font-medium text-black text-sm disabled:opacity-50"
-        >
-          {isPending ? "Expandindo..." : "Expandir"}
-        </button>
-        {isBlocked ? (
-          <span className="text-amber-500 text-sm">
-            Limite atingido. Tente novamente em {retryAfterSeconds}s.
-          </span>
-        ) : error ? (
-          <span className="text-red-500 text-sm">{translateError(error)}</span>
-        ) : visibleErrors.length > 0 ? (
-          <span className="text-amber-500 text-sm">{visibleErrors.join(" ")}</span>
-        ) : null}
+              );
+            }}
+            className="shrink-0 rounded bg-white px-3 py-1.5 font-medium text-black text-sm disabled:opacity-50"
+          >
+            {isPending ? "Expandindo..." : "Expandir"}
+          </button>
+          <ThemeToggle />
+          <SettingsMenu />
+        </div>
       </header>
+
+      {statusMessage ? (
+        <div
+          className={`px-3 py-1.5 text-sm ${
+            isBlocked || visibleErrors.length > 0 ? "text-amber-500" : "text-red-500"
+          }`}
+        >
+          {statusMessage}
+        </div>
+      ) : null}
 
       <div className="flex-1">
         <ReactFlowProvider>

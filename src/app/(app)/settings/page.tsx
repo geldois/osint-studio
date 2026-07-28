@@ -1,6 +1,8 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCredentialStatus } from "@/hooks/use-credential-status";
@@ -92,6 +94,13 @@ function SettingsForm({ token }: { token: string }) {
 
   return (
     <div className="mx-auto max-w-lg p-6">
+      <Link
+        href="/whiteboard"
+        className="mb-4 inline-flex items-center gap-1.5 text-muted text-sm hover:text-foreground"
+      >
+        <ArrowLeft size={14} />
+        Voltar
+      </Link>
       <h1 className="mb-4 font-semibold text-lg">Configurações</h1>
       {isLoading ? <p className="text-muted text-sm">Carregando...</p> : null}
       {error ? <p className="text-red-500 text-sm">{translateError(error)}</p> : null}
