@@ -1,12 +1,13 @@
 "use client";
 
-import { Handle, type NodeProps, NodeResizer, Position } from "@xyflow/react";
+import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { cva } from "class-variance-authority";
-import { useExpand } from "@/hooks/use-expand";
+import { EntityIcon } from "@/components/nodes/entity-icon";
 import type { EntityNode as EntityNodeType } from "@/lib/graph-adapter";
+import { useSelectionStore } from "@/store/selection";
 
 const nodeVariants = cva(
-  "flex w-[280px] flex-col overflow-hidden rounded-md border-2 bg-surface text-foreground text-[13px] shadow-lg",
+  "flex w-[208px] items-start gap-2 overflow-hidden rounded-md border-2 bg-surface px-2.5 py-2 text-foreground text-[12px] shadow-lg transition-colors",
   {
     variants: {
       nodeType: {
@@ -18,7 +19,7 @@ const nodeVariants = cva(
         phone: "border-orange-500",
         sanction: "border-red-500",
       },
-      isRoot: {
+      isSelected: {
         true: "ring-2 ring-white",
         false: "",
       },
@@ -26,44 +27,28 @@ const nodeVariants = cva(
   },
 );
 
-export function EntityNode({ data, selected }: NodeProps<EntityNodeType>) {
-  const { mutate, isPending } = useExpand();
-  const expandableDocument =
-    data.nodeType === "company" ? data.cnpj : data.nodeType === "person" ? data.cpf : null;
+export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
+  const selectedNodeId = useSelectionStore((s) => s.selectedNodeId);
+  const selectNode = useSelectionStore((s) => s.selectNode);
+  const isSelected = selectedNodeId === id;
 
   return (
-    <div className={nodeVariants({ nodeType: data.nodeType, isRoot: data.isRoot })}>
-      <NodeResizer minWidth={220} minHeight={48} isVisible={selected} />
-      <Handle type="target" position={Position.Top} />
-      <div className="flex items-baseline justify-between gap-2 border-border border-b px-3 py-1.5">
-        <span className="truncate font-medium">{data.label}</span>
-        <span className="shrink-0 uppercase opacity-50">{data.nodeType}</span>
-      </div>
-      <div className="px-3 py-2">
-        <table className="w-full border-collapse">
-          <tbody className="divide-y divide-border/60">
-            {data.rows.map((row) => (
-              <tr key={`${row.key}-${row.value}`} className="align-top">
-                <td className="whitespace-nowrap py-1 pr-3 opacity-50">{row.key}</td>
-                <td className="break-all py-1">{row.value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {expandableDocument !== null ? (
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => {
-            mutate({ document: expandableDocument });
-          }}
-          className="border-border border-t bg-white/10 px-2 py-1 text-[10px] disabled:opacity-50"
-        >
-          {isPending ? "Expandindo..." : "Expandir"}
-        </button>
+    <button
+      type="button"
+      onClick={() => {
+        selectNode(id);
+      }}
+      className={nodeVariants({ nodeType: data.nodeType, isSelected })}
+    >
+      <Handle type="target" position={Position.Top} className="!opacity-0" />
+      <span className="mt-0.5 shrink-0 opacity-70">
+        <EntityIcon nodeType={data.nodeType} />
+      </span>
+      <span className="line-clamp-2 text-left font-medium leading-snug">{data.label}</span>
+      {data.isRoot ? (
+        <span className="ml-auto mt-0.5 shrink-0 text-[9px] opacity-50">●</span>
       ) : null}
-      <Handle type="source" position={Position.Bottom} />
-    </div>
+      <Handle type="source" position={Position.Bottom} className="!opacity-0" />
+    </button>
   );
 }

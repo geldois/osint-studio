@@ -3,8 +3,8 @@ import type { ElkExtendedEdge, ElkNode } from "elkjs/lib/elk-api";
 import type { Edge, Node } from "@xyflow/react";
 import type { ApiEdge, ApiNode, NodeType } from "@/types/api";
 
-const DEFAULT_NODE_WIDTH = 280;
-const DEFAULT_NODE_HEIGHT = 120;
+const DEFAULT_NODE_WIDTH = 208;
+const DEFAULT_NODE_HEIGHT = 48;
 const COMPONENT_MARGIN = 160;
 
 const elk = new ELK();
@@ -113,8 +113,7 @@ export function apiEdgeToRfEdge(edge: ApiEdge): Edge {
     id: edgeKey(edge),
     source: edge.source_id,
     target: edge.target_id,
-    type: "smoothstep",
-    ...(edge.type === "person_owns_company" ? { label: edge.role } : {}),
+    type: "relationship",
   };
 }
 

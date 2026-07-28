@@ -4,6 +4,7 @@ import "@xyflow/react/dist/style.css";
 
 import {
   Background,
+  type EdgeTypes,
   type NodeTypes,
   ReactFlow,
   ReactFlowProvider,
@@ -12,6 +13,8 @@ import {
 } from "@xyflow/react";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DetailPanel } from "@/components/detail-panel/detail-panel";
+import { RelationshipEdge } from "@/components/edges/relationship-edge";
 import { EntityNode } from "@/components/nodes/entity-node";
 import { SettingsMenu } from "@/components/settings-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -25,8 +28,10 @@ import {
   projectGraph,
 } from "@/lib/graph-adapter";
 import { useGraphStore } from "@/store/graph";
+import { useSelectionStore } from "@/store/selection";
 
 const NODE_TYPES: NodeTypes = { entity: EntityNode };
+const EDGE_TYPES: EdgeTypes = { relationship: RelationshipEdge };
 
 function Flow() {
   const rawNodes = useGraphStore((s) => s.rawNodes);
@@ -100,12 +105,16 @@ function Flow() {
     };
   }, [rawNodes, rawEdges, roots, edges, setNodes, fitView]);
 
+  const clearSelection = useSelectionStore((s) => s.clearSelection);
+
   return (
     <ReactFlow
       nodes={nodes}
       edges={edges}
       nodeTypes={NODE_TYPES}
+      edgeTypes={EDGE_TYPES}
       onNodesChange={onNodesChange}
+      onPaneClick={clearSelection}
       fitView
       proOptions={{ hideAttribution: true }}
     >
@@ -195,7 +204,7 @@ export default function WhiteboardPage() {
                 },
               );
             }}
-            className="shrink-0 rounded bg-white px-3 py-1.5 font-medium text-black text-sm disabled:opacity-50"
+            className="shrink-0 rounded border border-border bg-surface px-3 py-1.5 font-medium text-sm hover:bg-white/10 disabled:opacity-50"
           >
             {isPending ? "Expandindo..." : "Expandir"}
           </button>
@@ -214,10 +223,13 @@ export default function WhiteboardPage() {
         </div>
       ) : null}
 
-      <div className="flex-1">
-        <ReactFlowProvider>
-          <Flow />
-        </ReactFlowProvider>
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1">
+          <ReactFlowProvider>
+            <Flow />
+          </ReactFlowProvider>
+        </div>
+        <DetailPanel />
       </div>
     </div>
   );
