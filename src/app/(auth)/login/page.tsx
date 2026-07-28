@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { API_URL, login, loginAsVisitor, RateLimitError } from "@/lib/api";
+import { translateError } from "@/lib/errors";
 import { useAuthStore } from "@/store/auth";
 
 export default function LoginPage() {
@@ -89,7 +90,7 @@ export default function LoginPage() {
 
         <div className="min-h-5">
           {error && !isBlocked ? (
-            <p className="text-sm text-red-500">{error.message}</p>
+            <p className="text-sm text-red-500">{translateError(error)}</p>
           ) : null}
           {isBlocked ? (
             <p className="text-sm text-amber-500">

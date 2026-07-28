@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import { useExpand } from "@/hooks/use-expand";
 import { edgeKey, extractLabel, nodeToRows } from "@/lib/graph-adapter";
+import { translateError, visibleErrorMessages } from "@/lib/errors";
 import {
   counterpartLabel,
   edgeAttributes,
@@ -16,7 +17,8 @@ import { useSelectionStore } from "@/store/selection";
 function NodePanel({ nodeId }: { nodeId: string }) {
   const rawNodes = useGraphStore((s) => s.rawNodes);
   const rawEdges = useGraphStore((s) => s.rawEdges);
-  const { mutate, isPending } = useExpand();
+  const { mutate, isPending, error, data } = useExpand();
+  const backgroundErrors = data ? visibleErrorMessages(data.errors) : [];
 
   const nodeById = new Map(rawNodes.map((n) => [n.id, n] as const));
   const node = nodeById.get(nodeId);
@@ -99,7 +101,7 @@ function NodePanel({ nodeId }: { nodeId: string }) {
       </section>
 
       {expandableDocument !== null ? (
-        <div className="p-4">
+        <div className="space-y-2 p-4">
           <button
             type="button"
             disabled={isPending}
@@ -110,6 +112,11 @@ function NodePanel({ nodeId }: { nodeId: string }) {
           >
             {isPending ? "Expandindo..." : "Expandir relacionamentos"}
           </button>
+          {error ? (
+            <p className="text-red-500 text-xs">{translateError(error)}</p>
+          ) : backgroundErrors.length > 0 ? (
+            <p className="text-amber-500 text-xs">{backgroundErrors.join(" ")}</p>
+          ) : null}
         </div>
       ) : null}
     </div>

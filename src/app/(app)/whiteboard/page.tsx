@@ -22,7 +22,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ViewSwitch } from "@/components/view-switch";
 import { useExpand } from "@/hooks/use-expand";
 import { RateLimitError } from "@/lib/api";
-import { isCredentialError, translateError } from "@/lib/errors";
+import { translateError, visibleErrorMessages } from "@/lib/errors";
 import {
   apiEdgeToRfEdge,
   type EntityNode as EntityNodeType,
@@ -145,12 +145,7 @@ export default function WhiteboardPage() {
   }, [retryAfterSeconds]);
 
   const isBlocked = retryAfterSeconds > 0;
-  // Credential errors surface via the settings menu's warning badge instead
-  // (hover tooltip), so they're excluded here — and deduped, since a single
-  // missing credential fails both the CNEP and CEIS fetches identically.
-  const visibleErrors = data
-    ? [...new Set(data.errors.filter((e) => !isCredentialError(e)).map(translateError))]
-    : [];
+  const visibleErrors = data ? visibleErrorMessages(data.errors) : [];
   const statusMessage = isBlocked
     ? `Limite atingido. Tente novamente em ${String(retryAfterSeconds)}s.`
     : error
