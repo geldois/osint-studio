@@ -51,7 +51,7 @@ function CredentialRow({
             setApiKey(e.target.value);
           }}
           placeholder="Chave da API"
-          className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm"
+          className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm outline-none transition-colors focus:border-white/40 focus:ring-2 focus:ring-white/10"
         />
         <button
           type="button"

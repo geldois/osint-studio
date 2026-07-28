@@ -185,7 +185,7 @@ export default function WhiteboardPage() {
                 }
               }}
               placeholder="CPF ou CNPJ"
-              className="w-64 rounded border border-border bg-background py-1.5 pr-3 pl-8 text-sm"
+              className="w-64 rounded border border-border bg-background py-1.5 pr-3 pl-8 text-sm outline-none transition-colors focus:border-white/40 focus:ring-2 focus:ring-white/10"
             />
           </div>
           <button
