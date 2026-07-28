@@ -29,6 +29,7 @@ import {
   layoutGraph,
   projectGraph,
 } from "@/lib/graph-adapter";
+import { useAuthStore } from "@/store/auth";
 import { useGraphStore } from "@/store/graph";
 import { useSelectionStore } from "@/store/selection";
 import { useViewStore } from "@/store/view";
@@ -128,9 +129,11 @@ function Flow() {
 
 export default function WhiteboardPage() {
   const view = useViewStore((s) => s.view);
+  const role = useAuthStore((s) => s.role);
   const [query, setQuery] = useState("");
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const { mutate, isPending, error, data } = useExpand();
+  const searchPlaceholder = role === "VIEWER" ? "CNPJ" : "CPF ou CNPJ";
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) {
@@ -156,11 +159,11 @@ export default function WhiteboardPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-border p-3">
-        <span className="font-semibold text-sm">OSINT Studio</span>
+      <header className="flex items-center justify-between gap-2 border-b border-border p-3 sm:gap-3">
+        <span className="shrink-0 font-semibold text-sm">OSINT Studio</span>
 
-        <div className="flex items-center gap-2">
-          <div className="relative">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+          <div className="relative min-w-0">
             <Search
               size={14}
               className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
@@ -184,8 +187,8 @@ export default function WhiteboardPage() {
                   );
                 }
               }}
-              placeholder="CPF ou CNPJ"
-              className="w-64 rounded border border-border bg-background py-1.5 pr-3 pl-8 text-sm outline-none transition-colors focus:border-white/40 focus:ring-2 focus:ring-white/10"
+              placeholder={searchPlaceholder}
+              className="w-28 rounded border border-border bg-background py-1.5 pr-3 pl-8 text-sm outline-none transition-colors focus:border-white/40 focus:ring-2 focus:ring-white/10 sm:w-64"
             />
           </div>
           <button
@@ -203,9 +206,11 @@ export default function WhiteboardPage() {
                 },
               );
             }}
-            className="shrink-0 rounded border border-border bg-surface px-3 py-1.5 font-medium text-sm hover:bg-white/10 disabled:opacity-50"
+            aria-label="Expandir"
+            className="shrink-0 rounded border border-border bg-surface px-2 py-1.5 font-medium text-sm hover:bg-white/10 disabled:opacity-50 sm:px-3"
           >
-            {isPending ? "Expandindo..." : "Expandir"}
+            <Search size={14} className="sm:hidden" />
+            <span className="hidden sm:inline">{isPending ? "Expandindo..." : "Expandir"}</span>
           </button>
           <ThemeToggle />
           <SettingsMenu />
