@@ -11,7 +11,8 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { Search } from "lucide-react";
+import { Search, Upload } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DataTable } from "@/components/data-table/data-table";
 import { DetailPanel } from "@/components/detail-panel/detail-panel";
@@ -212,6 +213,16 @@ export default function WhiteboardPage() {
             <Search size={14} className="sm:hidden" />
             <span className="hidden sm:inline">{isPending ? "Expandindo..." : "Expandir"}</span>
           </button>
+          {role === "ADMIN" ? (
+            <Link
+              href="/ingest"
+              aria-label="Ingestão de texto"
+              title="Ingestão de texto"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-border bg-surface text-foreground hover:bg-white/10"
+            >
+              <Upload size={16} />
+            </Link>
+          ) : null}
           <ThemeToggle />
           <SettingsMenu />
         </div>

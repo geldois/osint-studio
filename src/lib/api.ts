@@ -1,6 +1,12 @@
 import { ApiError } from "@/lib/errors";
 import { useAuthStore } from "@/store/auth";
-import type { CredentialStatus, GraphSchema, Provider, TokenResponse } from "@/types/api";
+import type {
+  CredentialStatus,
+  GraphSchema,
+  Provider,
+  TextPatternSet,
+  TokenResponse,
+} from "@/types/api";
 
 export const API_URL = (
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
@@ -151,6 +157,35 @@ export async function fetchCredentialStatus(token: string): Promise<CredentialSt
     return throwForAuthenticatedEndpointError(res);
   }
   return res.json() as Promise<CredentialStatus[]>;
+}
+
+export async function fetchTextPatternSets(token: string): Promise<TextPatternSet[]> {
+  const res = await fetch(`${API_URL}/text-ingestion/patterns`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return res.json() as Promise<TextPatternSet[]>;
+}
+
+export async function ingestText(
+  text: string,
+  patternSetId: string,
+  token: string,
+): Promise<GraphSchema> {
+  const res = await fetch(`${API_URL}/text-ingestion`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text, pattern_set_id: patternSetId }),
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return res.json() as Promise<GraphSchema>;
 }
 
 export async function saveCredential(

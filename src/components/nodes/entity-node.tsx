@@ -19,6 +19,7 @@ const nodeVariants = cva(
         person: "border-blue-500",
         phone: "border-orange-500",
         sanction: "border-red-500",
+        text_source: "border-slate-400",
       },
       isSelected: {
         true: "ring-2 ring-white",

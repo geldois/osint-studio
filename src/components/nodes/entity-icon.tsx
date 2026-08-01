@@ -1,4 +1,13 @@
-import { Building2, Landmark, Mail, MapPin, Phone, ShieldAlert, User } from "lucide-react";
+import {
+  Building2,
+  FileText,
+  Landmark,
+  Mail,
+  MapPin,
+  Phone,
+  ShieldAlert,
+  User,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { NodeType } from "@/types/api";
 
@@ -10,6 +19,7 @@ const ICON_BY_NODE_TYPE: Record<NodeType, LucideIcon> = {
   person: User,
   phone: Phone,
   sanction: ShieldAlert,
+  text_source: FileText,
 };
 
 export function EntityIcon({

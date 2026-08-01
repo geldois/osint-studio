@@ -26,16 +26,20 @@ export type CardData = {
 
 export type EntityNode = Node<CardData, "entity">;
 
+const TEXT_PREVIEW_LENGTH = 60;
+
 export function extractLabel(node: ApiNode): string {
   switch (node.type) {
     case "company":
-      return node.trade_name || node.legal_name;
+      return node.trade_name ?? node.legal_name ?? node.cnpj;
     case "person":
-      return node.name;
-    case "address":
-      return [node.cep, node.street, node.neighborhood, `${node.city}/${node.state}`]
+      return node.name ?? node.cpf;
+    case "address": {
+      const cityState = [node.city, node.state].filter(Boolean).join("/");
+      return [node.cep, node.street, node.neighborhood, cityState || null]
         .filter(Boolean)
         .join(" · ");
+    }
     case "email":
       return node.address;
     case "phone":
@@ -44,41 +48,52 @@ export function extractLabel(node: ApiNode): string {
       return `${node.code} · ${node.description}`;
     case "sanction":
       return node.organ;
+    case "text_source":
+      return node.text.length > TEXT_PREVIEW_LENGTH
+        ? `${node.text.slice(0, TEXT_PREVIEW_LENGTH)}…`
+        : node.text;
   }
 }
+
+const EMPTY = "—";
 
 export function nodeToRows(node: ApiNode): CardRow[] {
   switch (node.type) {
     case "company":
       return [
         { key: "cnpj", value: node.cnpj },
-        { key: "razão social", value: node.legal_name },
-        { key: "nome fantasia", value: node.trade_name },
-        { key: "situação", value: node.registration_status },
-        { key: "situação desde", value: node.registration_status_date },
-        { key: "motivo", value: node.registration_status_reason },
-        { key: "porte", value: node.size_category },
-        { key: "natureza", value: node.legal_nature },
-        { key: "capital", value: node.share_capital },
-        { key: "início atividade", value: node.activity_start_date },
-        { key: "matriz", value: node.is_headquarters ? "sim" : "não" },
+        { key: "razão social", value: node.legal_name ?? EMPTY },
+        { key: "nome fantasia", value: node.trade_name ?? EMPTY },
+        { key: "situação", value: node.registration_status ?? EMPTY },
+        { key: "situação desde", value: node.registration_status_date ?? EMPTY },
+        { key: "motivo", value: node.registration_status_reason ?? EMPTY },
+        { key: "porte", value: node.size_category ?? EMPTY },
+        { key: "natureza", value: node.legal_nature ?? EMPTY },
+        { key: "capital", value: node.share_capital ?? EMPTY },
+        { key: "início atividade", value: node.activity_start_date ?? EMPTY },
+        {
+          key: "matriz",
+          value: node.is_headquarters === null ? EMPTY : node.is_headquarters ? "sim" : "não",
+        },
       ];
     case "person":
       return [
-        { key: "nome", value: node.name },
+        { key: "nome", value: node.name ?? EMPTY },
         { key: "cpf", value: node.cpf },
-        { key: "faixa etária", value: node.age_range },
+        { key: "faixa etária", value: node.age_range ?? EMPTY },
       ];
     case "address":
       return [
         { key: "cep", value: node.cep },
-        { key: "logradouro", value: node.street },
+        { key: "logradouro", value: node.street ?? EMPTY },
         { key: "número", value: node.number },
-        { key: "complemento", value: node.complement },
-        { key: "bairro", value: node.neighborhood },
-        { key: "município", value: node.city },
-        { key: "uf", value: node.state },
+        { key: "complemento", value: node.complement ?? EMPTY },
+        { key: "bairro", value: node.neighborhood ?? EMPTY },
+        { key: "município", value: node.city ?? EMPTY },
+        { key: "uf", value: node.state ?? EMPTY },
       ];
+    case "text_source":
+      return [{ key: "texto", value: node.text }];
     case "cnae":
       return [
         { key: "código", value: node.code },

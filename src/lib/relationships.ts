@@ -9,6 +9,7 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
   person: "Pessoa",
   phone: "Telefone",
   sanction: "Sanção",
+  text_source: "Texto",
 };
 
 export function nodeTypeLabel(type: NodeType): string {
@@ -16,14 +17,17 @@ export function nodeTypeLabel(type: NodeType): string {
 }
 
 const EDGE_TYPE_LABELS: Record<EdgeType, string> = {
+  address_mentioned_in_text: "mencionado em texto",
   company_has_cnae: "possui CNAE",
   company_has_email: "possui e-mail",
   company_has_member: "possui membro",
   company_has_phone: "possui telefone",
   company_located_at: "localizada em",
+  company_mentioned_in_text: "mencionado em texto",
   company_received_sanction: "recebeu sanção",
   person_has_email: "possui e-mail",
   person_has_phone: "possui telefone",
+  person_mentioned_in_text: "mencionado em texto",
   person_owns_company: "sócio de",
   person_received_sanction: "recebeu sanção",
   person_reside_at: "reside em",
@@ -39,13 +43,20 @@ export interface EdgeAttribute {
 }
 
 export function edgeAttributes(edge: ApiEdge): EdgeAttribute[] {
-  if (edge.type !== "person_owns_company") {
-    return [];
+  if (edge.type === "person_owns_company") {
+    return [
+      { key: "papel", value: edge.role },
+      { key: "desde", value: edge.entry_date },
+    ];
   }
-  return [
-    { key: "papel", value: edge.role },
-    { key: "desde", value: edge.entry_date },
-  ];
+  if (
+    edge.type === "address_mentioned_in_text" ||
+    edge.type === "company_mentioned_in_text" ||
+    edge.type === "person_mentioned_in_text"
+  ) {
+    return [{ key: "campo extraído", value: edge.matched_field }];
+  }
+  return [];
 }
 
 export interface NodeRelationship {

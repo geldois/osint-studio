@@ -26,6 +26,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   SANITIZATION_INVALID_CPF: "CPF inválido. Confira os 11 dígitos e tente novamente.",
   SANITIZATION_INVALID_CPF_OR_CNPJ:
     "Documento inválido. Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.",
+  TEXT_INGESTION_NO_PATTERN_MATCHED:
+    "Nenhum CPF, CNPJ ou CEP com número foi encontrado nesse texto.",
+  TEXT_INGESTION_PATTERN_SET_NOT_FOUND: "Conjunto de padrões de extração não encontrado.",
 };
 
 const GENERIC_CLIENT_ERROR_MESSAGE = "Não foi possível concluir a operação. Tente novamente.";

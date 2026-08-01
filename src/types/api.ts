@@ -11,31 +11,45 @@ export interface CredentialStatus {
 }
 
 export type NodeType =
-  "address" | "cnae" | "company" | "email" | "person" | "phone" | "sanction";
+  | "address"
+  | "cnae"
+  | "company"
+  | "email"
+  | "person"
+  | "phone"
+  | "sanction"
+  | "text_source";
 
 export type EdgeType =
+  | "address_mentioned_in_text"
   | "company_has_cnae"
   | "company_has_email"
   | "company_has_member"
   | "company_has_phone"
   | "company_located_at"
+  | "company_mentioned_in_text"
   | "company_received_sanction"
   | "person_has_email"
   | "person_has_phone"
+  | "person_mentioned_in_text"
   | "person_owns_company"
   | "person_received_sanction"
   | "person_reside_at";
 
+/** Fields left `null` here (rather than the identifying field the regex
+ * matched, e.g. `cep`/`number`) are what a text-ingestion stub hasn't been
+ * enriched with yet — the same node type doubles as a full BrasilAPI/Portal
+ * result once expanded. */
 export interface AddressNode {
   id: string;
   type: "address";
   cep: string;
-  city: string;
-  complement: string;
-  neighborhood: string;
+  city: string | null;
+  complement: string | null;
+  neighborhood: string | null;
   number: string;
-  state: string;
-  street: string;
+  state: string | null;
+  street: string | null;
 }
 
 export interface CnaeNode {
@@ -49,16 +63,16 @@ export interface CompanyNode {
   id: string;
   type: "company";
   cnpj: string;
-  legal_name: string;
-  trade_name: string;
-  registration_status: string;
-  registration_status_date: string;
-  registration_status_reason: string;
-  size_category: string;
-  legal_nature: string;
-  share_capital: string;
-  activity_start_date: string;
-  is_headquarters: boolean;
+  legal_name: string | null;
+  trade_name: string | null;
+  registration_status: string | null;
+  registration_status_date: string | null;
+  registration_status_reason: string | null;
+  size_category: string | null;
+  legal_nature: string | null;
+  share_capital: string | null;
+  activity_start_date: string | null;
+  is_headquarters: boolean | null;
 }
 
 export interface EmailNode {
@@ -70,9 +84,15 @@ export interface EmailNode {
 export interface PersonNode {
   id: string;
   type: "person";
-  age_range: string;
+  age_range: string | null;
   cpf: string;
-  name: string;
+  name: string | null;
+}
+
+export interface TextSourceNode {
+  id: string;
+  type: "text_source";
+  text: string;
 }
 
 export interface PhoneNode {
@@ -103,7 +123,8 @@ export type ApiNode =
   | EmailNode
   | PersonNode
   | PhoneNode
-  | SanctionNode;
+  | SanctionNode
+  | TextSourceNode;
 
 interface EdgeBase {
   id: string;
@@ -117,14 +138,30 @@ export interface PersonOwnsCompanyEdge extends EdgeBase {
   role: string;
 }
 
-export interface PlainEdge extends EdgeBase {
-  type: Exclude<EdgeType, "person_owns_company">;
+type MentionedInTextEdgeType =
+  | "address_mentioned_in_text"
+  | "company_mentioned_in_text"
+  | "person_mentioned_in_text";
+
+export interface MentionedInTextEdge extends EdgeBase {
+  type: MentionedInTextEdgeType;
+  matched_field: string;
+  pattern_id: string;
 }
 
-export type ApiEdge = PersonOwnsCompanyEdge | PlainEdge;
+export interface PlainEdge extends EdgeBase {
+  type: Exclude<EdgeType, "person_owns_company" | MentionedInTextEdgeType>;
+}
+
+export type ApiEdge = PersonOwnsCompanyEdge | MentionedInTextEdge | PlainEdge;
 
 export interface GraphSchema {
   root_id: string;
   nodes: ApiNode[];
   edges: ApiEdge[];
+}
+
+export interface TextPatternSet {
+  id: string;
+  patterns: { node_type: string; fields: string[] }[];
 }
