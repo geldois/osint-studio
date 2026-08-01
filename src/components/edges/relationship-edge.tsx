@@ -31,10 +31,17 @@ export function RelationshipEdge({
   const [edgePath, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
   const relationships = [...(data?.relationships ?? [])].sort(byDirection);
   const isSelected = relationships.some((r) => r.edgeId === selectedEdgeId);
+  const isPossiblyMatch = relationships.every((r) => r.edgeType === "possibly_matches");
 
   return (
     <>
-      <BaseEdge id={id} path={edgePath} interactionWidth={0} className="!stroke-border" />
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        interactionWidth={0}
+        className={isPossiblyMatch ? "!stroke-amber-500" : "!stroke-border"}
+        style={isPossiblyMatch ? { strokeDasharray: "4 4" } : undefined}
+      />
       <EdgeLabelRenderer>
         <div
           className="nodrag nopan pointer-events-none absolute"

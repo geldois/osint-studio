@@ -34,7 +34,8 @@ export type EdgeType =
   | "person_mentioned_in_text"
   | "person_owns_company"
   | "person_received_sanction"
-  | "person_reside_at";
+  | "person_reside_at"
+  | "possibly_matches";
 
 /** Fields left `null` here (rather than the identifying field the regex
  * matched, e.g. `cep`/`number`) are what a text-ingestion stub hasn't been
@@ -149,11 +150,23 @@ export interface MentionedInTextEdge extends EdgeBase {
   pattern_id: string;
 }
 
-export interface PlainEdge extends EdgeBase {
-  type: Exclude<EdgeType, "person_owns_company" | MentionedInTextEdgeType>;
+export interface PossiblyMatchesEdge extends EdgeBase {
+  type: "possibly_matches";
+  confidence: string;
 }
 
-export type ApiEdge = PersonOwnsCompanyEdge | MentionedInTextEdge | PlainEdge;
+export interface PlainEdge extends EdgeBase {
+  type: Exclude<
+    EdgeType,
+    "person_owns_company" | "possibly_matches" | MentionedInTextEdgeType
+  >;
+}
+
+export type ApiEdge =
+  | PersonOwnsCompanyEdge
+  | MentionedInTextEdge
+  | PossiblyMatchesEdge
+  | PlainEdge;
 
 export interface GraphSchema {
   root_id: string;

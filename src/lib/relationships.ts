@@ -31,6 +31,7 @@ const EDGE_TYPE_LABELS: Record<EdgeType, string> = {
   person_owns_company: "sócio de",
   person_received_sanction: "recebeu sanção",
   person_reside_at: "reside em",
+  possibly_matches: "possivelmente a mesma entidade",
 };
 
 export function edgeTypeLabel(type: EdgeType): string {
@@ -55,6 +56,9 @@ export function edgeAttributes(edge: ApiEdge): EdgeAttribute[] {
     edge.type === "person_mentioned_in_text"
   ) {
     return [{ key: "campo extraído", value: edge.matched_field }];
+  }
+  if (edge.type === "possibly_matches") {
+    return [{ key: "confiança", value: `${(Number(edge.confidence) * 100).toFixed(0)}%` }];
   }
   return [];
 }
