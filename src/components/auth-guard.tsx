@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/auth";
 
 export function AuthGuard({ children }: { children: ReactNode }) {
@@ -15,7 +16,11 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   }, [token, router]);
 
   if (token === null) {
-    return null;
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Skeleton className="h-8 w-8 rounded-full" />
+      </div>
+    );
   }
 
   return children;

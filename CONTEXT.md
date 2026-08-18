@@ -57,3 +57,8 @@ upstream. _Avoid_: placeholder
   uses `anchor` for the node a connected component's radial placement centers on — usually the **Root**, falling
   back to the component's first node when none is present in that component. That layout sense is unrelated to
   graph identity and stays.
+
+- **"Card" carries two senses.** The glossary's **Card** above is the on-Whiteboard node representation.
+  `src/components/ui/card.tsx` (shadcn/ui, see `docs/architecture/ui.md`) is an unrelated generic UI container,
+  used only outside the Whiteboard (`/login`, `/settings`, `/ingest`) — never for node rendering. Both stay; the
+  import path (`@/components/ui/card` vs `@/components/nodes/*`) disambiguates.

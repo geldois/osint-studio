@@ -1,6 +1,7 @@
 "use client";
 
 import { Network, Table2 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useViewStore } from "@/store/view";
 
 export function ViewSwitch() {
@@ -8,35 +9,34 @@ export function ViewSwitch() {
   const setView = useViewStore((s) => s.setView);
 
   return (
-    <div className="absolute top-3 right-3 z-10 flex flex-col overflow-hidden rounded border border-border bg-surface shadow-lg">
-      <button
-        type="button"
-        onClick={() => {
-          setView("graph");
-        }}
+    <ToggleGroup
+      className="absolute top-3 right-3 z-10 flex-col overflow-hidden rounded border border-border bg-surface shadow-lg"
+      orientation="vertical"
+      spacing={0}
+      value={[view]}
+      onValueChange={(value: string[]) => {
+        const next = value[0];
+        if (next === "graph" || next === "table") {
+          setView(next);
+        }
+      }}
+    >
+      <ToggleGroupItem
+        value="graph"
         aria-label="Visualizar em grafo"
-        aria-pressed={view === "graph"}
         title="Grafo"
-        className={`flex h-8 w-8 items-center justify-center border-border border-b ${
-          view === "graph" ? "bg-white/10" : "hover:bg-white/5"
-        }`}
+        className="h-8 w-8 rounded-none border-border border-b"
       >
         <Network size={15} />
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          setView("table");
-        }}
+      </ToggleGroupItem>
+      <ToggleGroupItem
+        value="table"
         aria-label="Visualizar em tabela"
-        aria-pressed={view === "table"}
         title="Tabela"
-        className={`flex h-8 w-8 items-center justify-center ${
-          view === "table" ? "bg-white/10" : "hover:bg-white/5"
-        }`}
+        className="h-8 w-8 rounded-none"
       >
         <Table2 size={15} />
-      </button>
-    </div>
+      </ToggleGroupItem>
+    </ToggleGroup>
   );
 }

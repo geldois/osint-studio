@@ -4,6 +4,9 @@ import { ArrowLeft, FileText, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useIngestText } from "@/hooks/use-ingest-text";
 import { useTextPatternSets } from "@/hooks/use-text-patterns";
 import { RateLimitError } from "@/lib/api";
@@ -116,81 +119,84 @@ function IngestForm() {
         existentes no grafo.
       </p>
 
-      <div className="rounded border border-border p-4">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".txt,text/plain"
-          className="hidden"
-          onChange={(e) => {
-            handleFileChange(e.target.files?.[0] ?? null);
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => {
-            fileInputRef.current?.click();
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded border border-border border-dashed bg-surface px-3 py-6 text-sm hover:bg-white/10"
-        >
-          <Upload size={16} className="text-muted" />
-          {file === null ? "Selecionar arquivo .txt" : "Trocar arquivo"}
-        </button>
+      <Card>
+        <CardContent>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,text/plain"
+            className="hidden"
+            onChange={(e) => {
+              handleFileChange(e.target.files?.[0] ?? null);
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="h-auto w-full flex-col gap-2 border-dashed py-6"
+            onClick={() => {
+              fileInputRef.current?.click();
+            }}
+          >
+            <Upload size={16} className="text-muted" />
+            {file === null ? "Selecionar arquivo .txt" : "Trocar arquivo"}
+          </Button>
 
-        {file !== null ? (
-          <div className="mt-3 flex items-center gap-2 text-sm">
-            <FileText size={14} className="shrink-0 text-muted" />
-            <span className="truncate">{file.name}</span>
-            <span className="shrink-0 text-muted">
-              ({Math.ceil(file.size / 1024)} KB)
-            </span>
-          </div>
-        ) : null}
+          {file !== null ? (
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <FileText size={14} className="shrink-0 text-muted" />
+              <span className="truncate">{file.name}</span>
+              <span className="shrink-0 text-muted">
+                ({Math.ceil(file.size / 1024)} KB)
+              </span>
+            </div>
+          ) : null}
 
-        <button
-          type="button"
-          disabled={!canSubmit}
-          onClick={() => {
-            void handleSubmit();
-          }}
-          className="mt-4 w-full rounded bg-white px-3 py-1.5 font-medium text-black text-sm disabled:opacity-50"
-        >
-          {isPending
-            ? "Processando..."
-            : isLoadingPatterns
-              ? "Carregando padrões..."
-              : "Enviar"}
-        </button>
+          <Button
+            type="button"
+            className="mt-4 w-full"
+            disabled={!canSubmit}
+            onClick={() => {
+              void handleSubmit();
+            }}
+          >
+            {isPending
+              ? "Processando..."
+              : isLoadingPatterns
+                ? "Carregando padrões..."
+                : "Enviar"}
+          </Button>
 
-        {localError ? (
-          <p className="mt-3 text-amber-500 text-sm">{localError}</p>
-        ) : null}
-        {isBlocked ? (
-          <p className="mt-3 text-amber-500 text-sm">
-            Limite atingido. Tente novamente em {retryAfterSeconds}s.
-          </p>
-        ) : error ? (
-          <p className="mt-3 text-red-500 text-sm">{translateError(error)}</p>
-        ) : null}
-
-        {data ? (
-          <div className="mt-3 rounded border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
-            <p className="text-emerald-400">
-              {data.nodes.length} entidade(s) e {data.edges.length} relação(ões)
-              extraídas.
+          {localError ? (
+            <p className="mt-3 text-amber-500 text-sm">{localError}</p>
+          ) : null}
+          {isBlocked ? (
+            <p className="mt-3 text-amber-500 text-sm">
+              Limite atingido. Tente novamente em {retryAfterSeconds}s.
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                router.push("/whiteboard");
-              }}
-              className="mt-2 text-emerald-400 underline hover:text-emerald-300"
-            >
-              Ver no grafo
-            </button>
-          </div>
-        ) : null}
-      </div>
+          ) : error ? (
+            <p className="mt-3 text-red-500 text-sm">{translateError(error)}</p>
+          ) : null}
+
+          {data ? (
+            <Alert className="mt-3 border-emerald-500/40">
+              <AlertDescription className="text-emerald-400">
+                {data.nodes.length} entidade(s) e {data.edges.length} relação(ões)
+                extraídas.
+                <button
+                  type="button"
+                  onClick={() => {
+                    router.push("/whiteboard");
+                  }}
+                  className="block underline hover:text-emerald-300"
+                >
+                  Ver no grafo
+                </button>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   );
 }

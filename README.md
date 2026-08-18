@@ -18,6 +18,7 @@ Graph explorer front-end for [osint-engine](https://github.com/geldois/osint-eng
 - **State:** Zustand
 - **Server state:** TanStack Query
 - **Styling:** Tailwind CSS v4.1+
+- **Components:** shadcn/ui (Base UI primitive, "Nova" preset)
 - **Theme:** next-themes
 - **Linting:** ESLint 9 + typescript-eslint (`strictTypeChecked`)
 - **Formatting:** Prettier

@@ -3,8 +3,13 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { API_URL, login, loginAsVisitor, RateLimitError } from "@/lib/api";
 import { translateError } from "@/lib/errors";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 
 export default function LoginPage() {
@@ -56,83 +61,95 @@ export default function LoginPage() {
 
   return (
     <main className="flex h-full flex-col items-center justify-center gap-6">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          loginMutation.mutate();
-        }}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-border bg-surface p-6"
-      >
-        <h1 className="text-lg font-semibold">OSINT Studio</h1>
+      <Card className="w-full max-w-sm">
+        <CardContent>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              loginMutation.mutate();
+            }}
+            className="space-y-4"
+          >
+            <h1 className="text-lg font-semibold">OSINT Studio</h1>
 
-        <input
-          type="text"
-          value={username}
-          onChange={(e) => {
-            setUsername(e.target.value);
-          }}
-          placeholder="Usuário"
-          autoComplete="username"
-          required
-          data-1p-ignore
-          data-lpignore="true"
-          data-bwignore="true"
-          className="w-full rounded border border-border bg-background px-3 py-2 outline-none transition-colors focus:border-white/40 focus:ring-2 focus:ring-white/10"
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-          }}
-          placeholder="Senha"
-          autoComplete="current-password"
-          required
-          data-1p-ignore
-          data-lpignore="true"
-          data-bwignore="true"
-          className="w-full rounded border border-border bg-background px-3 py-2 outline-none transition-colors focus:border-white/40 focus:ring-2 focus:ring-white/10"
-        />
+            <div className="space-y-1.5">
+              <Label htmlFor="username" className="sr-only">
+                Usuário
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                }}
+                placeholder="Usuário"
+                autoComplete="username"
+                required
+                data-1p-ignore
+                data-lpignore="true"
+                data-bwignore="true"
+              />
+            </div>
 
-        <div className="min-h-5">
-          {error && !isBlocked ? (
-            <p className="text-sm text-red-500">{translateError(error)}</p>
-          ) : null}
-          {isBlocked ? (
-            <p className="text-sm text-amber-500">
-              Limite atingido. Tente novamente em {retryAfterSeconds}s.
-            </p>
-          ) : null}
-        </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="sr-only">
+                Senha
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                }}
+                placeholder="Senha"
+                autoComplete="current-password"
+                required
+                data-1p-ignore
+                data-lpignore="true"
+                data-bwignore="true"
+              />
+            </div>
 
-        <button
-          type="submit"
-          disabled={isPending || isBlocked}
-          className="w-full rounded bg-white px-3 py-2 font-medium text-black disabled:opacity-50"
-        >
-          {loginMutation.isPending ? "Entrando..." : "Entrar"}
-        </button>
+            <div className="min-h-5">
+              {error && !isBlocked ? (
+                <p className="text-sm text-red-500">{translateError(error)}</p>
+              ) : null}
+              {isBlocked ? (
+                <p className="text-sm text-amber-500">
+                  Limite atingido. Tente novamente em {retryAfterSeconds}s.
+                </p>
+              ) : null}
+            </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            visitorMutation.mutate();
-          }}
-          disabled={isPending || isBlocked}
-          className="w-full rounded border border-border px-3 py-2 font-medium disabled:opacity-50"
-        >
-          {visitorMutation.isPending ? "Entrando..." : "Entrar como visitante"}
-        </button>
+            <Button type="submit" className="w-full" disabled={isPending || isBlocked}>
+              {loginMutation.isPending ? "Entrando..." : "Entrar"}
+            </Button>
 
-        <a
-          href={`${API_URL}/docs`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full rounded border border-border px-3 py-2 text-center font-medium"
-        >
-          Ver documentação da API
-        </a>
-      </form>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isPending || isBlocked}
+              onClick={() => {
+                visitorMutation.mutate();
+              }}
+            >
+              {visitorMutation.isPending ? "Entrando..." : "Entrar como visitante"}
+            </Button>
+
+            <a
+              href={`${API_URL}/docs`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(buttonVariants({ variant: "outline" }), "w-full")}
+            >
+              Ver documentação da API
+            </a>
+          </form>
+        </CardContent>
+      </Card>
 
       <footer className="flex items-center gap-4">
         <a

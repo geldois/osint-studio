@@ -5,6 +5,10 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useCredentialStatus } from "@/hooks/use-credential-status";
 import { saveCredential } from "@/lib/api";
 import { translateError } from "@/lib/errors";
@@ -37,35 +41,31 @@ function CredentialRow({
   });
 
   return (
-    <div className="flex flex-col gap-2 border-border border-b py-4 last:border-b-0">
+    <div className="flex flex-col gap-2 py-4">
       <div className="flex items-center justify-between">
         <span className="font-medium text-sm">{PROVIDER_LABELS[provider]}</span>
-        <span
-          className={configured ? "text-emerald-500 text-xs" : "text-red-500 text-xs"}
-        >
-          {configured ? "✓ configurado" : "✗ não configurado"}
-        </span>
+        <Badge variant={configured ? "default" : "destructive"}>
+          {configured ? "Configurado" : "Não configurado"}
+        </Badge>
       </div>
       <div className="flex items-center gap-2">
-        <input
+        <Input
           type="password"
           value={apiKey}
           onChange={(e) => {
             setApiKey(e.target.value);
           }}
           placeholder="Chave da API"
-          className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm outline-none transition-colors focus:border-white/40 focus:ring-2 focus:ring-white/10"
         />
-        <button
+        <Button
           type="button"
           disabled={mutation.isPending || apiKey.trim() === ""}
           onClick={() => {
             mutation.mutate();
           }}
-          className="rounded bg-white px-3 py-1.5 font-medium text-black text-sm disabled:opacity-50"
         >
           {mutation.isPending ? "Salvando..." : "Salvar"}
-        </button>
+        </Button>
       </div>
       {mutation.error ? (
         <span className="text-red-500 text-sm">{translateError(mutation.error)}</span>
@@ -108,16 +108,18 @@ function SettingsForm({ token }: { token: string }) {
       {isLoading ? <p className="text-muted text-sm">Carregando...</p> : null}
       {error ? <p className="text-red-500 text-sm">{translateError(error)}</p> : null}
       {data ? (
-        <div className="rounded border border-border px-4">
-          {data.map((status) => (
-            <CredentialRow
-              key={status.provider}
-              configured={status.configured}
-              provider={status.provider}
-              token={token}
-            />
-          ))}
-        </div>
+        <Card>
+          <CardContent className="divide-y divide-border">
+            {data.map((status) => (
+              <CredentialRow
+                key={status.provider}
+                configured={status.configured}
+                provider={status.provider}
+                token={token}
+              />
+            ))}
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );
