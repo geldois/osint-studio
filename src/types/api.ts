@@ -3,7 +3,7 @@ export interface TokenResponse {
   token_type: "bearer";
 }
 
-export type Provider = "PORTAL_TRANSPARENCIA";
+export type Provider = "KIPFLOW" | "PORTAL_TRANSPARENCIA";
 
 export interface CredentialStatus {
   configured: boolean;
@@ -88,6 +88,8 @@ export interface PersonNode {
   age_range: string | null;
   cpf: string;
   name: string | null;
+  registration_date: string | null;
+  registration_status: string | null;
 }
 
 export interface TextSourceNode {

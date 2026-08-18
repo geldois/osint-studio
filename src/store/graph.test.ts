@@ -8,6 +8,8 @@ const person = (id: string, name: string): PersonNode => ({
   age_range: null,
   cpf: id,
   name,
+  registration_date: null,
+  registration_status: null,
 });
 
 const ownsEdge = (source: string, target: string): PlainEdge => ({

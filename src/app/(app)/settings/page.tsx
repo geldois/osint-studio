@@ -12,6 +12,7 @@ import { useAuthStore } from "@/store/auth";
 import type { Provider } from "@/types/api";
 
 const PROVIDER_LABELS: Record<Provider, string> = {
+  KIPFLOW: "KipFlow",
   PORTAL_TRANSPARENCIA: "Portal da Transparência",
 };
 

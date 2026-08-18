@@ -118,10 +118,13 @@ export async function fetchGraph(cnpj: string, token: string): Promise<GraphSche
 export async function fetchGraphByCpf(
   cpf: string,
   token: string,
-): Promise<GraphSchema> {
+): Promise<GraphSchema | null> {
   const res = await fetch(`${API_URL}/cpf/${cpf}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  if (res.status === 204) {
+    return null;
+  }
   if (!res.ok) {
     return throwForAuthenticatedEndpointError(res);
   }

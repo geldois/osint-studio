@@ -19,9 +19,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   AUTHORIZATION_INSUFFICIENT_ROLE: "Sua conta não tem permissão para esta ação.",
   ENTITY_NOT_FOUND: "Nenhum registro encontrado para este documento.",
   EXTERNAL_CREDENTIAL_NOT_FOUND:
-    "Nenhuma credencial configurada para o Portal da Transparência. Configure em Configurações.",
+    "Uma credencial necessária não está configurada. Confira o status de cada fonte em Configurações.",
   EXTERNAL_CREDENTIAL_REJECTED:
-    "A chave da API do Portal da Transparência foi rejeitada. Verifique em Configurações.",
+    "Uma credencial foi rejeitada pela fonte de dados. Confira o status de cada fonte em Configurações.",
+  PROVIDER_INSUFFICIENT_CREDITS:
+    "Saldo insuficiente na KipFlow para esta consulta. Verifique o saldo em platform.kipflow.io.",
   SANITIZATION_INVALID_CNPJ: "CNPJ inválido. Confira os 14 dígitos e tente novamente.",
   SANITIZATION_INVALID_CPF: "CPF inválido. Confira os 11 dígitos e tente novamente.",
   SANITIZATION_INVALID_CPF_OR_CNPJ:
