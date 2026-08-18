@@ -67,7 +67,9 @@ export const columns: ColumnDef<TableRow>[] = [
   {
     accessorKey: "summary",
     header: "Resumo",
-    cell: ({ row }) => <span className="text-muted">{row.original.summary || "—"}</span>,
+    cell: ({ row }) => (
+      <span className="text-muted">{row.original.summary || "—"}</span>
+    ),
   },
   {
     accessorKey: "relationshipCount",

@@ -1,6 +1,12 @@
 "use client";
 
-import { BaseEdge, type Edge, type EdgeProps, EdgeLabelRenderer, getStraightPath } from "@xyflow/react";
+import {
+  BaseEdge,
+  type Edge,
+  type EdgeProps,
+  EdgeLabelRenderer,
+  getStraightPath,
+} from "@xyflow/react";
 import type { EdgeRelationship, RelationshipEdgeData } from "@/lib/graph-adapter";
 import { edgeTypeLabel } from "@/lib/relationships";
 import { useSelectionStore } from "@/store/selection";
@@ -28,7 +34,12 @@ export function RelationshipEdge({
   // so the diamond marker sits precisely on the line — a stepped/bezier
   // path's reported "label" point is only the bounding-box midpoint, which
   // drifts off the actual curve whenever the path bends.
-  const [edgePath, labelX, labelY] = getStraightPath({ sourceX, sourceY, targetX, targetY });
+  const [edgePath, labelX, labelY] = getStraightPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+  });
   const relationships = [...(data?.relationships ?? [])].sort(byDirection);
   const isSelected = relationships.some((r) => r.edgeId === selectedEdgeId);
   const isPossiblyMatch = relationships.every((r) => r.edgeType === "possibly_matches");

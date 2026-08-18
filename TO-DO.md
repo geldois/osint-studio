@@ -26,9 +26,9 @@
 
 ## test(studio)
 
-- No tests yet: `extractLabel`, `radialPosition`, `edgeKey`, and `mergeGraph`
-  (idempotency: re-expanding an existing node must add no duplicate nodes/edges) are
-  pure and the highest-value units to cover.
+- Radial layout math (`layoutGraph`/`separateOverlaps` in `graph-adapter.ts`) has no
+  coverage — async and ELK-backed, deferred per `docs/architecture/tooling.md`.
+  `extractLabel`, `edgeKey`, and `mergeGraph` are now covered.
 
 ## validation(api)
 

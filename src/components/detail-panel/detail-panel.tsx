@@ -51,12 +51,16 @@ function NodePanel({ nodeId }: { nodeId: string }) {
         </span>
         <div className="min-w-0">
           <div className="truncate font-medium text-sm">{extractLabel(node)}</div>
-          <div className="text-[11px] text-muted uppercase">{nodeTypeLabel(node.type)}</div>
+          <div className="text-[11px] text-muted uppercase">
+            {nodeTypeLabel(node.type)}
+          </div>
         </div>
       </div>
 
       <section className="border-border border-b p-4">
-        <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">Identificação</h3>
+        <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">
+          Identificação
+        </h3>
         <dl className="space-y-1 text-[12px]">
           <div className="flex justify-between gap-3">
             <dt className="text-muted">id</dt>
@@ -66,7 +70,9 @@ function NodePanel({ nodeId }: { nodeId: string }) {
       </section>
 
       <section className="border-border border-b p-4">
-        <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">Atributos</h3>
+        <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">
+          Atributos
+        </h3>
         <dl className="space-y-1 text-[12px]">
           {rows.map((row) => (
             <div key={row.key} className="flex justify-between gap-3">
@@ -82,7 +88,9 @@ function NodePanel({ nodeId }: { nodeId: string }) {
           Relacionamentos ({relationships.length})
         </h3>
         {relationships.length === 0 ? (
-          <p className="text-[12px] text-muted">Nenhum relacionamento nesta expansão.</p>
+          <p className="text-[12px] text-muted">
+            Nenhum relacionamento nesta expansão.
+          </p>
         ) : (
           <ul className="space-y-2.5">
             {relationships.map(({ edge, direction, counterpart }) => {
@@ -90,7 +98,9 @@ function NodePanel({ nodeId }: { nodeId: string }) {
               return (
                 <li key={edge.id} className="text-[12px]">
                   <div className="flex items-center gap-1.5">
-                    <span className="opacity-50">{direction === "outgoing" ? "→" : "←"}</span>
+                    <span className="opacity-50">
+                      {direction === "outgoing" ? "→" : "←"}
+                    </span>
                     <span className="text-muted">{edgeTypeLabel(edge.type)}</span>
                   </div>
                   <button
@@ -108,7 +118,10 @@ function NodePanel({ nodeId }: { nodeId: string }) {
                   {attributes.length > 0 ? (
                     <dl className="mt-1 space-y-0.5 pl-4">
                       {attributes.map((attribute) => (
-                        <div key={attribute.key} className="flex gap-1.5 text-[11px] text-muted">
+                        <div
+                          key={attribute.key}
+                          className="flex gap-1.5 text-[11px] text-muted"
+                        >
                           <dt>{attribute.key}:</dt>
                           <dd>{attribute.value}</dd>
                         </div>
@@ -168,7 +181,9 @@ function EdgePanel({ edgeId }: { edgeId: string }) {
       </div>
 
       <section className="border-border border-b p-4">
-        <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">Entidades</h3>
+        <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">
+          Entidades
+        </h3>
         <dl className="space-y-1 text-[12px]">
           <div className="flex justify-between gap-3">
             <dt className="text-muted">origem</dt>
@@ -186,9 +201,13 @@ function EdgePanel({ edgeId }: { edgeId: string }) {
       </section>
 
       <section className="p-4">
-        <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">Atributos</h3>
+        <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">
+          Atributos
+        </h3>
         {attributes.length === 0 ? (
-          <p className="text-[12px] text-muted">Esta relação não possui atributos adicionais.</p>
+          <p className="text-[12px] text-muted">
+            Esta relação não possui atributos adicionais.
+          </p>
         ) : (
           <dl className="space-y-1 text-[12px]">
             {attributes.map((attribute) => (

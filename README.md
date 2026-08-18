@@ -21,21 +21,52 @@ Graph explorer front-end for [osint-engine](https://github.com/geldois/osint-eng
 - **Theme:** next-themes
 - **Linting:** ESLint 9 + typescript-eslint (`strictTypeChecked`)
 - **Formatting:** Prettier
+- **Testing:** Vitest (pure logic only — see `docs/architecture/tooling.md`)
 
 ## Setup
 
 ```bash
-mise install  # pins Node LTS + pnpm
+git clone https://github.com/geldois/osint-studio.git
+cd osint-studio
+```
+
+### Linux
+
+1. Install [mise](https://mise.jdx.dev) and activate it in your shell (see
+   [getting started](https://mise.jdx.dev/getting-started.html)).
+2. Install the project toolchain and activate the versioned git config:
+
+```bash
+mise install  # pins Node, pnpm, dprint, shellcheck, shfmt, actionlint, jq
+git config --local include.path ../.gitconfig
 pnpm install
 pnpm dev
 ```
 
+### Windows
+
+1. Install [mise](https://mise.jdx.dev) via `scoop install mise` (or `winget install jdx.mise`) and activate it in
+   your shell (see [getting started](https://mise.jdx.dev/getting-started.html)).
+2. Install the project toolchain and activate the versioned git config:
+
+```powershell
+mise install  # pins Node, pnpm, dprint, shellcheck, shfmt, actionlint, jq
+git config --local include.path ../.gitconfig
+pnpm install
+pnpm dev
+```
+
+> `.gitconfig` points `core.hooksPath` at the versioned `.githooks/`, so the hooks are whatever is committed —
+> nothing is generated into `.git/`. The commit-time gate (lint, format, type-check, build, unit tests) runs
+> entirely from these git hooks, identically for every contributor — no editor or Claude Code required, and there
+> is no `pre-push`, so pushing is never blocked.
+
 ## Routes
 
-| Path | Screen |
-| --- | --- |
-| `/login` | Auth |
-| `/whiteboard` | Graph canvas |
+| Path          | Screen     |
+| ------------- | ---------- |
+| `/login`      | Auth       |
+| `/whiteboard` | Whiteboard |
 
 ## Environment
 
@@ -49,10 +80,10 @@ Releases are triggered manually from the **Release** workflow (`Actions → Rele
 It runs [semantic-release](https://semantic-release.gitbook.io): Conventional Commits since the last tag determine the
 next SemVer; it updates `package.json` + `CHANGELOG.md`, tags, and publishes a GitHub release.
 
-| Commit type | Bump |
-| --- | --- |
-| `feat` | minor |
-| `fix`, `perf`, `refactor` | patch |
+| Commit type                  | Bump  |
+| ---------------------------- | ----- |
+| `feat`                       | minor |
+| `fix`, `perf`, `refactor`    | patch |
 | `type!:` / `BREAKING CHANGE` | major |
 
 Preview the next release locally (no changes are made):

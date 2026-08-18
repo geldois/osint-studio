@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+_SHELL_FILES=(.githooks/pre-commit .githooks/pre-merge-commit scripts/run)
+_WORKFLOW_FILES=(.github/workflows/release.yml)
+_REPORT_PATH="build/reports/gates.json"
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+report=""
+failed=0
+gate_names=()
+gate_statuses=()
+gate_durations=()
+gate_outputs=()
+
+gate() {
+    local name="$1"
+    shift
+    local start elapsed out status
+    start="$(date +%s)"
+    if out="$("$@" 2>&1)"; then
+        status="pass"
+    else
+        status="fail"
+        failed=1
+    fi
+    elapsed=$(($(date +%s) - start))
+    report+=$'\n'"[${status^^}] ${name} (${elapsed}s)"
+    if [ "$status" = "fail" ]; then
+        report+=$'\n'"${out}"
+    fi
+    gate_names+=("$name")
+    gate_statuses+=("$status")
+    gate_durations+=("$elapsed")
+    gate_outputs+=("$out")
+}
+
+write_report() {
+    mkdir -p "$(dirname "$_REPORT_PATH")"
+    local gate_json_lines=()
+    local i
+    for i in "${!gate_names[@]}"; do
+        gate_json_lines+=("$(jq -n \
+            --arg name "${gate_names[$i]}" \
+            --arg status "${gate_statuses[$i]}" \
+            --argjson duration "${gate_durations[$i]}" \
+            --arg output "${gate_outputs[$i]}" \
+            '{name: $name, status: $status, duration_s: $duration, output: $output}')")
+    done
+    printf '%s\n' "${gate_json_lines[@]}" | jq -s \
+        --arg generated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --argjson passed "$([ "$failed" = 0 ] && echo true || echo false)" \
+        '{generated_at: $generated_at, passed: $passed, gates: .}' \
+        >"$_REPORT_PATH"
+}
+
+run_check() {
+    # snapshot is intentionally not local: the EXIT trap below still needs to
+    # read it after run_check itself has returned.
+    local tree
+    tree="$(git write-tree)"
+    snapshot="$(mktemp -d -t osint-studio-gates-XXXXXX)"
+    trap 'rm -rf "$snapshot"' EXIT
+
+    git archive --format=tar "$tree" | tar -x -C "$snapshot"
+
+    cd "$snapshot"
+    unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+
+    gate shellcheck mise exec -- shellcheck "${_SHELL_FILES[@]}"
+    gate shfmt mise exec -- shfmt -d "${_SHELL_FILES[@]}"
+    gate actionlint mise exec -- actionlint "${_WORKFLOW_FILES[@]}"
+    gate dprint mise exec -- dprint check
+    gate lock-check mise exec -- pnpm install --frozen-lockfile
+
+    if [ "$failed" = 0 ]; then
+        gate eslint mise exec -- pnpm run lint
+        gate prettier mise exec -- pnpm exec prettier --check .
+        gate type-check mise exec -- pnpm run type-check
+        gate build mise exec -- pnpm run build
+        gate vitest mise exec -- pnpm run test
+        gate markdownlint mise exec -- pnpm exec markdownlint-cli2 "**/*.md"
+    fi
+
+    cd "$root"
+    write_report
+    printf '%s\n' "$report"
+    [ "$failed" = 0 ]
+}
+
+run_fix() {
+    local files=("$@")
+    local targeted=1
+    if [ "${#files[@]}" -eq 0 ]; then
+        targeted=0
+        mapfile -t files < <(git ls-files '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.json' '*.md' '*.css')
+    fi
+    [ "${#files[@]}" -eq 0 ] && return 0
+
+    local lintable=()
+    local file
+    for file in "${files[@]}"; do
+        case "$file" in
+        *.ts | *.tsx | *.js | *.jsx | *.mjs) lintable+=("$file") ;;
+        esac
+    done
+
+    # Comment stripping only runs on an explicitly targeted file list (the
+    # precommit path, fully-staged files) and only within src/ — never on a
+    # bare `run fix`, which would blanket-strip a whole file's pre-existing
+    # comments in one sweep instead of just what this edit changed.
+    if [ "$targeted" = 1 ] && [ "${#lintable[@]}" -gt 0 ]; then
+        local stripped=()
+        for file in "${lintable[@]}"; do
+            case "$file" in
+            src/*.ts | src/*.tsx) stripped+=("$file") ;;
+            esac
+        done
+        [ "${#stripped[@]}" -gt 0 ] && mise exec -- pnpm exec tsx scripts/strip-comments.mts "${stripped[@]}"
+    fi
+
+    local formattable=()
+    for file in "${files[@]}"; do
+        case "$file" in
+        *.ts | *.tsx | *.js | *.jsx | *.mjs | *.json | *.md | *.css) formattable+=("$file") ;;
+        esac
+    done
+    [ "${#formattable[@]}" -gt 0 ] && mise exec -- pnpm exec prettier --write "${formattable[@]}"
+    [ "${#lintable[@]}" -gt 0 ] && mise exec -- pnpm exec eslint --fix "${lintable[@]}"
+    return 0
+}
+
+run_precommit() {
+    local staged=()
+    mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACMR)
+    if [ "${#staged[@]}" -gt 0 ]; then
+        local dirty=() fully_staged=()
+        mapfile -t dirty < <(git diff --name-only)
+        mapfile -t fully_staged < <(comm -23 <(printf '%s\n' "${staged[@]}" | sort) <(printf '%s\n' "${dirty[@]}" | sort))
+        if [ "${#fully_staged[@]}" -gt 0 ]; then
+            run_fix "${fully_staged[@]}"
+            git add -- "${fully_staged[@]}"
+        fi
+    fi
+    run_check
+}
+
+cmd="${1:-}"
+[ "$#" -gt 0 ] && shift
+
+case "$cmd" in
+check) run_check ;;
+fix) run_fix "$@" ;;
+precommit) run_precommit ;;
+*)
+    echo "usage: scripts/run <check|fix|precommit>" >&2
+    exit 1
+    ;;
+esac

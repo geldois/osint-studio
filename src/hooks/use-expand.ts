@@ -38,7 +38,11 @@ export function useExpand() {
       // only consume the anonymous BrasilAPI-backed root graph.
       const fetches =
         role === "ADMIN"
-          ? [fetchRootGraph(document, token), fetchCNEP(document, token), fetchCEIS(document, token)]
+          ? [
+              fetchRootGraph(document, token),
+              fetchCNEP(document, token),
+              fetchCEIS(document, token),
+            ]
           : [fetchRootGraph(document, token)];
 
       const results = await Promise.allSettled(fetches);

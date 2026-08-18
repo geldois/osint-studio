@@ -1,0 +1,66 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./pnpm-lock.yaml)",
+      "Read(./CHANGELOG.md)",
+      "Read(./.next/**)",
+      "Read(./node_modules/**)",
+      "Read(./coverage/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm",
+            "args": [
+              "exec",
+              "tsx",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/block-direct-checks.ts"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm",
+            "args": [
+              "exec",
+              "tsx",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/report-lint.ts"
+            ],
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm",
+            "args": [
+              "exec",
+              "tsx",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/after-turn.ts"
+            ],
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

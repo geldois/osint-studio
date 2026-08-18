@@ -58,7 +58,9 @@ export function edgeAttributes(edge: ApiEdge): EdgeAttribute[] {
     return [{ key: "campo extraído", value: edge.matched_field }];
   }
   if (edge.type === "possibly_matches") {
-    return [{ key: "confiança", value: `${(Number(edge.confidence) * 100).toFixed(0)}%` }];
+    return [
+      { key: "confiança", value: `${(Number(edge.confidence) * 100).toFixed(0)}%` },
+    ];
   }
   return [];
 }
@@ -89,11 +91,17 @@ export function relationshipsForNode(
     }
   }
   return relationships.sort((a, b) => {
-    const byEdgeType = edgeTypeLabel(a.edge.type).localeCompare(edgeTypeLabel(b.edge.type), "pt-BR");
+    const byEdgeType = edgeTypeLabel(a.edge.type).localeCompare(
+      edgeTypeLabel(b.edge.type),
+      "pt-BR",
+    );
     if (byEdgeType !== 0) {
       return byEdgeType;
     }
-    return counterpartLabel(a.counterpart).localeCompare(counterpartLabel(b.counterpart), "pt-BR");
+    return counterpartLabel(a.counterpart).localeCompare(
+      counterpartLabel(b.counterpart),
+      "pt-BR",
+    );
   });
 }
 

@@ -39,7 +39,9 @@ function CredentialRow({
     <div className="flex flex-col gap-2 border-border border-b py-4 last:border-b-0">
       <div className="flex items-center justify-between">
         <span className="font-medium text-sm">{PROVIDER_LABELS[provider]}</span>
-        <span className={configured ? "text-emerald-500 text-xs" : "text-red-500 text-xs"}>
+        <span
+          className={configured ? "text-emerald-500 text-xs" : "text-red-500 text-xs"}
+        >
           {configured ? "✓ configurado" : "✗ não configurado"}
         </span>
       </div>

@@ -28,10 +28,12 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Documento inválido. Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.",
   TEXT_INGESTION_NO_PATTERN_MATCHED:
     "Nenhum CPF, CNPJ ou CEP com número foi encontrado nesse texto.",
-  TEXT_INGESTION_PATTERN_SET_NOT_FOUND: "Conjunto de padrões de extração não encontrado.",
+  TEXT_INGESTION_PATTERN_SET_NOT_FOUND:
+    "Conjunto de padrões de extração não encontrado.",
 };
 
-const GENERIC_CLIENT_ERROR_MESSAGE = "Não foi possível concluir a operação. Tente novamente.";
+const GENERIC_CLIENT_ERROR_MESSAGE =
+  "Não foi possível concluir a operação. Tente novamente.";
 const NETWORK_ERROR_MESSAGE =
   "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.";
 const UNKNOWN_ERROR_MESSAGE = "Ocorreu um erro inesperado. Tente novamente.";
@@ -83,7 +85,5 @@ export function isCredentialError(error: unknown): boolean {
  * settings menu's badge instead) and duplicate messages are collapsed, since
  * one missing credential fails every sanction-source fetch identically. */
 export function visibleErrorMessages(errors: readonly unknown[]): string[] {
-  return [
-    ...new Set(errors.filter((e) => !isCredentialError(e)).map(translateError)),
-  ];
+  return [...new Set(errors.filter((e) => !isCredentialError(e)).map(translateError))];
 }

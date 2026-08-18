@@ -111,8 +111,9 @@ function IngestForm() {
       </Link>
       <h1 className="mb-1 font-semibold text-lg">Ingestão de texto</h1>
       <p className="mb-4 text-muted text-sm">
-        Envie um arquivo .txt. CPF, CNPJ e CEP+número encontrados no texto viram entidades
-        vinculadas à fonte, e são automaticamente linkados a entidades já existentes no grafo.
+        Envie um arquivo .txt. CPF, CNPJ e CEP+número encontrados no texto viram
+        entidades vinculadas à fonte, e são automaticamente linkados a entidades já
+        existentes no grafo.
       </p>
 
       <div className="rounded border border-border p-4">
@@ -140,7 +141,9 @@ function IngestForm() {
           <div className="mt-3 flex items-center gap-2 text-sm">
             <FileText size={14} className="shrink-0 text-muted" />
             <span className="truncate">{file.name}</span>
-            <span className="shrink-0 text-muted">({Math.ceil(file.size / 1024)} KB)</span>
+            <span className="shrink-0 text-muted">
+              ({Math.ceil(file.size / 1024)} KB)
+            </span>
           </div>
         ) : null}
 
@@ -159,7 +162,9 @@ function IngestForm() {
               : "Enviar"}
         </button>
 
-        {localError ? <p className="mt-3 text-amber-500 text-sm">{localError}</p> : null}
+        {localError ? (
+          <p className="mt-3 text-amber-500 text-sm">{localError}</p>
+        ) : null}
         {isBlocked ? (
           <p className="mt-3 text-amber-500 text-sm">
             Limite atingido. Tente novamente em {retryAfterSeconds}s.
@@ -171,7 +176,8 @@ function IngestForm() {
         {data ? (
           <div className="mt-3 rounded border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
             <p className="text-emerald-400">
-              {data.nodes.length} entidade(s) e {data.edges.length} relação(ões) extraídas.
+              {data.nodes.length} entidade(s) e {data.edges.length} relação(ões)
+              extraídas.
             </p>
             <button
               type="button"

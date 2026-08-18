@@ -47,7 +47,9 @@ export function DataTable() {
       if (needle === "") {
         return true;
       }
-      return `${row.original.label} ${row.original.summary}`.toLowerCase().includes(needle);
+      return `${row.original.label} ${row.original.summary}`
+        .toLowerCase()
+        .includes(needle);
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -101,7 +103,10 @@ export function DataTable() {
                           onClick={header.column.getToggleSortingHandler()}
                           className="flex items-center gap-1 hover:text-foreground"
                         >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
                           {sortDirection === "asc" ? (
                             <ArrowUp size={11} />
                           ) : sortDirection === "desc" ? (

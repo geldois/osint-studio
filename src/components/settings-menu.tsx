@@ -15,7 +15,8 @@ export function SettingsMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const hasMissingCredential = credentials?.some((status) => !status.configured) ?? false;
+  const hasMissingCredential =
+    credentials?.some((status) => !status.configured) ?? false;
 
   useEffect(() => {
     if (!isOpen) {

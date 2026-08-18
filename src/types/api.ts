@@ -163,10 +163,7 @@ export interface PlainEdge extends EdgeBase {
 }
 
 export type ApiEdge =
-  | PersonOwnsCompanyEdge
-  | MentionedInTextEdge
-  | PossiblyMatchesEdge
-  | PlainEdge;
+  PersonOwnsCompanyEdge | MentionedInTextEdge | PossiblyMatchesEdge | PlainEdge;
 
 export interface GraphSchema {
   root_id: string;

@@ -73,7 +73,12 @@ export function nodeToRows(node: ApiNode): CardRow[] {
         { key: "início atividade", value: node.activity_start_date ?? EMPTY },
         {
           key: "matriz",
-          value: node.is_headquarters === null ? EMPTY : node.is_headquarters ? "sim" : "não",
+          value:
+            node.is_headquarters === null
+              ? EMPTY
+              : node.is_headquarters
+                ? "sim"
+                : "não",
         },
       ];
     case "person":
@@ -173,21 +178,19 @@ export function projectGraph(
   rawEdges: ApiEdge[],
   roots: Set<string>,
 ): { nodes: EntityNode[]; edges: Edge[] } {
-  const nodes = rawNodes.map(
-    (node): EntityNode => ({
-      id: node.id,
-      type: "entity",
-      position: { x: 0, y: 0 },
-      data: {
-        label: extractLabel(node),
-        nodeType: node.type,
-        isRoot: roots.has(node.id),
-        cnpj: node.type === "company" ? node.cnpj : null,
-        cpf: node.type === "person" ? node.cpf : null,
-        rows: nodeToRows(node),
-      },
-    }),
-  );
+  const nodes = rawNodes.map((node): EntityNode => ({
+    id: node.id,
+    type: "entity",
+    position: { x: 0, y: 0 },
+    data: {
+      label: extractLabel(node),
+      nodeType: node.type,
+      isRoot: roots.has(node.id),
+      cnpj: node.type === "company" ? node.cnpj : null,
+      cpf: node.type === "person" ? node.cpf : null,
+      rows: nodeToRows(node),
+    },
+  }));
   return { nodes, edges: groupEdgesByPair(rawEdges) };
 }
 
@@ -304,8 +307,7 @@ function separateOverlaps(boxes: PositionedBox[]): void {
           continue;
         }
         const overlapX = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
-        const overlapY =
-          Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+        const overlapY = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
         const penetrationX = overlapX + PADDING;
         const penetrationY = overlapY + PADDING;
         if (penetrationX <= 0 || penetrationY <= 0) {
@@ -360,8 +362,7 @@ export async function layoutGraph(
     const componentNodes = componentIds
       .map((id) => byId.get(id))
       .filter((node): node is EntityNode => node !== undefined);
-    const anchor =
-      componentNodes.find((node) => node.data.isRoot) ?? componentNodes[0];
+    const anchor = componentNodes.find((node) => node.data.isRoot) ?? componentNodes[0];
     const treeEdges =
       anchor === undefined
         ? []
@@ -378,13 +379,11 @@ export async function layoutGraph(
         width: node.measured?.width ?? DEFAULT_NODE_WIDTH,
         height: node.measured?.height ?? DEFAULT_NODE_HEIGHT,
       })),
-      edges: treeEdges.map(
-        (edge): ElkExtendedEdge => ({
-          id: edge.id,
-          sources: [edge.source],
-          targets: [edge.target],
-        }),
-      ),
+      edges: treeEdges.map((edge): ElkExtendedEdge => ({
+        id: edge.id,
+        sources: [edge.source],
+        targets: [edge.target],
+      })),
     };
 
     let children: ElkNode[];

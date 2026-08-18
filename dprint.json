@@ -1,0 +1,19 @@
+{
+  "lineWidth": 120,
+  "indentWidth": 2,
+  "newLineKind": "lf",
+  "toml": {
+    "indentWidth": 2
+  },
+  "yaml": {
+    "printWidth": 120,
+    "indentWidth": 2,
+    "lineBreak": "lf"
+  },
+  "includes": ["**/*.toml", "**/*.yaml", "**/*.yml"],
+  "excludes": ["node_modules/", ".next/", ".git/", "coverage/", "pnpm-lock.yaml"],
+  "plugins": [
+    "https://plugins.dprint.dev/toml-0.8.0.wasm",
+    "https://plugins.dprint.dev/g-plane/pretty_yaml-v0.6.0.wasm"
+  ]
+}

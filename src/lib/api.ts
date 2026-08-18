@@ -40,7 +40,9 @@ async function parseApiError(res: Response): Promise<ApiError> {
     detail: string | { msg: string }[];
     type: string | null;
   };
-  const message = Array.isArray(detail) ? detail.map((error) => error.msg).join(" ") : detail;
+  const message = Array.isArray(detail)
+    ? detail.map((error) => error.msg).join(" ")
+    : detail;
   return new ApiError(message, type);
 }
 
@@ -113,7 +115,10 @@ export async function fetchGraph(cnpj: string, token: string): Promise<GraphSche
   return res.json() as Promise<GraphSchema>;
 }
 
-export async function fetchGraphByCpf(cpf: string, token: string): Promise<GraphSchema> {
+export async function fetchGraphByCpf(
+  cpf: string,
+  token: string,
+): Promise<GraphSchema> {
   const res = await fetch(`${API_URL}/cpf/${cpf}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -141,15 +146,23 @@ async function fetchSanctions(
   return res.json() as Promise<GraphSchema>;
 }
 
-export function fetchCNEP(cpfOrCnpj: string, token: string): Promise<GraphSchema | null> {
+export function fetchCNEP(
+  cpfOrCnpj: string,
+  token: string,
+): Promise<GraphSchema | null> {
   return fetchSanctions("cnep", cpfOrCnpj, token);
 }
 
-export function fetchCEIS(cpfOrCnpj: string, token: string): Promise<GraphSchema | null> {
+export function fetchCEIS(
+  cpfOrCnpj: string,
+  token: string,
+): Promise<GraphSchema | null> {
   return fetchSanctions("ceis", cpfOrCnpj, token);
 }
 
-export async function fetchCredentialStatus(token: string): Promise<CredentialStatus[]> {
+export async function fetchCredentialStatus(
+  token: string,
+): Promise<CredentialStatus[]> {
   const res = await fetch(`${API_URL}/credentials`, {
     headers: { Authorization: `Bearer ${token}` },
   });

@@ -175,13 +175,20 @@ export default function WhiteboardPage() {
                 setQuery(e.target.value);
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !isPending && !isBlocked && query.trim() !== "") {
+                if (
+                  e.key === "Enter" &&
+                  !isPending &&
+                  !isBlocked &&
+                  query.trim() !== ""
+                ) {
                   mutate(
                     { document: query.trim() },
                     {
                       onError: (mutationError) => {
                         if (mutationError instanceof RateLimitError) {
-                          setRetryAfterSeconds(Math.ceil(mutationError.retryAfterSeconds));
+                          setRetryAfterSeconds(
+                            Math.ceil(mutationError.retryAfterSeconds),
+                          );
                         }
                       },
                     },
@@ -211,7 +218,9 @@ export default function WhiteboardPage() {
             className="shrink-0 rounded border border-border bg-surface px-2 py-1.5 font-medium text-sm hover:bg-white/10 disabled:opacity-50 sm:px-3"
           >
             <Search size={14} className="sm:hidden" />
-            <span className="hidden sm:inline">{isPending ? "Expandindo..." : "Expandir"}</span>
+            <span className="hidden sm:inline">
+              {isPending ? "Expandindo..." : "Expandir"}
+            </span>
           </button>
           {role === "ADMIN" ? (
             <Link
