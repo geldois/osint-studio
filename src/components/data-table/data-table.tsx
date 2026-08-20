@@ -11,6 +11,15 @@ import {
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { columns, toTableRow } from "@/components/data-table/columns";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { relationshipsForNode } from "@/lib/relationships";
 import { useGraphStore } from "@/store/graph";
 import { useSelectionStore } from "@/store/selection";
@@ -72,30 +81,30 @@ export function DataTable() {
             size={14}
             className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
           />
-          <input
+          <Input
             value={globalFilter}
             onChange={(e) => {
               setGlobalFilter(e.target.value);
             }}
             placeholder="Filtrar por nome ou atributo..."
-            className="w-full rounded border border-border bg-background py-1.5 pr-3 pl-8 text-sm"
+            className="pl-8"
           />
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead className="sticky top-0 z-10 bg-surface">
+      <div className="flex-1 overflow-hidden">
+        <Table className="text-sm" containerClassName="h-full overflow-y-auto">
+          <TableHeader className="sticky top-0 z-10 bg-surface">
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-border border-b">
+              <TableRow key={headerGroup.id} className="border-border">
                 {headerGroup.headers.map((header) => {
                   const canSort = header.column.getCanSort();
                   const sortDirection = header.column.getIsSorted();
                   return (
-                    <th
+                    <TableHead
                       key={header.id}
                       style={{ width: header.getSize() }}
-                      className="px-3 py-2 text-left font-medium text-[11px] text-muted uppercase tracking-wide"
+                      className="px-3 py-2 text-[11px] text-muted uppercase tracking-wide"
                     >
                       {header.isPlaceholder ? null : canSort ? (
                         <button
@@ -118,32 +127,32 @@ export function DataTable() {
                       ) : (
                         flexRender(header.column.columnDef.header, header.getContext())
                       )}
-                    </th>
+                    </TableHead>
                   );
                 })}
-              </tr>
+              </TableRow>
             ))}
-          </thead>
-          <tbody>
+          </TableHeader>
+          <TableBody>
             {table.getRowModel().rows.map((row) => (
-              <tr
+              <TableRow
                 key={row.id}
                 onClick={() => {
                   selectNode(row.original.node.id);
                 }}
-                className={`cursor-pointer border-border border-b transition-colors hover:bg-white/5 ${
+                className={`cursor-pointer border-border transition-colors hover:bg-white/5 ${
                   selectedNodeId === row.original.node.id ? "bg-white/10" : ""
                 }`}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-3 py-2">
+                  <TableCell key={cell.id} className="px-3 py-2">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+                  </TableCell>
                 ))}
-              </tr>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
         {table.getRowModel().rows.length === 0 ? (
           <div className="p-6 text-center text-muted text-sm">
             Nenhum resultado para este filtro.

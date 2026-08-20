@@ -1,6 +1,8 @@
 "use client";
 
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import { useExpand } from "@/hooks/use-expand";
 import { edgeKey, extractLabel, nodeToRows } from "@/lib/graph-adapter";
@@ -44,7 +46,7 @@ function NodePanel({ nodeId }: { nodeId: string }) {
     canFetchDocumentType(role, documentType);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
+    <ScrollArea className="h-full">
       <div className="flex items-start gap-2.5 border-border border-b p-4">
         <span className="mt-0.5 shrink-0 opacity-70">
           <EntityIcon nodeType={node.type} size={18} />
@@ -137,16 +139,17 @@ function NodePanel({ nodeId }: { nodeId: string }) {
 
       {canExpand ? (
         <div className="space-y-2 p-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            className="w-full"
             disabled={isPending}
             onClick={() => {
               mutate({ document: expandableDocument });
             }}
-            className="w-full rounded border border-border bg-surface px-3 py-1.5 font-medium text-sm hover:bg-white/10 disabled:opacity-50"
           >
             {isPending ? "Expandindo..." : "Expandir relacionamentos"}
-          </button>
+          </Button>
           {error ? (
             <p className="text-red-500 text-xs">{translateError(error)}</p>
           ) : backgroundErrors.length > 0 ? (
@@ -154,7 +157,7 @@ function NodePanel({ nodeId }: { nodeId: string }) {
           ) : null}
         </div>
       ) : null}
-    </div>
+    </ScrollArea>
   );
 }
 
@@ -174,7 +177,7 @@ function EdgePanel({ edgeId }: { edgeId: string }) {
   const attributes = edgeAttributes(edge);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
+    <ScrollArea className="h-full">
       <div className="border-border border-b p-4">
         <div className="font-medium text-sm">{edgeTypeLabel(edge.type)}</div>
         <div className="text-[11px] text-muted">relação</div>
@@ -219,7 +222,7 @@ function EdgePanel({ edgeId }: { edgeId: string }) {
           </dl>
         )}
       </section>
-    </div>
+    </ScrollArea>
   );
 }
 
@@ -234,14 +237,16 @@ export function DetailPanel() {
 
   return (
     <aside className="relative h-full w-80 shrink-0 border-border border-l bg-surface">
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-xs"
         onClick={clearSelection}
         aria-label="Fechar painel"
-        className="absolute top-3 right-3 z-10 flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-white/10 hover:text-foreground"
+        className="absolute top-3 right-3 z-10"
       >
         <X size={14} />
-      </button>
+      </Button>
       {selectedNodeId !== null ? <NodePanel nodeId={selectedNodeId} /> : null}
       {selectedEdgeId !== null ? <EdgePanel edgeId={selectedEdgeId} /> : null}
     </aside>

@@ -20,6 +20,8 @@ import { RelationshipEdge } from "@/components/edges/relationship-edge";
 import { EntityNode } from "@/components/nodes/entity-node";
 import { SettingsMenu } from "@/components/settings-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ViewSwitch } from "@/components/view-switch";
 import { useExpand } from "@/hooks/use-expand";
 import { RateLimitError } from "@/lib/api";
@@ -169,7 +171,7 @@ export default function WhiteboardPage() {
               size={14}
               className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
             />
-            <input
+            <Input
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -196,11 +198,12 @@ export default function WhiteboardPage() {
                 }
               }}
               placeholder={searchPlaceholder}
-              className="w-28 rounded border border-border bg-background py-1.5 pr-3 pl-8 text-sm outline-none transition-colors focus:border-white/40 focus:ring-2 focus:ring-white/10 sm:w-64"
+              className="w-28 pl-8 sm:w-64"
             />
           </div>
-          <button
+          <Button
             type="button"
+            variant="outline"
             disabled={isPending || isBlocked || query.trim() === ""}
             onClick={() => {
               mutate(
@@ -215,13 +218,13 @@ export default function WhiteboardPage() {
               );
             }}
             aria-label="Expandir"
-            className="shrink-0 rounded border border-border bg-surface px-2 py-1.5 font-medium text-sm hover:bg-white/10 disabled:opacity-50 sm:px-3"
+            className="shrink-0 px-2 sm:px-3"
           >
             <Search size={14} className="sm:hidden" />
             <span className="hidden sm:inline">
               {isPending ? "Expandindo..." : "Expandir"}
             </span>
-          </button>
+          </Button>
           {role === "ADMIN" ? (
             <Link
               href="/ingest"

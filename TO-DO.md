@@ -18,13 +18,6 @@
   which throws an opaque parse error for non-JSON failures (proxy 502, HTML). Read
   text first, then attempt to parse.
 
-## refactor(ui)
-
-- `src/components/detail-panel/detail-panel.tsx` e `src/components/data-table/*` ainda usam Tailwind manual, fora
-  do escopo da primeira leva de adoção do shadcn/ui (ver
-  `~/+ME/brain/notes/specs/osint-studio/adopt-shadcn-ui-component-kit.md`). Primitivos já disponíveis em
-  `src/components/ui/`; falta mapear `Table`/`Card`/`ScrollArea` pra essas duas telas.
-
 ## refactor(whiteboard)
 
 - Radial placement fans new nodes around the anchor at a fixed radius; dense groups or
