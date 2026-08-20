@@ -1,4 +1,4 @@
-// End-of-turn type check and ADR nudge — `Stop`.
+// End-of-turn type check and docs nudge — `Stop`.
 //
 // One process, one injection, read-only. Runs at the end of the turn
 // rather than per edit for two reasons: the code is finally complete
@@ -14,7 +14,7 @@
 // Both signals derive from `git status --porcelain` — no marker files, no
 // temp-directory sweep, and accurate even across a session restart.
 
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { context, gitRoot, readEvent, run } from "./_hook-io";
 
@@ -22,13 +22,8 @@ const TSC = ["pnpm", "exec", "tsc", "--noEmit"];
 const MAX_OUTPUT_LINES = 40;
 const TS_SUFFIXES = new Set([".ts", ".tsx"]);
 const PATH_START = 3; // porcelain line is "XY <path>"
-
-const ADR_NUDGE =
-  "TypeScript files changed this turn. Judge, don't act reflexively: was " +
-  "the change an architectural decision (new library, new pattern, a " +
-  "trade-off worth remembering) or purely mechanical (rename, typing, " +
-  "refactor)? If architectural, add a new docs/adr/NNNN-<slug>.md " +
-  "following the existing entries. If mechanical, skip.";
+const ARCHITECTURE_DIR = "docs/architecture";
+const ADR_DIR = "docs/adr";
 
 function main(): void {
   const event = readEvent();
@@ -53,10 +48,44 @@ function main(): void {
     return;
   }
 
-  const sections = [typeErrors(root), ADR_NUDGE].filter((section) => section !== "");
+  const sections = [typeErrors(root), docsNudge(root)].filter(
+    (section) => section !== "",
+  );
   if (sections.length > 0) {
     context("Stop", sections.join("\n\n"));
   }
+}
+
+/** Mirrors osint-engine's after_turn.py docs-sync nudge: docs/architecture/<area>.md
+ * is always the default, never docs/adr/, per manage-docs — silent if the project
+ * has no docs/architecture/ at all (nowhere for a decision to live). */
+function docsNudge(root: string): string {
+  const architectureDir = resolve(root, ARCHITECTURE_DIR);
+  if (!existsSync(architectureDir)) {
+    return "";
+  }
+  const areas = readdirSync(architectureDir)
+    .filter((name) => name.endsWith(".md"))
+    .map((name) => name.slice(0, -".md".length))
+    .sort();
+  const areasList = areas.length > 0 ? ` (existing: ${areas.join(", ")})` : "";
+
+  let nudge =
+    "TypeScript files changed this turn. Judge, don't act reflexively: was " +
+    "the change semantic (business/flow logic, a new library, a new " +
+    "pattern, a trade-off worth remembering) or purely mechanical (rename, " +
+    `typing, refactor)? If semantic, update the matching ${ARCHITECTURE_DIR}/` +
+    `<area>.md${areasList} in natural language — never cite a function, ` +
+    "class, or type name. If mechanical, skip.";
+
+  if (existsSync(resolve(root, ADR_DIR))) {
+    nudge +=
+      ` This project's ${ADR_DIR}/ already has entries too — manage-docs ` +
+      `still prefers migrating a decision into ${ARCHITECTURE_DIR}/<area>.md ` +
+      "over a new ADR, unless the user explicitly asked for ADRs here.";
+  }
+
+  return nudge;
 }
 
 function suffixOf(path: string): string {
