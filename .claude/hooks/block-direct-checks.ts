@@ -18,6 +18,19 @@ import { deny, readEvent, toolInput } from "./_hook-io";
 // leading `cd studio && pnpm run lint` walks straight past every anchor.
 const STATEMENT_SPLIT = /&&|[;\n]|\|+|[()]/;
 
+// A heredoc body (a commit message passed via `<<'EOF' ... EOF`, the
+// prescribed way to commit) is literal data, never a shell statement — but
+// splitting on bare `(`/`)` above has no notion of that, so a conventional
+// commit's own `(scope):` collides with a targetable name once split (e.g.
+// `feat(lint): ...` yields the bare statement `lint`). Strip every heredoc
+// down to its opening redirect before splitting, so its body and closing
+// marker are never seen as statements at all.
+const HEREDOC = /<<-?(['"]?)(\w+)\1\n[\s\S]*?\n\s*\2(?=\s|$)/g;
+
+function stripHeredocs(command: string): string {
+  return command.replace(HEREDOC, (_match, _quote, marker: string) => `<<${marker}`);
+}
+
 // Strip every leading runner/flag token (pnpm exec, pnpm run, npx, mise
 // exec --, stray -q/--flags) so wrapping the call cannot bypass the match
 // below.
@@ -71,7 +84,7 @@ function main(): void {
     return;
   }
 
-  for (const statement of command.split(STATEMENT_SPLIT)) {
+  for (const statement of stripHeredocs(command).split(STATEMENT_SPLIT)) {
     const normalized = normalize(statement);
     if (!normalized) {
       continue;
