@@ -41,6 +41,16 @@
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/report-lint.ts"
             ],
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "pnpm",
+            "args": [
+              "exec",
+              "tsx",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/report-comments.ts"
+            ],
+            "timeout": 30
           }
         ]
       }

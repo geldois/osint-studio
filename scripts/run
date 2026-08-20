@@ -92,9 +92,7 @@ run_check() {
 
 run_fix() {
     local files=("$@")
-    local targeted=1
     if [ "${#files[@]}" -eq 0 ]; then
-        targeted=0
         mapfile -t files < <(git ls-files '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.json' '*.md' '*.css')
     fi
     [ "${#files[@]}" -eq 0 ] && return 0
@@ -106,20 +104,6 @@ run_fix() {
         *.ts | *.tsx | *.js | *.jsx | *.mjs) lintable+=("$file") ;;
         esac
     done
-
-    # Comment stripping only runs on an explicitly targeted file list (the
-    # precommit path, fully-staged files) and only within src/ — never on a
-    # bare `run fix`, which would blanket-strip a whole file's pre-existing
-    # comments in one sweep instead of just what this edit changed.
-    if [ "$targeted" = 1 ] && [ "${#lintable[@]}" -gt 0 ]; then
-        local stripped=()
-        for file in "${lintable[@]}"; do
-            case "$file" in
-            src/*.ts | src/*.tsx) stripped+=("$file") ;;
-            esac
-        done
-        [ "${#stripped[@]}" -gt 0 ] && mise exec -- pnpm exec tsx scripts/strip-comments.mts "${stripped[@]}"
-    fi
 
     local formattable=()
     for file in "${files[@]}"; do

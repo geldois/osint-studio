@@ -20,6 +20,7 @@ unchecked. Needs `mise` active on `PATH`.
 
 ## Code
 
-No comments in `src/` — the name says it, or the code is wrong. `precommit` strips any new one from the lines an
-edit actually touched (pragmas like `eslint-disable`/`@ts-expect-error` survive); a pre-existing comment is left
-alone until its own line is next edited.
+No comments in `src/`, ever — the name says it, or the code is wrong. Nothing strips one automatically: writing it
+is the mistake, not leaving it in the file. `.claude/hooks/report-comments.ts` nudges on any new one introduced this
+turn (pragmas like `eslint-disable`/`@ts-expect-error` are exempt, never flagged). Comments are fine everywhere
+outside `src/` — `.claude/hooks/`, `.github/`, root-level config — where a non-obvious decision may need one.

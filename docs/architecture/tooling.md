@@ -30,6 +30,11 @@ logic such a suite can catch cheaply; a visual or interaction regression is not,
 shape is still changing weekly, so locking that down early would pay a real, ongoing cost before catching any
 regression it would prevent.
 
+A newly-introduced comment is never auto-removed, at commit time or otherwise — the real TypeScript-parser rewrite
+this used to run carried edge cases (a JSX expression container holding only a comment, trivia trailing a node's own
+end) that could silently corrupt a file nobody reviews before it lands. A per-edit hook instead nudges the assistant
+to remove it or make the name say what it said, leaving the actual judgment call to whoever wrote the comment.
+
 ## Consequences
 
 The formatting tool's own house style for emphasis in prose documents is fixed and not configurable, so the
