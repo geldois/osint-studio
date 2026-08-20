@@ -38,7 +38,7 @@ const GENERIC_CLIENT_ERROR_MESSAGE =
   "Não foi possível concluir a operação. Tente novamente.";
 const NETWORK_ERROR_MESSAGE =
   "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.";
-const UNKNOWN_ERROR_MESSAGE = "Ocorreu um erro inesperado. Tente novamente.";
+export const UNKNOWN_ERROR_MESSAGE = "Ocorreu um erro inesperado. Tente novamente.";
 
 /** `fetch` rejects with a bare `TypeError` (message varies by browser —
  * "Failed to fetch", "Load failed", "NetworkError when attempting to fetch

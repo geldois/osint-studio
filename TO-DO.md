@@ -36,9 +36,3 @@
 - Radial layout math (`layoutGraph`/`separateOverlaps` in `graph-adapter.ts`) has no
   coverage — async and ELK-backed, deferred per `docs/architecture/tooling.md`.
   `extractLabel`, `edgeKey`, and `mergeGraph` are now covered.
-
-## validation(api)
-
-- API responses are cast to their types without runtime validation. Introduce schema
-  parsing (e.g. Zod) at the `login`/`fetchGraph` boundary so backend drift fails at the
-  edge instead of at render.

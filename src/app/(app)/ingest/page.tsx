@@ -1,9 +1,11 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, FileText, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,13 +13,8 @@ import { useIngestText } from "@/hooks/use-ingest-text";
 import { useTextPatternSets } from "@/hooks/use-text-patterns";
 import { RateLimitError } from "@/lib/api";
 import { translateError } from "@/lib/errors";
+import { ingestSchema, type IngestFormValues } from "@/lib/ingest-schema";
 import { useAuthStore } from "@/store/auth";
-
-const MAX_FILE_BYTES = 500_000;
-
-function isTxtFile(file: File): boolean {
-  return file.name.toLowerCase().endsWith(".txt") || file.type === "text/plain";
-}
 
 export default function IngestPage() {
   const role = useAuthStore((s) => s.role);
@@ -40,12 +37,21 @@ function IngestForm() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [file, setFile] = useState<File | null>(null);
-  const [localError, setLocalError] = useState<string | null>(null);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
 
   const { data: patternSets, isLoading: isLoadingPatterns } = useTextPatternSets();
-  const { mutate, isPending, error, data, reset } = useIngestText();
+  const { mutate, isPending, error, data, reset: resetMutation } = useIngestText();
+
+  const {
+    control,
+    setValue,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<IngestFormValues>({
+    resolver: zodResolver(ingestSchema),
+    defaultValues: { file: null },
+  });
+  const file = useWatch({ control, name: "file" });
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) {
@@ -63,31 +69,15 @@ function IngestForm() {
   const isBlocked = retryAfterSeconds > 0;
 
   function handleFileChange(selected: File | null): void {
-    reset();
-    setLocalError(null);
-    if (selected === null) {
-      setFile(null);
-      return;
-    }
-    if (!isTxtFile(selected)) {
-      setFile(null);
-      setLocalError("Selecione um arquivo .txt.");
-      return;
-    }
-    if (selected.size > MAX_FILE_BYTES) {
-      setFile(null);
-      setLocalError("Arquivo muito grande (limite de 500 KB).");
-      return;
-    }
-    setFile(selected);
+    resetMutation();
+    setValue("file", selected, { shouldValidate: selected !== null });
   }
 
-  async function handleSubmit(): Promise<void> {
-    if (file === null || patternSetId === undefined) {
+  async function onSubmit(values: IngestFormValues): Promise<void> {
+    if (values.file === null || patternSetId === undefined) {
       return;
     }
-    setLocalError(null);
-    const text = await file.text();
+    const text = await values.file.text();
     mutate(
       { text, patternSetId },
       {
@@ -121,80 +111,78 @@ function IngestForm() {
 
       <Card>
         <CardContent>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".txt,text/plain"
-            className="hidden"
-            onChange={(e) => {
-              handleFileChange(e.target.files?.[0] ?? null);
-            }}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            className="h-auto w-full flex-col gap-2 border-dashed py-6"
-            onClick={() => {
-              fileInputRef.current?.click();
+          <form
+            onSubmit={(e) => {
+              void handleSubmit(onSubmit)(e);
             }}
           >
-            <Upload size={16} className="text-muted" />
-            {file === null ? "Selecionar arquivo .txt" : "Trocar arquivo"}
-          </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,text/plain"
+              className="hidden"
+              onChange={(e) => {
+                handleFileChange(e.target.files?.[0] ?? null);
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="h-auto w-full flex-col gap-2 border-dashed py-6"
+              onClick={() => {
+                fileInputRef.current?.click();
+              }}
+            >
+              <Upload size={16} className="text-muted" />
+              {file === null ? "Selecionar arquivo .txt" : "Trocar arquivo"}
+            </Button>
 
-          {file !== null ? (
-            <div className="mt-3 flex items-center gap-2 text-sm">
-              <FileText size={14} className="shrink-0 text-muted" />
-              <span className="truncate">{file.name}</span>
-              <span className="shrink-0 text-muted">
-                ({Math.ceil(file.size / 1024)} KB)
-              </span>
-            </div>
-          ) : null}
+            {file !== null ? (
+              <div className="mt-3 flex items-center gap-2 text-sm">
+                <FileText size={14} className="shrink-0 text-muted" />
+                <span className="truncate">{file.name}</span>
+                <span className="shrink-0 text-muted">
+                  ({Math.ceil(file.size / 1024)} KB)
+                </span>
+              </div>
+            ) : null}
 
-          <Button
-            type="button"
-            className="mt-4 w-full"
-            disabled={!canSubmit}
-            onClick={() => {
-              void handleSubmit();
-            }}
-          >
-            {isPending
-              ? "Processando..."
-              : isLoadingPatterns
-                ? "Carregando padrões..."
-                : "Enviar"}
-          </Button>
+            <Button type="submit" className="mt-4 w-full" disabled={!canSubmit}>
+              {isPending
+                ? "Processando..."
+                : isLoadingPatterns
+                  ? "Carregando padrões..."
+                  : "Enviar"}
+            </Button>
 
-          {localError ? (
-            <p className="mt-3 text-amber-500 text-sm">{localError}</p>
-          ) : null}
-          {isBlocked ? (
-            <p className="mt-3 text-amber-500 text-sm">
-              Limite atingido. Tente novamente em {retryAfterSeconds}s.
-            </p>
-          ) : error ? (
-            <p className="mt-3 text-red-500 text-sm">{translateError(error)}</p>
-          ) : null}
+            {errors.file ? (
+              <p className="mt-3 text-amber-500 text-sm">{errors.file.message}</p>
+            ) : isBlocked ? (
+              <p className="mt-3 text-amber-500 text-sm">
+                Limite atingido. Tente novamente em {retryAfterSeconds}s.
+              </p>
+            ) : error ? (
+              <p className="mt-3 text-red-500 text-sm">{translateError(error)}</p>
+            ) : null}
 
-          {data ? (
-            <Alert className="mt-3 border-emerald-500/40">
-              <AlertDescription className="text-emerald-400">
-                {data.nodes.length} entidade(s) e {data.edges.length} relação(ões)
-                extraídas.
-                <button
-                  type="button"
-                  onClick={() => {
-                    router.push("/whiteboard");
-                  }}
-                  className="block underline hover:text-emerald-300"
-                >
-                  Ver no grafo
-                </button>
-              </AlertDescription>
-            </Alert>
-          ) : null}
+            {data ? (
+              <Alert className="mt-3 border-emerald-500/40">
+                <AlertDescription className="text-emerald-400">
+                  {data.nodes.length} entidade(s) e {data.edges.length} relação(ões)
+                  extraídas.
+                  <button
+                    type="button"
+                    onClick={() => {
+                      router.push("/whiteboard");
+                    }}
+                    className="block underline hover:text-emerald-300"
+                  >
+                    Ver no grafo
+                  </button>
+                </AlertDescription>
+              </Alert>
+            ) : null}
+          </form>
         </CardContent>
       </Card>
     </div>

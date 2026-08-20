@@ -1,4 +1,11 @@
-import { ApiError } from "@/lib/errors";
+import { z } from "zod";
+import {
+  CredentialStatusSchema,
+  GraphSchemaSchema,
+  TextPatternSetSchema,
+  TokenResponseSchema,
+} from "@/lib/api-schemas";
+import { ApiError, UNKNOWN_ERROR_MESSAGE } from "@/lib/errors";
 import { useAuthStore } from "@/store/auth";
 import type {
   CredentialStatus,
@@ -27,6 +34,24 @@ export class SessionExpiredError extends Error {
     super("Sessão expirada. Faça login novamente.");
     this.name = "SessionExpiredError";
   }
+}
+
+export class ApiSchemaError extends Error {
+  override readonly cause: z.ZodError;
+
+  constructor(cause: z.ZodError) {
+    super(UNKNOWN_ERROR_MESSAGE, { cause });
+    this.name = "ApiSchemaError";
+    this.cause = cause;
+  }
+}
+
+async function parseJson<T>(schema: z.ZodType<T>, res: Response): Promise<T> {
+  const result = schema.safeParse(await res.json());
+  if (!result.success) {
+    throw new ApiSchemaError(result.error);
+  }
+  return result.data;
 }
 
 function parseRetryAfterSeconds(res: Response): number {
@@ -94,7 +119,7 @@ export async function login(
   if (!res.ok) {
     return throwForPublicEndpointError(res);
   }
-  return res.json() as Promise<TokenResponse>;
+  return parseJson(TokenResponseSchema, res);
 }
 
 export async function loginAsVisitor(): Promise<TokenResponse> {
@@ -102,7 +127,7 @@ export async function loginAsVisitor(): Promise<TokenResponse> {
   if (!res.ok) {
     return throwForPublicEndpointError(res);
   }
-  return res.json() as Promise<TokenResponse>;
+  return parseJson(TokenResponseSchema, res);
 }
 
 export async function fetchGraph(cnpj: string, token: string): Promise<GraphSchema> {
@@ -112,7 +137,7 @@ export async function fetchGraph(cnpj: string, token: string): Promise<GraphSche
   if (!res.ok) {
     return throwForAuthenticatedEndpointError(res);
   }
-  return res.json() as Promise<GraphSchema>;
+  return parseJson(GraphSchemaSchema, res);
 }
 
 export async function fetchGraphByCpf(
@@ -128,7 +153,7 @@ export async function fetchGraphByCpf(
   if (!res.ok) {
     return throwForAuthenticatedEndpointError(res);
   }
-  return res.json() as Promise<GraphSchema>;
+  return parseJson(GraphSchemaSchema, res);
 }
 
 /** 204 means no sanctions were found for this CPF/CNPJ — a valid empty result. */
@@ -146,7 +171,7 @@ async function fetchSanctions(
   if (!res.ok) {
     return throwForAuthenticatedEndpointError(res);
   }
-  return res.json() as Promise<GraphSchema>;
+  return parseJson(GraphSchemaSchema, res);
 }
 
 export function fetchCNEP(
@@ -172,7 +197,7 @@ export async function fetchCredentialStatus(
   if (!res.ok) {
     return throwForAuthenticatedEndpointError(res);
   }
-  return res.json() as Promise<CredentialStatus[]>;
+  return parseJson(z.array(CredentialStatusSchema), res);
 }
 
 export async function fetchTextPatternSets(token: string): Promise<TextPatternSet[]> {
@@ -182,7 +207,7 @@ export async function fetchTextPatternSets(token: string): Promise<TextPatternSe
   if (!res.ok) {
     return throwForAuthenticatedEndpointError(res);
   }
-  return res.json() as Promise<TextPatternSet[]>;
+  return parseJson(z.array(TextPatternSetSchema), res);
 }
 
 export async function ingestText(
@@ -201,7 +226,7 @@ export async function ingestText(
   if (!res.ok) {
     return throwForAuthenticatedEndpointError(res);
   }
-  return res.json() as Promise<GraphSchema>;
+  return parseJson(GraphSchemaSchema, res);
 }
 
 export async function saveCredential(

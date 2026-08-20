@@ -1,10 +1,13 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +23,11 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   PORTAL_TRANSPARENCIA: "Portal da Transparência",
 };
 
+const credentialSchema = z.object({
+  apiKey: z.string().min(1, "Informe a chave da API."),
+});
+type CredentialFormValues = z.infer<typeof credentialSchema>;
+
 function CredentialRow({
   configured,
   provider,
@@ -29,13 +37,19 @@ function CredentialRow({
   provider: Provider;
   token: string;
 }) {
-  const [apiKey, setApiKey] = useState("");
   const queryClient = useQueryClient();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<CredentialFormValues>({ resolver: zodResolver(credentialSchema) });
 
   const mutation = useMutation({
-    mutationFn: () => saveCredential(provider, apiKey, token),
+    mutationFn: (values: CredentialFormValues) =>
+      saveCredential(provider, values.apiKey, token),
     onSuccess: () => {
-      setApiKey("");
+      reset();
       void queryClient.invalidateQueries({ queryKey: ["credential-status"] });
     },
   });
@@ -48,26 +62,22 @@ function CredentialRow({
           {configured ? "Configurado" : "Não configurado"}
         </Badge>
       </div>
-      <div className="flex items-center gap-2">
-        <Input
-          type="password"
-          value={apiKey}
-          onChange={(e) => {
-            setApiKey(e.target.value);
-          }}
-          placeholder="Chave da API"
-        />
-        <Button
-          type="button"
-          disabled={mutation.isPending || apiKey.trim() === ""}
-          onClick={() => {
-            mutation.mutate();
-          }}
-        >
+      <form
+        onSubmit={(e) => {
+          void handleSubmit((values) => {
+            mutation.mutate(values);
+          })(e);
+        }}
+        className="flex items-center gap-2"
+      >
+        <Input type="password" placeholder="Chave da API" {...register("apiKey")} />
+        <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? "Salvando..." : "Salvar"}
         </Button>
-      </div>
-      {mutation.error ? (
+      </form>
+      {errors.apiKey ? (
+        <span className="text-red-500 text-sm">{errors.apiKey.message}</span>
+      ) : mutation.error ? (
         <span className="text-red-500 text-sm">{translateError(mutation.error)}</span>
       ) : null}
     </div>

@@ -1,8 +1,11 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,12 +15,21 @@ import { translateError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 
+const loginSchema = z.object({
+  username: z.string().min(1, "Informe o usuário."),
+  password: z.string().min(1, "Informe a senha."),
+});
+type LoginFormValues = z.infer<typeof loginSchema>;
+
 export default function LoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const setToken = useAuthStore((s) => s.setToken);
   const router = useRouter();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) });
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) {
@@ -38,7 +50,7 @@ export default function LoginPage() {
   };
 
   const loginMutation = useMutation({
-    mutationFn: () => login(username, password),
+    mutationFn: (values: LoginFormValues) => login(values.username, values.password),
     onSuccess: (res) => {
       setToken(res.access_token);
       router.push("/whiteboard");
@@ -65,8 +77,9 @@ export default function LoginPage() {
         <CardContent>
           <form
             onSubmit={(e) => {
-              e.preventDefault();
-              loginMutation.mutate();
+              void handleSubmit((values) => {
+                loginMutation.mutate(values);
+              })(e);
             }}
             className="space-y-4"
           >
@@ -79,17 +92,16 @@ export default function LoginPage() {
               <Input
                 id="username"
                 type="text"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                }}
                 placeholder="Usuário"
                 autoComplete="username"
-                required
                 data-1p-ignore
                 data-lpignore="true"
                 data-bwignore="true"
+                {...register("username")}
               />
+              {errors.username ? (
+                <p className="text-red-500 text-xs">{errors.username.message}</p>
+              ) : null}
             </div>
 
             <div className="space-y-1.5">
@@ -99,17 +111,16 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                }}
                 placeholder="Senha"
                 autoComplete="current-password"
-                required
                 data-1p-ignore
                 data-lpignore="true"
                 data-bwignore="true"
+                {...register("password")}
               />
+              {errors.password ? (
+                <p className="text-red-500 text-xs">{errors.password.message}</p>
+              ) : null}
             </div>
 
             <div className="min-h-5">
