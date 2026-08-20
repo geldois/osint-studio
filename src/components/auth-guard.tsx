@@ -18,7 +18,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   if (token === null) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Skeleton className="h-8 w-8 rounded-full" />
+        <Skeleton className="size-8 rounded-full" />
       </div>
     );
   }

@@ -42,7 +42,7 @@ export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
       }}
       className={nodeVariants({ nodeType: data.nodeType, isSelected })}
     >
-      <Handle type="target" position={Position.Top} className="!opacity-0" />
+      <Handle type="target" position={Position.Top} className="opacity-0!" />
       <span className="mt-0.5 shrink-0 opacity-70">
         <EntityIcon nodeType={data.nodeType} />
       </span>
@@ -55,7 +55,7 @@ export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
       {data.isRoot ? (
         <span className="ml-auto mt-0.5 shrink-0 text-[9px] opacity-50">●</span>
       ) : null}
-      <Handle type="source" position={Position.Bottom} className="!opacity-0" />
+      <Handle type="source" position={Position.Bottom} className="opacity-0!" />
     </button>
   );
 }

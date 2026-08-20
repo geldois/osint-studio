@@ -35,6 +35,16 @@ this used to run carried edge cases (a JSX expression container holding only a c
 end) that could silently corrupt a file nobody reviews before it lands. A per-edit hook instead nudges the assistant
 to remove it or make the name say what it said, leaving the actual judgment call to whoever wrote the comment.
 
+Tailwind class validity and canonical-form drift (an arbitrary-variant selector that a newer Tailwind release turned
+into a built-in shorthand) were previously only ever caught by an editor's own IntelliSense extension — a diagnostic
+nobody but that one editor's user ever saw, invisible to the commit gate and to CI alike. A linter plugin now owns
+exactly that: an unknown class name, a self-contradicting pair, a class built by string concatenation the linter
+can't statically see into, and the same canonical-form suggestion the editor extension made, all fail the gate
+instead of sitting unseen. Two of the plugin's own recommended rules were deliberately left out — reordering every
+class into a canonical property order, and reflowing every multi-class string across several lines — since both
+reformat nearly every existing `className` in the codebase for a stylistic preference nobody asked for, versus the
+rules kept, which only ever fire on an actual defect or the one drift this was adopted to catch.
+
 ## Consequences
 
 The formatting tool's own house style for emphasis in prose documents is fixed and not configurable, so the

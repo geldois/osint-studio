@@ -38,7 +38,7 @@ export function SettingsMenu() {
             ? "Uma credencial necessária não está configurada"
             : undefined
         }
-        className="relative flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground hover:bg-accent"
+        className="relative flex size-8 items-center justify-center rounded-full border border-border bg-surface text-foreground hover:bg-accent"
       >
         <UserRound size={16} />
         {hasMissingCredential ? (

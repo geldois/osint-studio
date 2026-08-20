@@ -230,7 +230,7 @@ export default function WhiteboardPage() {
               href="/ingest"
               aria-label="Ingestão de texto"
               title="Ingestão de texto"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-border bg-surface text-foreground hover:bg-white/10"
+              className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-border bg-surface text-foreground hover:bg-white/10"
             >
               <Upload size={16} />
             </Link>

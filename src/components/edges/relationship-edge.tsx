@@ -55,7 +55,7 @@ export function RelationshipEdge({
         id={id}
         path={edgePath}
         interactionWidth={0}
-        className={isPossiblyMatch ? "!stroke-amber-500" : "!stroke-border"}
+        className={isPossiblyMatch ? "stroke-amber-500!" : "stroke-border!"}
         style={isPossiblyMatch ? { strokeDasharray: "4 4" } : undefined}
       />
       <EdgeLabelRenderer>

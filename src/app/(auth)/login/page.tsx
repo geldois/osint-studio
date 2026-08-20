@@ -177,7 +177,7 @@ export default function LoginPage() {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="h-6 w-6"
+            className="size-6"
             role="img"
             aria-hidden="true"
           >
@@ -198,7 +198,7 @@ export default function LoginPage() {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="h-6 w-6"
+            className="size-6"
             role="img"
             aria-hidden="true"
           >
