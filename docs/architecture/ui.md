@@ -33,6 +33,13 @@ a pure CSS-transform move — closing and reopening it re-anchors correctly. Fix
 need shared state between the Whiteboard and every edge just to close the popover on pan-start, judged not worth
 it for that narrow a window.
 
+Theme is `next-themes` (`attribute="class"`, `defaultTheme="dark"`, `enableSystem={false}`) rather than the
+project's own 40-line store it replaced. The defect that forced the swap was the flash of dark theme on every
+load for a user who'd picked light: fixing it without the library means writing the same blocking pre-paint
+script `next-themes` already ships, so keeping the hand-rolled store would mean maintaining both. `ThemeToggle`
+reads `useTheme()` behind a `useSyncExternalStore`-based mount guard — not a `useEffect` + `setState` mount flag —
+because the project's React Compiler lint rule flags synchronous `setState` inside an effect body.
+
 ## Consequences
 
 shadcn's own `Card` component (`src/components/ui/card.tsx`) is a generic container, unrelated to this project's

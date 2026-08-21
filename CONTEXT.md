@@ -31,10 +31,26 @@ from the natural key (CPF, CNPJ). Two **Revision**s of the same entity share an 
 and identical content collapses to one `content_id` — the key overlapping graphs deduplicate on. Same concept as
 upstream. _Avoid_: fingerprint, digest
 
-**Merge**: Combining a freshly fetched `GraphSchema` into the accumulated graph (`mergeGraph`). A node or edge already
-present is replaced outright by the incoming one, never field-merged — the same no-field-synthesis default
-osint-engine uses server-side. Re-merging the same schema is idempotent: keyed by `node.id` and `edgeKey`
-(`source_id|target_id|type`), so nothing duplicates. _Avoid_: sync, upsert, combine
+**Merge**: Storing a freshly fetched `GraphSchema` (`receiveGraph`/`receiveHistory`). Every **Revision** ever
+fetched is kept, indexed by `content_id` — nothing is ever replaced or discarded, unlike osint-engine's own
+server-side merge-by-filled-fields policy. Re-merging the same **Revision** is idempotent. Picking which
+**Revision** to draw, when more than one is selected, is the **Overlay**'s job, not this one. _Avoid_: sync, upsert,
+combine, replace
+
+**Overlay**: The composed projection of the selected **Revision**s onto one Whiteboard render (`overlayRevisions`,
+`useOverlay`). Per node `id` or relationship `edgeKey`, the candidate with the newest `revision.fetched_at` wins —
+a tie breaks on the greater `content_id`, so the render never changes between two calls with the same input. An
+**Override** always wins over that automatic pick. _Avoid_: projection, view (when talking about this composition,
+not the Graph/Table **Whiteboard** views), merge (for this picking step)
+
+**Conflict**: Two or more candidates of the same node `id` or relationship `edgeKey`, distinct by `content_id`,
+present among the selected **Revision**s (`overlayRevisions`'s `conflicts`). Marked on the **Card** and offered in
+the `version-menu`, never hidden behind a silent tie-break. _Avoid_: duplicate, mismatch
+
+**Override**: An analyst's explicit pick of one **Revision** for a node or relationship, stored separately from the
+**Revision**s themselves (`nodeOverrides`/`edgeOverrides`) and always winning the **Overlay**'s automatic
+resolution regardless of `fetched_at`. Clearing it (`overrideNode(id, null)`) returns that entity to the automatic
+pick. _Avoid_: pin, lock
 
 **Card**: The on-canvas visual representation of one node — a label, an icon by `NodeType`, and the rows a detail
 panel or table row would show (`CardData`, `entity-node`). _Avoid_: box, tile
@@ -58,10 +74,13 @@ upstream. _Avoid_: placeholder
 
 ## Relationships
 
-- A **Whiteboard** renders one accumulated graph in either the **Graph** or **Table** view
-- **Expansion** and **Ingestion** both **Merge** a `GraphSchema` into the graph
+- A **Whiteboard** renders one **Overlay** of selected **Revision**s in either the **Graph** or **Table** view
+- **Expansion** and **Ingestion** both **Merge** a `GraphSchema` into the store — never lost, never overwritten
 - Every **Expansion** and **Ingestion** returns one **Revision**, restamped onto each of its nodes and edges
 - Two **Revision**s of one graph share a **Root** and differ by **Content id**
+- The **Overlay** picks one **Revision** per node/relationship out of every one **Merge**d so far
+- Two or more **Revision**s of the same node or relationship in one **Overlay** is a **Conflict**
+- An **Override** always wins a **Conflict**'s automatic pick, until cleared
 - An **Ingestion** carries one or more **Pattern name**s, chosen per submission, never fixed
 - A **Root** is a node reached by **Expansion** on its own identifier, not by any **Relationship**
 - Every line drawn between two nodes groups one or more **Relationship**s for that pair
