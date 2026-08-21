@@ -10,8 +10,9 @@ const ALLOWED_DOCUMENT_TYPES: Record<Role, FetchDocumentType[]> = {
 };
 
 /** Frontend-side gating only, mirroring the backend's per-route role guard
- * (osint-engine ADR-0020) so the UI doesn't offer actions the API will
- * reject — the backend remains the actual source of truth. */
+ * (osint-engine docs/architecture/interface.md) so the UI doesn't offer
+ * actions the API will reject — the backend remains the actual source of
+ * truth. */
 export function canFetchDocumentType(
   role: Role | null,
   type: FetchDocumentType,
