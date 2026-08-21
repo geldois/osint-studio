@@ -192,6 +192,36 @@ export const GraphSchemaSchema = z.object({
   root_id: z.string(),
 });
 
+export const GraphCatalogEntrySchema = z.object({
+  first_fetched_at: z.iso.datetime(),
+  last_fetched_at: z.iso.datetime(),
+  providers: z.array(z.string()),
+  revision_count: z.number().int().nonnegative(),
+  root: ApiNodeSchema,
+});
+
+export const GraphCatalogSchema = z.object({
+  entries: z.array(GraphCatalogEntrySchema),
+});
+
+export const BatchCPFEstimateSchema = z.object({
+  already_fetched: z.array(z.string()),
+  billable: z.array(z.string()),
+  invalid: z.array(z.string()),
+  wait_seconds: z.number().int().nonnegative(),
+});
+
+export const BatchCPFOutcomeSchema = z.object({
+  cpf: z.string(),
+  error_code: z.string().nullable(),
+  status: z.enum(["already_fetched", "empty", "expanded", "failed", "invalid"]),
+});
+
+export const BatchCPFResultSchema = z.object({
+  graph: GraphSchemaSchema.nullable(),
+  outcomes: z.array(BatchCPFOutcomeSchema),
+});
+
 export const TextPatternNameSchema = z.object({
   name: z.string(),
   node_type: z.string(),

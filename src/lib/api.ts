@@ -1,6 +1,11 @@
 import { z } from "zod";
 import {
+  ApiEdgeSchema,
+  ApiNodeSchema,
+  BatchCPFEstimateSchema,
+  BatchCPFResultSchema,
   CredentialStatusSchema,
+  GraphCatalogSchema,
   GraphSchemaSchema,
   TextPatternCatalogSchema,
   TokenResponseSchema,
@@ -8,7 +13,12 @@ import {
 import { ApiError, UNKNOWN_ERROR_MESSAGE } from "@/lib/errors";
 import { useAuthStore } from "@/store/auth";
 import type {
+  ApiEdge,
+  ApiNode,
+  BatchCPFEstimate,
+  BatchCPFResult,
   CredentialStatus,
+  GraphCatalog,
   GraphSchema,
   Provider,
   TextPatternCatalog,
@@ -186,6 +196,92 @@ export function fetchCEIS(
   token: string,
 ): Promise<GraphSchema | null> {
   return fetchSanctions("ceis", cpfOrCnpj, token);
+}
+
+export async function fetchGraphCatalog(token: string): Promise<GraphCatalog> {
+  const res = await fetch(`${API_URL}/graphs`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return parseJson(GraphCatalogSchema, res);
+}
+
+export async function fetchGraphHistory(
+  rootId: string,
+  token: string,
+): Promise<GraphSchema[]> {
+  const res = await fetch(`${API_URL}/graphs/${rootId}/history`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return parseJson(z.array(GraphSchemaSchema), res);
+}
+
+export async function fetchNodeHistory(
+  nodeId: string,
+  token: string,
+): Promise<ApiNode[]> {
+  const res = await fetch(`${API_URL}/nodes/${nodeId}/history`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return parseJson(z.array(ApiNodeSchema), res);
+}
+
+export async function fetchEdgeHistory(
+  edgeId: string,
+  token: string,
+): Promise<ApiEdge[]> {
+  const res = await fetch(`${API_URL}/edges/${edgeId}/history`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return parseJson(z.array(ApiEdgeSchema), res);
+}
+
+export async function estimateCpfBatch(
+  cpfs: string[],
+  token: string,
+): Promise<BatchCPFEstimate> {
+  const res = await fetch(`${API_URL}/cpf/batch/estimate`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ cpfs }),
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return parseJson(BatchCPFEstimateSchema, res);
+}
+
+export async function expandCpfBatch(
+  cpfs: string[],
+  force: boolean,
+  token: string,
+): Promise<BatchCPFResult> {
+  const res = await fetch(`${API_URL}/cpf/batch`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ cpfs, force }),
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return parseJson(BatchCPFResultSchema, res);
 }
 
 export async function fetchCredentialStatus(

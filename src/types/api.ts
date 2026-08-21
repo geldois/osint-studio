@@ -3,11 +3,16 @@ import type {
   AddressNodeSchema,
   ApiEdgeSchema,
   ApiNodeSchema,
+  BatchCPFEstimateSchema,
+  BatchCPFOutcomeSchema,
+  BatchCPFResultSchema,
   CnaeNodeSchema,
   CompanyNodeSchema,
   CredentialStatusSchema,
   EdgeTypeSchema,
   EmailNodeSchema,
+  GraphCatalogEntrySchema,
+  GraphCatalogSchema,
   GraphSchemaSchema,
   MentionedInTextEdgeSchema,
   NodeTypeSchema,
@@ -53,3 +58,9 @@ export type GraphSchema = z.infer<typeof GraphSchemaSchema>;
 export type TextPatternName = z.infer<typeof TextPatternNameSchema>;
 export type TextPatternBundle = z.infer<typeof TextPatternBundleSchema>;
 export type TextPatternCatalog = z.infer<typeof TextPatternCatalogSchema>;
+
+export type GraphCatalogEntry = z.infer<typeof GraphCatalogEntrySchema>;
+export type GraphCatalog = z.infer<typeof GraphCatalogSchema>;
+export type BatchCPFEstimate = z.infer<typeof BatchCPFEstimateSchema>;
+export type BatchCPFOutcome = z.infer<typeof BatchCPFOutcomeSchema>;
+export type BatchCPFResult = z.infer<typeof BatchCPFResultSchema>;
