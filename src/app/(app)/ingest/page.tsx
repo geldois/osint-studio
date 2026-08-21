@@ -9,12 +9,27 @@ import { useForm, useWatch } from "react-hook-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useIngestText } from "@/hooks/use-ingest-text";
-import { useTextPatternSets } from "@/hooks/use-text-patterns";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useIngest } from "@/hooks/use-ingest";
+import { useTextPatternCatalog } from "@/hooks/use-text-patterns";
 import { RateLimitError } from "@/lib/api";
 import { translateError } from "@/lib/errors";
-import { ingestSchema, type IngestFormValues } from "@/lib/ingest-schema";
+import {
+  defaultSelectedPatterns,
+  ingestSchema,
+  type IngestFormValues,
+} from "@/lib/ingest-schema";
 import { useAuthStore } from "@/store/auth";
+
+const PATTERN_NODE_TYPE_LABELS: Record<string, string> = {
+  Address: "Endereço",
+  Company: "Empresa",
+  Person: "Pessoa",
+};
+
+function patternNodeTypeLabel(nodeType: string): string {
+  return PATTERN_NODE_TYPE_LABELS[nodeType] ?? nodeType;
+}
 
 export default function IngestPage() {
   const role = useAuthStore((s) => s.role);
@@ -39,8 +54,8 @@ function IngestForm() {
 
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
 
-  const { data: patternSets, isLoading: isLoadingPatterns } = useTextPatternSets();
-  const { mutate, isPending, error, data, reset: resetMutation } = useIngestText();
+  const { data: catalog, isLoading: isLoadingPatterns } = useTextPatternCatalog();
+  const { mutate, isPending, error, data, reset: resetMutation } = useIngest();
 
   const {
     control,
@@ -49,9 +64,19 @@ function IngestForm() {
     formState: { errors },
   } = useForm<IngestFormValues>({
     resolver: zodResolver(ingestSchema),
-    defaultValues: { file: null },
+    defaultValues: { file: null, patterns: [] },
   });
   const file = useWatch({ control, name: "file" });
+  const patterns = useWatch({ control, name: "patterns" });
+
+  const hasSeededPatterns = useRef(false);
+
+  useEffect(() => {
+    if (catalog !== undefined && !hasSeededPatterns.current) {
+      hasSeededPatterns.current = true;
+      setValue("patterns", defaultSelectedPatterns(catalog));
+    }
+  }, [catalog, setValue]);
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) {
@@ -65,7 +90,6 @@ function IngestForm() {
     };
   }, [retryAfterSeconds]);
 
-  const patternSetId = patternSets?.[0]?.id;
   const isBlocked = retryAfterSeconds > 0;
 
   function handleFileChange(selected: File | null): void {
@@ -73,13 +97,12 @@ function IngestForm() {
     setValue("file", selected, { shouldValidate: selected !== null });
   }
 
-  async function onSubmit(values: IngestFormValues): Promise<void> {
-    if (values.file === null || patternSetId === undefined) {
+  function onSubmit(values: IngestFormValues): void {
+    if (values.file === null) {
       return;
     }
-    const text = await values.file.text();
     mutate(
-      { text, patternSetId },
+      { file: values.file, patterns: values.patterns },
       {
         onError: (mutationError) => {
           if (mutationError instanceof RateLimitError) {
@@ -91,10 +114,14 @@ function IngestForm() {
   }
 
   const canSubmit =
-    file !== null && patternSetId !== undefined && !isPending && !isBlocked;
+    file !== null &&
+    patterns.length > 0 &&
+    !isPending &&
+    !isBlocked &&
+    !isLoadingPatterns;
 
   return (
-    <div className="mx-auto max-w-lg p-6">
+    <div className="mx-auto max-w-lg p-4 sm:p-6">
       <Link
         href="/whiteboard"
         className="mb-4 inline-flex items-center gap-1.5 text-muted text-sm hover:text-foreground"
@@ -102,11 +129,11 @@ function IngestForm() {
         <ArrowLeft size={14} />
         Voltar
       </Link>
-      <h1 className="mb-1 font-semibold text-lg">Ingestão de texto</h1>
+      <h1 className="mb-1 font-semibold text-lg">Ingestão de arquivo</h1>
       <p className="mb-4 text-muted text-sm">
-        Envie um arquivo .txt. CPF, CNPJ e CEP+número encontrados no texto viram
-        entidades vinculadas à fonte, e são automaticamente linkados a entidades já
-        existentes no grafo.
+        Envie um .txt, .csv ou .xlsx. Os documentos encontrados viram entidades
+        vinculadas à fonte, e são automaticamente linkados a entidades já existentes no
+        grafo.
       </p>
 
       <Card>
@@ -119,7 +146,7 @@ function IngestForm() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".txt,text/plain"
+              accept=".txt,.csv,.xlsx"
               className="hidden"
               onChange={(e) => {
                 handleFileChange(e.target.files?.[0] ?? null);
@@ -134,7 +161,7 @@ function IngestForm() {
               }}
             >
               <Upload size={16} className="text-muted" />
-              {file === null ? "Selecionar arquivo .txt" : "Trocar arquivo"}
+              {file === null ? "Selecionar arquivo" : "Trocar arquivo"}
             </Button>
 
             {file !== null ? (
@@ -147,16 +174,41 @@ function IngestForm() {
               </div>
             ) : null}
 
+            <fieldset className="mt-4">
+              <legend className="mb-2 font-medium text-sm">Padrões de extração</legend>
+              {isLoadingPatterns ? (
+                <p className="text-muted text-sm">Carregando padrões...</p>
+              ) : catalog === undefined ? null : (
+                <ToggleGroup
+                  multiple
+                  variant="outline"
+                  size="sm"
+                  value={patterns}
+                  onValueChange={(selected) => {
+                    setValue("patterns", selected, { shouldValidate: true });
+                  }}
+                  className="flex w-full flex-wrap"
+                >
+                  {catalog.patterns.map((pattern) => (
+                    <ToggleGroupItem key={pattern.name} value={pattern.name}>
+                      {pattern.name}
+                      <span className="ml-1.5 text-xs opacity-60">
+                        {patternNodeTypeLabel(pattern.node_type)}
+                      </span>
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              )}
+            </fieldset>
+
             <Button type="submit" className="mt-4 w-full" disabled={!canSubmit}>
-              {isPending
-                ? "Processando..."
-                : isLoadingPatterns
-                  ? "Carregando padrões..."
-                  : "Enviar"}
+              {isPending ? "Processando..." : "Enviar"}
             </Button>
 
             {errors.file ? (
               <p className="mt-3 text-amber-500 text-sm">{errors.file.message}</p>
+            ) : errors.patterns ? (
+              <p className="mt-3 text-amber-500 text-sm">{errors.patterns.message}</p>
             ) : isBlocked ? (
               <p className="mt-3 text-amber-500 text-sm">
                 Limite atingido. Tente novamente em {retryAfterSeconds}s.

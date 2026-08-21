@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { ApiSchemaError } from "@/lib/api";
+import { ApiSchemaError, ingestFile, ingestText } from "@/lib/api";
 import { translateError, UNKNOWN_ERROR_MESSAGE } from "@/lib/errors";
 
 function makeZodError(): z.ZodError {
@@ -10,6 +10,26 @@ function makeZodError(): z.ZodError {
   }
   return result.error;
 }
+
+const EMPTY_GRAPH = { root_id: "r1", nodes: [], edges: [] };
+
+function stubFetchReturning(payload: unknown): ReturnType<typeof vi.fn> {
+  const mock = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve(payload),
+  });
+  vi.stubGlobal("fetch", mock);
+  return mock;
+}
+
+function requestInitFrom(mock: ReturnType<typeof vi.fn>): RequestInit {
+  return mock.mock.calls[0]?.[1] as RequestInit;
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("ApiSchemaError", () => {
   it("carries the original ZodError as its cause", () => {
@@ -21,5 +41,68 @@ describe("ApiSchemaError", () => {
   it("translates to the generic unexpected-error message, never the technical Zod message", () => {
     const error = new ApiSchemaError(makeZodError());
     expect(translateError(error)).toBe(UNKNOWN_ERROR_MESSAGE);
+  });
+});
+
+describe("ingestText", () => {
+  it("sends patterns as an array, never the retired pattern_set_id", async () => {
+    const mock = stubFetchReturning(EMPTY_GRAPH);
+    await ingestText("CPF 111.444.777-35", ["CPF_LOOSE", "CNPJ_LOOSE"], "t0ken");
+
+    const body = JSON.parse(requestInitFrom(mock).body as string) as Record<
+      string,
+      unknown
+    >;
+    expect(body).toEqual({
+      text: "CPF 111.444.777-35",
+      patterns: ["CPF_LOOSE", "CNPJ_LOOSE"],
+    });
+    expect(body).not.toHaveProperty("pattern_set_id");
+  });
+
+  it("posts to the text-ingestion endpoint with the bearer token", async () => {
+    const mock = stubFetchReturning(EMPTY_GRAPH);
+    await ingestText("t", ["CPF_LOOSE"], "t0ken");
+
+    expect(String(mock.mock.calls[0]?.[0])).toMatch(/\/text-ingestion$/);
+    const init = requestInitFrom(mock);
+    expect(init.method).toBe("POST");
+    expect(init.headers).toMatchObject({ Authorization: "Bearer t0ken" });
+  });
+});
+
+describe("ingestFile", () => {
+  it("appends one patterns field per selected pattern", async () => {
+    const mock = stubFetchReturning(EMPTY_GRAPH);
+    const file = new File([new Uint8Array(8)], "sheet.csv");
+    await ingestFile(file, ["CPF_LOOSE", "CNPJ_LOOSE"], "t0ken");
+
+    const body = requestInitFrom(mock).body as FormData;
+    expect(body.getAll("patterns")).toEqual(["CPF_LOOSE", "CNPJ_LOOSE"]);
+    expect(body.get("file")).toBe(file);
+  });
+
+  it("leaves Content-Type unset so the browser can generate the multipart boundary", async () => {
+    const mock = stubFetchReturning(EMPTY_GRAPH);
+    await ingestFile(
+      new File([new Uint8Array(8)], "sheet.csv"),
+      ["CPF_LOOSE"],
+      "t0ken",
+    );
+
+    const headers = requestInitFrom(mock).headers as Record<string, string>;
+    expect(headers).toEqual({ Authorization: "Bearer t0ken" });
+    expect(headers).not.toHaveProperty("Content-Type");
+  });
+
+  it("posts to the file sub-resource, not the plain text endpoint", async () => {
+    const mock = stubFetchReturning(EMPTY_GRAPH);
+    await ingestFile(
+      new File([new Uint8Array(8)], "sheet.csv"),
+      ["CPF_LOOSE"],
+      "t0ken",
+    );
+
+    expect(String(mock.mock.calls[0]?.[0])).toMatch(/\/text-ingestion\/file$/);
   });
 });

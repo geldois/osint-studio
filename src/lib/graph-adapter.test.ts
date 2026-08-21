@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { edgeKey, extractLabel, groupEdgesByPair } from "@/lib/graph-adapter";
-import type {
-  AddressNode,
-  CompanyNode,
-  PersonOwnsCompanyEdge,
-  PlainEdge,
-} from "@/types/api";
+import type { AddressNode, CompanyNode, OwnsCompanyEdge, PlainEdge } from "@/types/api";
 
 describe("extractLabel", () => {
   it("prefers trade_name over legal_name over cnpj for a company", () => {
@@ -77,7 +72,7 @@ describe("edgeKey", () => {
 
 describe("groupEdgesByPair", () => {
   it("collapses two relationships between the same node pair into one edge", () => {
-    const owns: PersonOwnsCompanyEdge = {
+    const owns: OwnsCompanyEdge = {
       id: "e1",
       source_id: "person-1",
       target_id: "company-1",

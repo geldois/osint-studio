@@ -6,6 +6,7 @@ const person = (id: string, name: string): PersonNode => ({
   id,
   type: "person",
   age_range: null,
+  birthdate: null,
   cpf: id,
   name,
   registration_date: null,

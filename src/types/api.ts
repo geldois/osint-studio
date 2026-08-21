@@ -11,14 +11,16 @@ import type {
   GraphSchemaSchema,
   MentionedInTextEdgeSchema,
   NodeTypeSchema,
+  OwnsCompanyEdgeSchema,
   PersonNodeSchema,
-  PersonOwnsCompanyEdgeSchema,
   PhoneNodeSchema,
   PlainEdgeSchema,
   PossiblyMatchesEdgeSchema,
   ProviderSchema,
   SanctionNodeSchema,
-  TextPatternSetSchema,
+  TextPatternBundleSchema,
+  TextPatternCatalogSchema,
+  TextPatternNameSchema,
   TextSourceNodeSchema,
   TokenResponseSchema,
 } from "@/lib/api-schemas";
@@ -39,11 +41,13 @@ export type PhoneNode = z.infer<typeof PhoneNodeSchema>;
 export type SanctionNode = z.infer<typeof SanctionNodeSchema>;
 export type ApiNode = z.infer<typeof ApiNodeSchema>;
 
-export type PersonOwnsCompanyEdge = z.infer<typeof PersonOwnsCompanyEdgeSchema>;
+export type OwnsCompanyEdge = z.infer<typeof OwnsCompanyEdgeSchema>;
 export type MentionedInTextEdge = z.infer<typeof MentionedInTextEdgeSchema>;
 export type PossiblyMatchesEdge = z.infer<typeof PossiblyMatchesEdgeSchema>;
 export type PlainEdge = z.infer<typeof PlainEdgeSchema>;
 export type ApiEdge = z.infer<typeof ApiEdgeSchema>;
 
 export type GraphSchema = z.infer<typeof GraphSchemaSchema>;
-export type TextPatternSet = z.infer<typeof TextPatternSetSchema>;
+export type TextPatternName = z.infer<typeof TextPatternNameSchema>;
+export type TextPatternBundle = z.infer<typeof TextPatternBundleSchema>;
+export type TextPatternCatalog = z.infer<typeof TextPatternCatalogSchema>;

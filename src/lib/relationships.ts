@@ -24,6 +24,7 @@ const EDGE_TYPE_LABELS: Record<EdgeType, string> = {
   company_has_phone: "possui telefone",
   company_located_at: "localizada em",
   company_mentioned_in_text: "mencionado em texto",
+  company_owns_company: "sócia de",
   company_received_sanction: "recebeu sanção",
   person_has_email: "possui e-mail",
   person_has_phone: "possui telefone",
@@ -44,7 +45,7 @@ export interface EdgeAttribute {
 }
 
 export function edgeAttributes(edge: ApiEdge): EdgeAttribute[] {
-  if (edge.type === "person_owns_company") {
+  if (edge.type === "company_owns_company" || edge.type === "person_owns_company") {
     return [
       { key: "papel", value: edge.role },
       { key: "desde", value: edge.entry_date },
@@ -55,7 +56,10 @@ export function edgeAttributes(edge: ApiEdge): EdgeAttribute[] {
     edge.type === "company_mentioned_in_text" ||
     edge.type === "person_mentioned_in_text"
   ) {
-    return [{ key: "campo extraído", value: edge.matched_field }];
+    return [
+      { key: "campo extraído", value: edge.matched_field },
+      { key: "padrão", value: edge.pattern_name },
+    ];
   }
   if (edge.type === "possibly_matches") {
     return [

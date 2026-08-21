@@ -31,6 +31,7 @@ export const EdgeTypeSchema = z.enum([
   "company_has_phone",
   "company_located_at",
   "company_mentioned_in_text",
+  "company_owns_company",
   "company_received_sanction",
   "person_has_email",
   "person_has_phone",
@@ -86,6 +87,7 @@ export const PersonNodeSchema = z.object({
   id: z.string(),
   type: z.literal("person"),
   age_range: z.string().nullable(),
+  birthdate: z.string().nullable(),
   cpf: z.string(),
   name: z.string().nullable(),
   registration_date: z.string().nullable(),
@@ -136,20 +138,20 @@ const EdgeBaseSchema = z.object({
   target_id: z.string(),
 });
 
-export const PersonOwnsCompanyEdgeSchema = EdgeBaseSchema.extend({
-  type: z.literal("person_owns_company"),
+export const OwnsCompanyEdgeSchema = EdgeBaseSchema.extend({
+  type: z.literal(["company_owns_company", "person_owns_company"]),
   entry_date: z.string(),
   role: z.string(),
 });
 
 export const MentionedInTextEdgeSchema = EdgeBaseSchema.extend({
-  type: z.enum([
+  type: z.literal([
     "address_mentioned_in_text",
     "company_mentioned_in_text",
     "person_mentioned_in_text",
   ]),
   matched_field: z.string(),
-  pattern_id: z.string(),
+  pattern_name: z.string(),
 });
 
 export const PossiblyMatchesEdgeSchema = EdgeBaseSchema.extend({
@@ -158,7 +160,7 @@ export const PossiblyMatchesEdgeSchema = EdgeBaseSchema.extend({
 });
 
 export const PlainEdgeSchema = EdgeBaseSchema.extend({
-  type: z.enum([
+  type: z.literal([
     "company_has_cnae",
     "company_has_email",
     "company_has_member",
@@ -172,8 +174,8 @@ export const PlainEdgeSchema = EdgeBaseSchema.extend({
   ]),
 });
 
-export const ApiEdgeSchema = z.union([
-  PersonOwnsCompanyEdgeSchema,
+export const ApiEdgeSchema = z.discriminatedUnion("type", [
+  OwnsCompanyEdgeSchema,
   MentionedInTextEdgeSchema,
   PossiblyMatchesEdgeSchema,
   PlainEdgeSchema,
@@ -185,12 +187,18 @@ export const GraphSchemaSchema = z.object({
   edges: z.array(ApiEdgeSchema),
 });
 
-export const TextPatternSetSchema = z.object({
+export const TextPatternNameSchema = z.object({
+  name: z.string(),
+  node_type: z.string(),
+  fields: z.array(z.string()),
+});
+
+export const TextPatternBundleSchema = z.object({
   id: z.string(),
-  patterns: z.array(
-    z.object({
-      node_type: z.string(),
-      fields: z.array(z.string()),
-    }),
-  ),
+  pattern_names: z.array(z.string()),
+});
+
+export const TextPatternCatalogSchema = z.object({
+  patterns: z.array(TextPatternNameSchema),
+  bundles: z.array(TextPatternBundleSchema),
 });

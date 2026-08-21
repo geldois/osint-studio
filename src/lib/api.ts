@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   CredentialStatusSchema,
   GraphSchemaSchema,
-  TextPatternSetSchema,
+  TextPatternCatalogSchema,
   TokenResponseSchema,
 } from "@/lib/api-schemas";
 import { ApiError, UNKNOWN_ERROR_MESSAGE } from "@/lib/errors";
@@ -11,7 +11,7 @@ import type {
   CredentialStatus,
   GraphSchema,
   Provider,
-  TextPatternSet,
+  TextPatternCatalog,
   TokenResponse,
 } from "@/types/api";
 
@@ -200,19 +200,21 @@ export async function fetchCredentialStatus(
   return parseJson(z.array(CredentialStatusSchema), res);
 }
 
-export async function fetchTextPatternSets(token: string): Promise<TextPatternSet[]> {
+export async function fetchTextPatternCatalog(
+  token: string,
+): Promise<TextPatternCatalog> {
   const res = await fetch(`${API_URL}/text-ingestion/patterns`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
     return throwForAuthenticatedEndpointError(res);
   }
-  return parseJson(z.array(TextPatternSetSchema), res);
+  return parseJson(TextPatternCatalogSchema, res);
 }
 
 export async function ingestText(
   text: string,
-  patternSetId: string,
+  patterns: string[],
   token: string,
 ): Promise<GraphSchema> {
   const res = await fetch(`${API_URL}/text-ingestion`, {
@@ -221,7 +223,28 @@ export async function ingestText(
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ text, pattern_set_id: patternSetId }),
+    body: JSON.stringify({ text, patterns }),
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return parseJson(GraphSchemaSchema, res);
+}
+
+export async function ingestFile(
+  file: File,
+  patterns: string[],
+  token: string,
+): Promise<GraphSchema> {
+  const body = new FormData();
+  body.append("file", file);
+  for (const pattern of patterns) {
+    body.append("patterns", pattern);
+  }
+  const res = await fetch(`${API_URL}/text-ingestion/file`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body,
   });
   if (!res.ok) {
     return throwForAuthenticatedEndpointError(res);

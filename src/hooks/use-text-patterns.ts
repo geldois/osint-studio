@@ -1,17 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchTextPatternSets } from "@/lib/api";
+import { fetchTextPatternCatalog } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
-import type { TextPatternSet } from "@/types/api";
+import type { TextPatternCatalog } from "@/types/api";
 
-export function useTextPatternSets() {
+export function useTextPatternCatalog() {
   const token = useAuthStore((s) => s.token);
-  return useQuery<TextPatternSet[]>({
-    queryKey: ["text-pattern-sets"],
+  return useQuery<TextPatternCatalog>({
+    queryKey: ["text-pattern-catalog"],
     queryFn: () => {
       if (token === null) {
         throw new Error("Sessão expirada. Faça login novamente.");
       }
-      return fetchTextPatternSets(token);
+      return fetchTextPatternCatalog(token);
     },
     enabled: token !== null,
   });
