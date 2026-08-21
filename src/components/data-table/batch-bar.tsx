@@ -48,7 +48,7 @@ export function BatchBar({ nodes }: { nodes: ApiNode[] }) {
           {selectedIds.size} selecionado{selectedIds.size === 1 ? "" : "s"}
         </span>
         <span className="text-muted">
-          {cpfs.length} consultável{cpfs.length === 1 ? "" : "eis"}
+          {cpfs.length} {cpfs.length === 1 ? "consultável" : "consultáveis"}
           {skippedIds.length > 0 ? ` · ${String(skippedIds.length)} fora` : ""}
         </span>
         {alreadyFetchedCount > 0 ? (
