@@ -18,7 +18,7 @@ interface ExpandResult {
 export function useExpand() {
   const token = useAuthStore((s) => s.token);
   const role = useAuthStore((s) => s.role);
-  const mergeGraph = useGraphStore((s) => s.mergeGraph);
+  const receiveGraph = useGraphStore((s) => s.receiveGraph);
 
   return useMutation({
     mutationFn: async ({ document }: ExpandVars): Promise<ExpandResult> => {
@@ -62,7 +62,7 @@ export function useExpand() {
     },
     onSuccess: ({ schemas }) => {
       for (const schema of schemas) {
-        mergeGraph(schema);
+        receiveGraph(schema);
       }
     },
   });

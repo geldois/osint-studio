@@ -14,16 +14,20 @@ import {
 import { Search, Upload } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BatchBar } from "@/components/data-table/batch-bar";
 import { DataTable } from "@/components/data-table/data-table";
 import { DetailPanel } from "@/components/detail-panel/detail-panel";
 import { RelationshipEdge } from "@/components/edges/relationship-edge";
 import { EntityNode } from "@/components/nodes/entity-node";
 import { SettingsMenu } from "@/components/settings-menu";
+import { OverlaySummary } from "@/components/temporal/overlay-summary";
+import { TimelineMenu } from "@/components/temporal/timeline-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ViewSwitch } from "@/components/view-switch";
 import { useExpand } from "@/hooks/use-expand";
+import { useOverlay } from "@/hooks/use-overlay";
 import { RateLimitError } from "@/lib/api";
 import { translateError, visibleErrorMessages } from "@/lib/errors";
 import {
@@ -33,6 +37,7 @@ import {
   projectGraph,
 } from "@/lib/graph-adapter";
 import { useAuthStore } from "@/store/auth";
+import { useConflictFilterStore } from "@/store/conflict-filter";
 import { useGraphStore } from "@/store/graph";
 import { useSelectionStore } from "@/store/selection";
 import { useViewStore } from "@/store/view";
@@ -41,10 +46,33 @@ const NODE_TYPES: NodeTypes = { entity: EntityNode };
 const EDGE_TYPES: EdgeTypes = { relationship: RelationshipEdge };
 
 function Flow() {
-  const rawNodes = useGraphStore((s) => s.rawNodes);
-  const rawEdges = useGraphStore((s) => s.rawEdges);
-  const roots = useGraphStore((s) => s.roots);
+  const overlay = useOverlay();
+  const nodeOverrides = useGraphStore((s) => s.nodeOverrides);
+  const conflictFilterActive = useConflictFilterStore((s) => s.active);
   const { fitView } = useReactFlow();
+
+  const overriddenNodeIds = useMemo(
+    () => new Set(Object.keys(nodeOverrides)),
+    [nodeOverrides],
+  );
+
+  const rawNodes = useMemo(() => {
+    if (!conflictFilterActive) {
+      return overlay.nodes;
+    }
+    const conflictingIds = new Set(Object.keys(overlay.conflicts.nodes));
+    return overlay.nodes.filter((node) => conflictingIds.has(node.id));
+  }, [overlay, conflictFilterActive]);
+  const rawEdges = useMemo(() => {
+    if (!conflictFilterActive) {
+      return overlay.edges;
+    }
+    const nodeIds = new Set(rawNodes.map((node) => node.id));
+    return overlay.edges.filter(
+      (edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id),
+    );
+  }, [overlay, conflictFilterActive, rawNodes]);
+  const roots = overlay.roots;
 
   const [nodes, setNodes, onNodesChange] = useNodesState<EntityNodeType>([]);
 
@@ -63,7 +91,13 @@ function Flow() {
   }, [nodes]);
 
   useEffect(() => {
-    const { nodes: projected } = projectGraph(rawNodes, rawEdges, roots);
+    const { nodes: projected } = projectGraph(
+      rawNodes,
+      rawEdges,
+      roots,
+      overlay.conflicts.nodes,
+      overriddenNodeIds,
+    );
     const projectedIds = new Set(projected.map((node) => node.id));
     setNodes(projected);
 
@@ -110,7 +144,16 @@ function Flow() {
     return () => {
       cancellation.requested = true;
     };
-  }, [rawNodes, rawEdges, roots, edges, setNodes, fitView]);
+  }, [
+    rawNodes,
+    rawEdges,
+    roots,
+    overlay.conflicts.nodes,
+    overriddenNodeIds,
+    edges,
+    setNodes,
+    fitView,
+  ]);
 
   const clearSelection = useSelectionStore((s) => s.clearSelection);
 
@@ -133,6 +176,7 @@ function Flow() {
 export default function WhiteboardPage() {
   const view = useViewStore((s) => s.view);
   const role = useAuthStore((s) => s.role);
+  const overlay = useOverlay();
   const [query, setQuery] = useState("");
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const { mutate, isPending, error, data } = useExpand();
@@ -230,11 +274,12 @@ export default function WhiteboardPage() {
               href="/ingest"
               aria-label="Ingestão de texto"
               title="Ingestão de texto"
-              className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-border bg-surface text-foreground hover:bg-white/10"
+              className="flex size-10 shrink-0 items-center justify-center rounded-sm border border-border bg-surface text-foreground hover:bg-white/10 sm:size-8"
             >
               <Upload size={16} />
             </Link>
           ) : null}
+          <TimelineMenu />
           <ThemeToggle />
           <SettingsMenu />
         </div>
@@ -249,6 +294,9 @@ export default function WhiteboardPage() {
           {statusMessage}
         </div>
       ) : null}
+
+      <OverlaySummary />
+      <BatchBar nodes={overlay.nodes} />
 
       <div className="flex flex-1 overflow-hidden">
         <div className="relative flex-1">

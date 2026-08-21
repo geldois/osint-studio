@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useGraphStore } from "@/store/graph";
-import type { GraphSchema, PersonNode, PlainEdge, Revision } from "@/types/api";
+import type { GraphSchema, PersonNode, Revision } from "@/types/api";
 
 const revision: Revision = {
   fetched_at: "2026-08-21T14:03:00Z",
@@ -21,98 +21,155 @@ const person = (id: string, name: string): PersonNode => ({
   registration_status: null,
 });
 
-const ownsEdge = (source: string, target: string): PlainEdge => ({
-  content_id: `${source}-${target}`,
-  id: `${source}-${target}`,
-  revision,
-  source_id: source,
-  target_id: target,
-  type: "company_has_member",
-});
+function graph(rootId: string, contentId: string): GraphSchema {
+  return {
+    content_id: contentId,
+    root_id: rootId,
+    revision,
+    nodes: [person(rootId, "Alice")],
+    edges: [],
+  };
+}
 
-describe("useGraphStore.mergeGraph", () => {
+describe("useGraphStore", () => {
   beforeEach(() => {
     useGraphStore.getState().reset();
   });
 
-  it("adds new nodes, edges and the root id", () => {
-    const schema: GraphSchema = {
-      content_id: "g1",
-      revision,
-      root_id: "p1",
-      nodes: [person("p1", "Alice")],
-      edges: [],
-    };
-
-    useGraphStore.getState().mergeGraph(schema);
+  it("receiveGraph stores the revision, orders it under its root, and selects it", () => {
+    const schema = graph("p1", "g1");
+    useGraphStore.getState().receiveGraph(schema);
 
     const state = useGraphStore.getState();
-    expect(state.rawNodes).toEqual([person("p1", "Alice")]);
-    expect(state.roots.has("p1")).toBe(true);
+    expect(state.revisions["g1"]).toEqual(schema);
+    expect(state.order["p1"]).toEqual(["g1"]);
+    expect(state.selected).toEqual(["g1"]);
   });
 
-  it("re-merging the same schema adds no duplicate nodes or edges", () => {
-    const schema: GraphSchema = {
-      content_id: "g1",
-      revision,
-      root_id: "p1",
-      nodes: [person("p1", "Alice"), person("p2", "Bob")],
-      edges: [ownsEdge("p1", "p2")],
-    };
-
-    useGraphStore.getState().mergeGraph(schema);
-    useGraphStore.getState().mergeGraph(schema);
+  it("receiveGraph of the same revision twice leaves selected and order with one entry", () => {
+    const schema = graph("p1", "g1");
+    useGraphStore.getState().receiveGraph(schema);
+    useGraphStore.getState().receiveGraph(schema);
 
     const state = useGraphStore.getState();
-    expect(state.rawNodes).toHaveLength(2);
-    expect(state.rawEdges).toHaveLength(1);
+    expect(state.selected).toEqual(["g1"]);
+    expect(state.order["p1"]).toEqual(["g1"]);
   });
 
-  it("merges overlapping schemas into a union and accumulates roots", () => {
-    const first: GraphSchema = {
-      content_id: "g1",
-      revision,
-      root_id: "p1",
-      nodes: [person("p1", "Alice"), person("p2", "Bob")],
-      edges: [ownsEdge("p1", "p2")],
-    };
-    const second: GraphSchema = {
-      content_id: "g2",
-      revision,
-      root_id: "p2",
-      nodes: [person("p2", "Bob"), person("p3", "Carol")],
-      edges: [ownsEdge("p2", "p3")],
-    };
+  it("receiveHistory populates revisions and order without touching selected", () => {
+    useGraphStore.getState().receiveGraph(graph("p1", "g1"));
+    useGraphStore.getState().selectRevisions([]);
 
-    useGraphStore.getState().mergeGraph(first);
-    useGraphStore.getState().mergeGraph(second);
+    useGraphStore
+      .getState()
+      .receiveHistory("p1", [graph("p1", "g1"), graph("p1", "g2")]);
 
     const state = useGraphStore.getState();
-    expect(state.rawNodes.map((n) => n.id).sort()).toEqual(["p1", "p2", "p3"]);
-    expect(state.rawEdges).toHaveLength(2);
-    expect(state.roots).toEqual(new Set(["p1", "p2"]));
+    expect(state.revisions["g2"]).toBeDefined();
+    expect(state.order["p1"]).toEqual(["g1", "g2"]);
+    expect(state.selected).toEqual([]);
   });
 
-  it("a newer observation of an existing node replaces the older one", () => {
-    useGraphStore.getState().mergeGraph({
-      content_id: "g1",
-      revision,
-      root_id: "p1",
-      nodes: [person("p1", "Alice")],
-      edges: [],
-    });
-    useGraphStore.getState().mergeGraph({
-      content_id: "g1",
-      revision,
-      root_id: "p1",
-      nodes: [person("p1", "Alice Updated")],
-      edges: [],
-    });
+  it("receiveHistory of a root already partially present does not duplicate order", () => {
+    useGraphStore.getState().receiveGraph(graph("p1", "g1"));
+    useGraphStore
+      .getState()
+      .receiveHistory("p1", [graph("p1", "g1"), graph("p1", "g2")]);
+
+    expect(useGraphStore.getState().order["p1"]).toEqual(["g1", "g2"]);
+  });
+
+  it("receiveHistory with an empty list clears that root's order without throwing", () => {
+    useGraphStore.getState().receiveGraph(graph("p1", "g1"));
+    useGraphStore.getState().receiveHistory("p1", []);
+
+    expect(useGraphStore.getState().order["p1"]).toEqual([]);
+  });
+
+  it("selectRevisions([]) leaves selected empty — a valid, not-erroring state", () => {
+    useGraphStore.getState().receiveGraph(graph("p1", "g1"));
+    useGraphStore.getState().selectRevisions([]);
+
+    expect(useGraphStore.getState().selected).toEqual([]);
+  });
+
+  it("selectRevisions ignores a content_id absent from revisions instead of throwing", () => {
+    expect(() => {
+      useGraphStore.getState().selectRevisions(["nonexistent"]);
+    }).not.toThrow();
+    expect(useGraphStore.getState().selected).toEqual(["nonexistent"]);
+  });
+
+  it("overrideNode(id, null) removes the key from nodeOverrides rather than storing null", () => {
+    const alice = person("p1", "Alice");
+    useGraphStore.getState().overrideNode("p1", alice);
+    expect(useGraphStore.getState().nodeOverrides["p1"]).toEqual(alice);
+
+    useGraphStore.getState().overrideNode("p1", null);
+    expect(useGraphStore.getState().nodeOverrides).not.toHaveProperty("p1");
+  });
+
+  it("clearOverrides empties both node and edge overrides", () => {
+    useGraphStore.getState().overrideNode("p1", person("p1", "Alice"));
+    useGraphStore.getState().clearOverrides();
 
     const state = useGraphStore.getState();
-    expect(state.rawNodes).toHaveLength(1);
-    expect(state.rawNodes[0]?.type === "person" && state.rawNodes[0].name).toBe(
-      "Alice Updated",
-    );
+    expect(state.nodeOverrides).toEqual({});
+    expect(state.edgeOverrides).toEqual({});
+  });
+
+  it("reset clears revisions, order, selected and overrides", () => {
+    useGraphStore.getState().receiveGraph(graph("p1", "g1"));
+    useGraphStore.getState().overrideNode("p1", person("p1", "Alice"));
+
+    useGraphStore.getState().reset();
+
+    const state = useGraphStore.getState();
+    expect(state.revisions).toEqual({});
+    expect(state.order).toEqual({});
+    expect(state.selected).toEqual([]);
+    expect(state.nodeOverrides).toEqual({});
+  });
+});
+
+function createSessionStorageDouble(): Storage {
+  const data = new Map<string, string>();
+  return {
+    getItem: (key) => data.get(key) ?? null,
+    setItem: (key, value) => {
+      data.set(key, value);
+    },
+    removeItem: (key) => {
+      data.delete(key);
+    },
+    clear: () => {
+      data.clear();
+    },
+    key: (index) => [...data.keys()][index] ?? null,
+    get length() {
+      return data.size;
+    },
+  };
+}
+
+describe("useGraphStore rehydration", () => {
+  it("restores `selected` from sessionStorage and flips hasHydrated after reading it", async () => {
+    const storageDouble = createSessionStorageDouble();
+    vi.stubGlobal("sessionStorage", storageDouble);
+    vi.resetModules();
+
+    const { useGraphStore: freshStore } = await import("@/store/graph");
+    freshStore.getState().receiveGraph(graph("p1", "g1"));
+    await freshStore.persist.rehydrate();
+
+    vi.resetModules();
+    const { useGraphStore: reloadedStore } = await import("@/store/graph");
+    await reloadedStore.persist.rehydrate();
+
+    expect(reloadedStore.getState().hasHydrated).toBe(true);
+    expect(reloadedStore.getState().selected).toEqual(["g1"]);
+
+    vi.unstubAllGlobals();
+    vi.resetModules();
   });
 });

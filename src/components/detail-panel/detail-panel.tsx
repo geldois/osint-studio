@@ -4,7 +4,11 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EntityIcon } from "@/components/nodes/entity-icon";
+import { PossibleMatchesPanel } from "@/components/possible-matches/possible-matches-panel";
+import { NodeVersionMenu, EdgeVersionMenu } from "@/components/temporal/version-menu";
 import { useExpand } from "@/hooks/use-expand";
+import { useOverlay } from "@/hooks/use-overlay";
+import { isMaskedCpf } from "@/lib/document";
 import { edgeKey, extractLabel, nodeToRows } from "@/lib/graph-adapter";
 import { translateError, visibleErrorMessages } from "@/lib/errors";
 import { canFetchDocumentType, type FetchDocumentType } from "@/lib/permissions";
@@ -20,14 +24,14 @@ import { useGraphStore } from "@/store/graph";
 import { useSelectionStore } from "@/store/selection";
 
 function NodePanel({ nodeId }: { nodeId: string }) {
-  const rawNodes = useGraphStore((s) => s.rawNodes);
-  const rawEdges = useGraphStore((s) => s.rawEdges);
+  const overlay = useOverlay();
+  const nodeOverride = useGraphStore((s) => s.nodeOverrides[nodeId]);
   const selectNode = useSelectionStore((s) => s.selectNode);
   const role = useAuthStore((s) => s.role);
   const { mutate, isPending, error, data } = useExpand();
   const backgroundErrors = data ? visibleErrorMessages(data.errors) : [];
 
-  const nodeById = new Map(rawNodes.map((n) => [n.id, n] as const));
+  const nodeById = new Map(overlay.nodes.map((n) => [n.id, n] as const));
   const node = nodeById.get(nodeId);
 
   if (node === undefined) {
@@ -35,12 +39,15 @@ function NodePanel({ nodeId }: { nodeId: string }) {
   }
 
   const rows = nodeToRows(node);
-  const relationships = relationshipsForNode(nodeId, rawEdges, nodeById);
+  const relationships = relationshipsForNode(nodeId, overlay.edges, nodeById);
+  const conflictCandidates = overlay.conflicts.nodes[nodeId] ?? [];
   const documentType: FetchDocumentType | null =
     node.type === "company" ? "cnpj" : node.type === "person" ? "cpf" : null;
   const expandableDocument =
     node.type === "company" ? node.cnpj : node.type === "person" ? node.cpf : null;
+  const maskedCpf = node.type === "person" && isMaskedCpf(node.cpf);
   const canExpand =
+    !maskedCpf &&
     expandableDocument !== null &&
     documentType !== null &&
     canFetchDocumentType(role, documentType);
@@ -137,7 +144,24 @@ function NodePanel({ nodeId }: { nodeId: string }) {
         )}
       </section>
 
-      {canExpand ? (
+      {node.type === "person" ? <PossibleMatchesPanel node={node} /> : null}
+
+      {conflictCandidates.length > 0 || nodeOverride !== undefined ? (
+        <section className="border-border border-b p-4">
+          <NodeVersionMenu
+            nodeId={nodeId}
+            conflictCandidates={conflictCandidates}
+            currentOverride={nodeOverride}
+          />
+        </section>
+      ) : null}
+
+      {maskedCpf ? (
+        <p className="p-4 text-[12px] text-muted">
+          CPF mascarado — não é possível consultar diretamente. Veja as possíveis
+          correspondências acima.
+        </p>
+      ) : canExpand ? (
         <div className="space-y-2 p-4">
           <Button
             type="button"
@@ -162,11 +186,11 @@ function NodePanel({ nodeId }: { nodeId: string }) {
 }
 
 function EdgePanel({ edgeId }: { edgeId: string }) {
-  const rawNodes = useGraphStore((s) => s.rawNodes);
-  const rawEdges = useGraphStore((s) => s.rawEdges);
+  const overlay = useOverlay();
+  const edgeOverride = useGraphStore((s) => s.edgeOverrides[edgeId]);
 
-  const nodeById = new Map(rawNodes.map((n) => [n.id, n] as const));
-  const edge = rawEdges.find((e) => edgeKey(e) === edgeId);
+  const nodeById = new Map(overlay.nodes.map((n) => [n.id, n] as const));
+  const edge = overlay.edges.find((e) => edgeKey(e) === edgeId);
 
   if (edge === undefined) {
     return null;
@@ -175,6 +199,7 @@ function EdgePanel({ edgeId }: { edgeId: string }) {
   const source = nodeById.get(edge.source_id);
   const target = nodeById.get(edge.target_id);
   const attributes = edgeAttributes(edge);
+  const conflictCandidates = overlay.conflicts.edges[edgeId] ?? [];
 
   return (
     <ScrollArea className="h-full">
@@ -222,6 +247,17 @@ function EdgePanel({ edgeId }: { edgeId: string }) {
           </dl>
         )}
       </section>
+
+      {conflictCandidates.length > 0 || edgeOverride !== undefined ? (
+        <section className="border-border border-t p-4">
+          <EdgeVersionMenu
+            overlayEdgeKey={edgeId}
+            edgeEntityId={edge.id}
+            conflictCandidates={conflictCandidates}
+            currentOverride={edgeOverride}
+          />
+        </section>
+      ) : null}
     </ScrollArea>
   );
 }
@@ -236,7 +272,14 @@ export function DetailPanel() {
   }
 
   return (
-    <aside className="relative h-full w-80 shrink-0 border-border border-l bg-surface">
+    <aside
+      className="
+        fixed inset-x-0 bottom-0 z-20 max-h-[70dvh] border-border border-t bg-surface
+        pb-[env(safe-area-inset-bottom)]
+        md:static md:inset-auto md:h-full md:max-h-none md:w-80 md:shrink-0
+        md:border-t-0 md:border-l md:pb-0
+      "
+    >
       <Button
         type="button"
         variant="ghost"

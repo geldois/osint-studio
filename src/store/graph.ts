@@ -1,39 +1,107 @@
 import { create } from "zustand";
-import { edgeKey } from "@/lib/graph-adapter";
+import { createJSONStorage, persist } from "zustand/middleware";
 import type { ApiEdge, ApiNode, GraphSchema } from "@/types/api";
 
-interface GraphStore {
-  rawNodes: ApiNode[];
-  rawEdges: ApiEdge[];
-  roots: Set<string>;
-  mergeGraph: (schema: GraphSchema) => void;
-  reset: () => void;
+function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T> {
+  return Object.fromEntries(Object.entries(record).filter(([k]) => k !== key));
 }
 
-export const useGraphStore = create<GraphStore>((set) => ({
-  rawNodes: [],
-  rawEdges: [],
-  roots: new Set(),
-  mergeGraph: (schema) => {
-    set((state) => {
-      const nodeById = new Map(state.rawNodes.map((node) => [node.id, node]));
-      for (const node of schema.nodes) {
-        nodeById.set(node.id, node);
-      }
-      const rawNodes = [...nodeById.values()];
+interface GraphStore {
+  edgeOverrides: Record<string, ApiEdge>;
+  hasHydrated: boolean;
+  nodeOverrides: Record<string, ApiNode>;
+  order: Record<string, string[]>;
+  revisions: Record<string, GraphSchema>;
+  selected: string[];
 
-      const edgeById = new Map(state.rawEdges.map((edge) => [edgeKey(edge), edge]));
-      for (const edge of schema.edges) {
-        edgeById.set(edgeKey(edge), edge);
-      }
-      const rawEdges = [...edgeById.values()];
+  clearOverrides: () => void;
+  overrideEdge: (edgeKey: string, edge: ApiEdge | null) => void;
+  overrideNode: (nodeId: string, node: ApiNode | null) => void;
+  receiveGraph: (schema: GraphSchema) => void;
+  receiveHistory: (rootId: string, schemas: GraphSchema[]) => void;
+  reset: () => void;
+  selectRevisions: (contentIds: string[]) => void;
+  setHasHydrated: () => void;
+}
 
-      const roots = new Set(state.roots).add(schema.root_id);
+const INITIAL_STATE = {
+  edgeOverrides: {},
+  nodeOverrides: {},
+  order: {},
+  revisions: {},
+  selected: [],
+};
 
-      return { rawNodes, rawEdges, roots };
-    });
-  },
-  reset: () => {
-    set({ rawNodes: [], rawEdges: [], roots: new Set() });
-  },
-}));
+export const useGraphStore = create<GraphStore>()(
+  persist(
+    (set) => ({
+      ...INITIAL_STATE,
+      hasHydrated: false,
+      clearOverrides: () => {
+        set({ edgeOverrides: {}, nodeOverrides: {} });
+      },
+      overrideNode: (nodeId, node) => {
+        set((state) => ({
+          nodeOverrides:
+            node === null
+              ? withoutKey(state.nodeOverrides, nodeId)
+              : { ...state.nodeOverrides, [nodeId]: node },
+        }));
+      },
+      overrideEdge: (key, edge) => {
+        set((state) => ({
+          edgeOverrides:
+            edge === null
+              ? withoutKey(state.edgeOverrides, key)
+              : { ...state.edgeOverrides, [key]: edge },
+        }));
+      },
+      receiveGraph: (schema) => {
+        set((state) => {
+          const revisions = { ...state.revisions, [schema.content_id]: schema };
+          const existingOrder = state.order[schema.root_id] ?? [];
+          const order = existingOrder.includes(schema.content_id)
+            ? state.order
+            : {
+                ...state.order,
+                [schema.root_id]: [...existingOrder, schema.content_id],
+              };
+          const selected = state.selected.includes(schema.content_id)
+            ? state.selected
+            : [...state.selected, schema.content_id];
+          return { revisions, order, selected };
+        });
+      },
+      receiveHistory: (rootId, schemas) => {
+        set((state) => {
+          const revisions = { ...state.revisions };
+          for (const schema of schemas) {
+            revisions[schema.content_id] = schema;
+          }
+          const order = { ...state.order, [rootId]: schemas.map((s) => s.content_id) };
+          return { revisions, order };
+        });
+      },
+      selectRevisions: (contentIds) => {
+        set({ selected: contentIds });
+      },
+      reset: () => {
+        set(INITIAL_STATE);
+      },
+      setHasHydrated: () => {
+        set({ hasHydrated: true });
+      },
+    }),
+    {
+      name: "osint-studio-overlay",
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => ({ selected: state.selected }),
+      onRehydrateStorage: () => (state, error) => {
+        if (state === undefined || error !== undefined) {
+          return;
+        }
+        state.setHasHydrated();
+      },
+    },
+  ),
+);

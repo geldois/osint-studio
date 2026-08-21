@@ -10,7 +10,7 @@ export function ViewSwitch() {
 
   return (
     <ToggleGroup
-      className="absolute top-3 right-3 z-10 flex-col overflow-hidden rounded-sm border border-border bg-surface shadow-lg"
+      className="absolute right-3 bottom-3 z-10 flex-col overflow-hidden rounded-sm border border-border bg-surface shadow-lg md:top-3 md:bottom-auto"
       orientation="vertical"
       spacing={0}
       value={[view]}
@@ -25,7 +25,7 @@ export function ViewSwitch() {
         value="graph"
         aria-label="Visualizar em grafo"
         title="Grafo"
-        className="size-8 rounded-none border-border border-b"
+        className="size-10 rounded-none border-border border-b sm:size-8"
       >
         <Network size={15} />
       </ToggleGroupItem>
@@ -33,7 +33,7 @@ export function ViewSwitch() {
         value="table"
         aria-label="Visualizar em tabela"
         title="Tabela"
-        className="size-8 rounded-none"
+        className="size-10 rounded-none sm:size-8"
       >
         <Table2 size={15} />
       </ToggleGroupItem>

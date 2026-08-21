@@ -1,9 +1,18 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, Table } from "@tanstack/react-table";
 import { History } from "lucide-react";
 import { EntityIcon } from "@/components/nodes/entity-icon";
+import { Checkbox } from "@/components/ui/checkbox";
 import { extractLabel, nodeToRows } from "@/lib/graph-adapter";
 import { nodeTypeLabel } from "@/lib/relationships";
+import { useTableSelectionStore } from "@/store/table-selection";
 import type { ApiNode, NodeType } from "@/types/api";
+
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData, TValue> {
+    hiddenBelowMd?: boolean;
+  }
+}
 
 export interface TableRow {
   node: ApiNode;
@@ -40,7 +49,60 @@ export function toTableRow(
   };
 }
 
+function SelectRowCheckbox({ id }: { id: string }) {
+  const selected = useTableSelectionStore((s) => s.selectedIds.has(id));
+  const toggle = useTableSelectionStore((s) => s.toggle);
+
+  return (
+    <span
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
+    >
+      <Checkbox
+        checked={selected}
+        onCheckedChange={() => {
+          toggle(id);
+        }}
+      />
+    </span>
+  );
+}
+
+function SelectAllCheckbox({ table }: { table: Table<TableRow> }) {
+  const selectedIds = useTableSelectionStore((s) => s.selectedIds);
+  const setMany = useTableSelectionStore((s) => s.setMany);
+
+  const visibleIds = table.getRowModel().rows.map((row) => row.original.node.id);
+  const selectedCount = visibleIds.filter((id) => selectedIds.has(id)).length;
+  const allSelected = visibleIds.length > 0 && selectedCount === visibleIds.length;
+  const someSelected = selectedCount > 0 && !allSelected;
+
+  return (
+    <span
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
+    >
+      <Checkbox
+        checked={allSelected}
+        indeterminate={someSelected}
+        onCheckedChange={(checked) => {
+          setMany(visibleIds, checked);
+        }}
+      />
+    </span>
+  );
+}
+
 export const columns: ColumnDef<TableRow>[] = [
+  {
+    id: "select",
+    size: 40,
+    enableSorting: false,
+    header: ({ table }) => <SelectAllCheckbox table={table} />,
+    cell: ({ row }) => <SelectRowCheckbox id={row.original.node.id} />,
+  },
   {
     accessorKey: "nodeType",
     header: "Tipo",
@@ -67,6 +129,7 @@ export const columns: ColumnDef<TableRow>[] = [
   {
     accessorKey: "summary",
     header: "Resumo",
+    meta: { hiddenBelowMd: true },
     cell: ({ row }) => (
       <span className="text-muted">{row.original.summary || "—"}</span>
     ),
@@ -75,6 +138,7 @@ export const columns: ColumnDef<TableRow>[] = [
     accessorKey: "relationshipCount",
     header: "Relações",
     size: 80,
+    meta: { hiddenBelowMd: true },
     cell: ({ row }) => row.original.relationshipCount,
   },
   {

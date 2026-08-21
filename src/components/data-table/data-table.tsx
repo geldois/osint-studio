@@ -20,30 +20,38 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useOverlay } from "@/hooks/use-overlay";
 import { relationshipsForNode } from "@/lib/relationships";
-import { useGraphStore } from "@/store/graph";
+import { nodesForTab, typedTabs } from "@/lib/table";
 import { useSelectionStore } from "@/store/selection";
+import type { NodeType } from "@/types/api";
 
 export function DataTable() {
-  const rawNodes = useGraphStore((s) => s.rawNodes);
-  const rawEdges = useGraphStore((s) => s.rawEdges);
-  const roots = useGraphStore((s) => s.roots);
+  const overlay = useOverlay();
   const selectNode = useSelectionStore((s) => s.selectNode);
   const selectedNodeId = useSelectionStore((s) => s.selectedNodeId);
 
+  const [tab, setTab] = useState<NodeType | "all">("all");
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
 
+  const tabs = useMemo(() => typedTabs(overlay.nodes), [overlay.nodes]);
+  const nodesInTab = useMemo(
+    () => nodesForTab(overlay.nodes, tab),
+    [overlay.nodes, tab],
+  );
+
   const data = useMemo(() => {
-    const nodeById = new Map(rawNodes.map((node) => [node.id, node] as const));
-    return rawNodes.map((node) =>
+    const nodeById = new Map(overlay.nodes.map((node) => [node.id, node] as const));
+    return nodesInTab.map((node) =>
       toTableRow(
         node,
-        relationshipsForNode(node.id, rawEdges, nodeById).length,
-        roots.has(node.id),
+        relationshipsForNode(node.id, overlay.edges, nodeById).length,
+        overlay.roots.has(node.id),
       ),
     );
-  }, [rawNodes, rawEdges, roots]);
+  }, [overlay, nodesInTab]);
 
   const table = useReactTable({
     data,
@@ -65,7 +73,7 @@ export function DataTable() {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  if (rawNodes.length === 0) {
+  if (overlay.nodes.length === 0) {
     return (
       <div className="flex h-full flex-1 items-center justify-center text-muted text-sm">
         Nenhum dado ainda. Busque um CPF ou CNPJ para começar.
@@ -75,7 +83,21 @@ export function DataTable() {
 
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden">
-      <div className="border-border border-b p-3">
+      <div className="flex flex-wrap items-center gap-2 border-border border-b p-3">
+        <Tabs
+          value={tab}
+          onValueChange={(value) => {
+            setTab(value as NodeType | "all");
+          }}
+        >
+          <TabsList>
+            {tabs.map((t) => (
+              <TabsTrigger key={t.nodeType} value={t.nodeType}>
+                {t.label} ({t.count})
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
         <div className="relative w-72">
           <Search
             size={14}
@@ -93,7 +115,7 @@ export function DataTable() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <Table className="text-sm" containerClassName="h-full overflow-y-auto">
+        <Table className="min-w-max text-sm" containerClassName="h-full overflow-auto">
           <TableHeader className="sticky top-0 z-10 bg-surface">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="border-border">
@@ -104,7 +126,11 @@ export function DataTable() {
                     <TableHead
                       key={header.id}
                       style={{ width: header.getSize() }}
-                      className="px-3 py-2 text-[11px] text-muted uppercase tracking-wide"
+                      className={`px-3 py-2 text-[11px] text-muted uppercase tracking-wide ${
+                        header.column.columnDef.meta?.hiddenBelowMd
+                          ? "hidden md:table-cell"
+                          : ""
+                      }`}
                     >
                       {header.isPlaceholder ? null : canSort ? (
                         <button
@@ -145,7 +171,14 @@ export function DataTable() {
                 }`}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="px-3 py-2">
+                  <TableCell
+                    key={cell.id}
+                    className={`px-3 py-2 ${
+                      cell.column.columnDef.meta?.hiddenBelowMd
+                        ? "hidden md:table-cell"
+                        : ""
+                    }`}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}

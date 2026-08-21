@@ -13,7 +13,7 @@ interface IngestVars {
 
 export function useIngest() {
   const token = useAuthStore((s) => s.token);
-  const mergeGraph = useGraphStore((s) => s.mergeGraph);
+  const receiveGraph = useGraphStore((s) => s.receiveGraph);
   const selectNode = useSelectionStore((s) => s.selectNode);
 
   return useMutation({
@@ -30,7 +30,7 @@ export function useIngest() {
         : ingestText(await file.text(), patterns, token);
     },
     onSuccess: (schema) => {
-      mergeGraph(schema);
+      receiveGraph(schema);
       selectNode(schema.root_id);
     },
   });

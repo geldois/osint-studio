@@ -33,6 +33,7 @@ export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
   const selectedNodeId = useSelectionStore((s) => s.selectedNodeId);
   const selectNode = useSelectionStore((s) => s.selectNode);
   const isSelected = selectedNodeId === id;
+  const { isOverridden, conflictCount } = data;
 
   return (
     <button
@@ -52,9 +53,24 @@ export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
           {nodeTypeLabel(data.nodeType)}
         </span>
       </span>
-      {data.isRoot ? (
-        <span className="ml-auto mt-0.5 shrink-0 text-[9px] opacity-50">●</span>
-      ) : null}
+      <span className="ml-auto flex shrink-0 flex-col items-end gap-0.5">
+        {data.isRoot ? <span className="mt-0.5 text-[9px] opacity-50">●</span> : null}
+        {isOverridden ? (
+          <span
+            title="Versão fixada manualmente"
+            className="rounded-sm bg-amber-500/20 px-1 text-[8px] text-amber-500 uppercase"
+          >
+            fixado
+          </span>
+        ) : conflictCount > 1 ? (
+          <span
+            title={`${String(conflictCount)} versões desta entidade na sobreposição`}
+            className="rounded-full bg-white/15 px-1 text-[8px] tabular-nums"
+          >
+            {conflictCount}
+          </span>
+        ) : null}
+      </span>
       <Handle type="source" position={Position.Bottom} className="opacity-0!" />
     </button>
   );

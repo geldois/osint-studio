@@ -22,6 +22,8 @@ export type CardData = {
   cnpj: string | null;
   cpf: string | null;
   rows: CardRow[];
+  conflictCount: number;
+  isOverridden: boolean;
 };
 
 export type EntityNode = Node<CardData, "entity">;
@@ -177,6 +179,8 @@ export function projectGraph(
   rawNodes: ApiNode[],
   rawEdges: ApiEdge[],
   roots: Set<string>,
+  nodeConflicts: Record<string, ApiNode[]>,
+  overriddenNodeIds: Set<string>,
 ): { nodes: EntityNode[]; edges: Edge[] } {
   const nodes = rawNodes.map((node): EntityNode => ({
     id: node.id,
@@ -189,6 +193,8 @@ export function projectGraph(
       cnpj: node.type === "company" ? node.cnpj : null,
       cpf: node.type === "person" ? node.cpf : null,
       rows: nodeToRows(node),
+      conflictCount: nodeConflicts[node.id]?.length ?? 0,
+      isOverridden: overriddenNodeIds.has(node.id),
     },
   }));
   return { nodes, edges: groupEdgesByPair(rawEdges) };
