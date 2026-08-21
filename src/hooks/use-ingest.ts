@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ingestFile, ingestText } from "@/lib/api";
 import { ingestKindFor } from "@/lib/ingest-schema";
 import { useAuthStore } from "@/store/auth";
@@ -15,6 +15,7 @@ export function useIngest() {
   const token = useAuthStore((s) => s.token);
   const receiveGraph = useGraphStore((s) => s.receiveGraph);
   const selectNode = useSelectionStore((s) => s.selectNode);
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ file, patterns }: IngestVars): Promise<GraphSchema> => {
@@ -32,6 +33,7 @@ export function useIngest() {
     onSuccess: (schema) => {
       receiveGraph(schema);
       selectNode(schema.root_id);
+      void queryClient.invalidateQueries({ queryKey: ["graph-catalog"] });
     },
   });
 }

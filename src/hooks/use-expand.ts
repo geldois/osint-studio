@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCEIS, fetchCNEP, fetchGraph, fetchGraphByCpf } from "@/lib/api";
 import { isCpf } from "@/lib/document";
 import { canFetchDocumentType } from "@/lib/permissions";
@@ -19,6 +19,7 @@ export function useExpand() {
   const token = useAuthStore((s) => s.token);
   const role = useAuthStore((s) => s.role);
   const receiveGraph = useGraphStore((s) => s.receiveGraph);
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ document }: ExpandVars): Promise<ExpandResult> => {
@@ -63,6 +64,9 @@ export function useExpand() {
     onSuccess: ({ schemas }) => {
       for (const schema of schemas) {
         receiveGraph(schema);
+      }
+      if (schemas.length > 0) {
+        void queryClient.invalidateQueries({ queryKey: ["graph-catalog"] });
       }
     },
   });

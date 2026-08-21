@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { estimateCpfBatch, expandCpfBatch } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useGraphStore } from "@/store/graph";
@@ -26,6 +26,7 @@ export function useBatchEstimate(cpfs: string[]) {
 export function useBatchExpand() {
   const token = useAuthStore((s) => s.token);
   const receiveGraph = useGraphStore((s) => s.receiveGraph);
+  const queryClient = useQueryClient();
 
   return useMutation<BatchCPFResult, Error, { cpfs: string[]; force: boolean }>({
     mutationFn: ({ cpfs, force }) => {
@@ -37,6 +38,7 @@ export function useBatchExpand() {
     onSuccess: (result) => {
       if (result.graph !== null) {
         receiveGraph(result.graph);
+        void queryClient.invalidateQueries({ queryKey: ["graph-catalog"] });
       }
     },
   });
