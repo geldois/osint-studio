@@ -26,6 +26,13 @@ instance) would silently produce two different identities and duplicate the enti
 change to narrow identity down to the true natural key eliminated that failure mode structurally, with no change
 needed on this side of the boundary, since the merge already deduplicated by whatever identity a response carried.
 
+A response also carries a second identity per entity, derived from its full content rather than from its natural
+key, and the merge deliberately does not key on it. Keying on content would reinstate the exact failure the
+natural-key change eliminated — one real-world entity rendered twice because an incidental field came back
+formatted differently. That content identity is what distinguishes two observations of the same entity from each
+other, which is a different question from which entity a node is, and it is answered somewhere other than the
+accumulator.
+
 The layout engine's radial algorithm requires a strict tree, and this domain graph is not one: an address shared by
 a company and its owner gives that address two parents. The placement math therefore runs over a spanning tree
 derived from each component, while every relationship is still drawn. Very uneven card sizes can leave the

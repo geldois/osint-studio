@@ -30,6 +30,15 @@ logic such a suite can catch cheaply; a visual or interaction regression is not,
 shape is still changing weekly, so locking that down early would pay a real, ongoing cost before catching any
 regression it would prevent.
 
+Changing the shape of a backend response breaks two repositories at once, and neither one's unit suite can see
+it: every mock on both sides encodes the same assumption the code does, so both stay green through a break. Running
+the real path needs a live backend, a login, and for the paid providers a billable request — none of which belong in
+a commit gate or in a quick verification loop. The check used instead runs the backend's own response-building code
+in-process against a hand-built graph covering every node and every edge type, writes what it serializes to a file,
+and parses that file with this project's own response schemas. It needs no server, no credentials and no upstream
+request, and it fails on exactly the drift the mocked suites are blind to; the trade is that it exercises
+serialization and not routing, so a route or guard regression still needs the live path.
+
 A newly-introduced comment is never auto-removed, at commit time or otherwise — the real TypeScript-parser rewrite
 this used to run carried edge cases (a JSX expression container holding only a comment, trivia trailing a node's own
 end) that could silently corrupt a file nobody reviews before it lands. A per-edit hook instead nudges the assistant

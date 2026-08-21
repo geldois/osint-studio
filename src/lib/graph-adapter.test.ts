@@ -1,11 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { edgeKey, extractLabel, groupEdgesByPair } from "@/lib/graph-adapter";
-import type { AddressNode, CompanyNode, OwnsCompanyEdge, PlainEdge } from "@/types/api";
+import type {
+  AddressNode,
+  CompanyNode,
+  OwnsCompanyEdge,
+  PlainEdge,
+  Revision,
+} from "@/types/api";
+
+const revision: Revision = {
+  fetched_at: "2026-08-21T14:03:00Z",
+  merged_at: null,
+  provider: "kipflow",
+};
 
 describe("extractLabel", () => {
   it("prefers trade_name over legal_name over cnpj for a company", () => {
     const base: CompanyNode = {
+      content_id: "c1",
       id: "c1",
+      revision,
       type: "company",
       cnpj: "00000000000191",
       legal_name: "Acme Ltda",
@@ -28,7 +42,9 @@ describe("extractLabel", () => {
 
   it("joins non-null address fields with a middle dot", () => {
     const address: AddressNode = {
+      content_id: "a1",
       id: "a1",
+      revision,
       type: "address",
       cep: "01310-100",
       city: "São Paulo",
@@ -48,12 +64,24 @@ describe("extractLabel", () => {
 
   it("truncates a long text_source at 60 chars with an ellipsis", () => {
     const text = "x".repeat(80);
-    const label = extractLabel({ id: "t1", type: "text_source", text });
+    const label = extractLabel({
+      content_id: "t1",
+      id: "t1",
+      revision,
+      type: "text_source",
+      text,
+    });
     expect(label).toBe(`${"x".repeat(60)}…`);
   });
 
   it("returns short text_source unchanged", () => {
-    const label = extractLabel({ id: "t1", type: "text_source", text: "short" });
+    const label = extractLabel({
+      content_id: "t1",
+      id: "t1",
+      revision,
+      type: "text_source",
+      text: "short",
+    });
     expect(label).toBe("short");
   });
 });
@@ -61,7 +89,9 @@ describe("extractLabel", () => {
 describe("edgeKey", () => {
   it("joins source, target and type with a pipe", () => {
     const edge: PlainEdge = {
+      content_id: "e1",
       id: "e1",
+      revision,
       source_id: "n1",
       target_id: "n2",
       type: "company_has_email",
@@ -73,7 +103,9 @@ describe("edgeKey", () => {
 describe("groupEdgesByPair", () => {
   it("collapses two relationships between the same node pair into one edge", () => {
     const owns: OwnsCompanyEdge = {
+      content_id: "e1",
       id: "e1",
+      revision,
       source_id: "person-1",
       target_id: "company-1",
       type: "person_owns_company",
@@ -81,7 +113,9 @@ describe("groupEdgesByPair", () => {
       role: "sócio",
     };
     const sharedAddress: PlainEdge = {
+      content_id: "e2",
       id: "e2",
+      revision,
       source_id: "company-1",
       target_id: "person-1",
       type: "company_located_at",
@@ -100,13 +134,17 @@ describe("groupEdgesByPair", () => {
 
   it("keeps unrelated pairs as separate edges", () => {
     const a: PlainEdge = {
+      content_id: "e1",
       id: "e1",
+      revision,
       source_id: "n1",
       target_id: "n2",
       type: "company_has_email",
     };
     const b: PlainEdge = {
+      content_id: "e2",
       id: "e2",
+      revision,
       source_id: "n3",
       target_id: "n4",
       type: "company_has_phone",

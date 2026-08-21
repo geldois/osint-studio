@@ -42,8 +42,19 @@ export const EdgeTypeSchema = z.enum([
   "possibly_matches",
 ]);
 
-export const AddressNodeSchema = z.object({
+export const RevisionSchema = z.object({
+  fetched_at: z.iso.datetime(),
+  merged_at: z.iso.datetime().nullable(),
+  provider: z.string(),
+});
+
+const EntityBaseSchema = z.object({
+  content_id: z.string(),
   id: z.string(),
+  revision: RevisionSchema,
+});
+
+export const AddressNodeSchema = EntityBaseSchema.extend({
   type: z.literal("address"),
   cep: z.string(),
   city: z.string().nullable(),
@@ -54,15 +65,13 @@ export const AddressNodeSchema = z.object({
   street: z.string().nullable(),
 });
 
-export const CnaeNodeSchema = z.object({
-  id: z.string(),
+export const CnaeNodeSchema = EntityBaseSchema.extend({
   type: z.literal("cnae"),
   code: z.string(),
   description: z.string(),
 });
 
-export const CompanyNodeSchema = z.object({
-  id: z.string(),
+export const CompanyNodeSchema = EntityBaseSchema.extend({
   type: z.literal("company"),
   cnpj: z.string(),
   legal_name: z.string().nullable(),
@@ -77,14 +86,12 @@ export const CompanyNodeSchema = z.object({
   is_headquarters: z.boolean().nullable(),
 });
 
-export const EmailNodeSchema = z.object({
-  id: z.string(),
+export const EmailNodeSchema = EntityBaseSchema.extend({
   type: z.literal("email"),
   address: z.string(),
 });
 
-export const PersonNodeSchema = z.object({
-  id: z.string(),
+export const PersonNodeSchema = EntityBaseSchema.extend({
   type: z.literal("person"),
   age_range: z.string().nullable(),
   birthdate: z.string().nullable(),
@@ -94,20 +101,17 @@ export const PersonNodeSchema = z.object({
   registration_status: z.string().nullable(),
 });
 
-export const TextSourceNodeSchema = z.object({
-  id: z.string(),
+export const TextSourceNodeSchema = EntityBaseSchema.extend({
   type: z.literal("text_source"),
   text: z.string(),
 });
 
-export const PhoneNodeSchema = z.object({
-  id: z.string(),
+export const PhoneNodeSchema = EntityBaseSchema.extend({
   type: z.literal("phone"),
   number: z.string(),
 });
 
-export const SanctionNodeSchema = z.object({
-  id: z.string(),
+export const SanctionNodeSchema = EntityBaseSchema.extend({
   type: z.literal("sanction"),
   end_date: z.string().nullable(),
   fine_amount: z.string().nullable(),
@@ -132,8 +136,7 @@ export const ApiNodeSchema = z.discriminatedUnion("type", [
   TextSourceNodeSchema,
 ]);
 
-const EdgeBaseSchema = z.object({
-  id: z.string(),
+const EdgeBaseSchema = EntityBaseSchema.extend({
   source_id: z.string(),
   target_id: z.string(),
 });
@@ -182,9 +185,11 @@ export const ApiEdgeSchema = z.discriminatedUnion("type", [
 ]);
 
 export const GraphSchemaSchema = z.object({
-  root_id: z.string(),
-  nodes: z.array(ApiNodeSchema),
+  content_id: z.string(),
   edges: z.array(ApiEdgeSchema),
+  nodes: z.array(ApiNodeSchema),
+  revision: RevisionSchema,
+  root_id: z.string(),
 });
 
 export const TextPatternNameSchema = z.object({

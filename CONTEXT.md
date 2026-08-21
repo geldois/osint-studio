@@ -22,6 +22,15 @@ first — same recognition either way. Mirrors osint-engine's own Ingestion. _Av
 `CEP_AND_NUMBER`), named exactly as osint-engine names it and carried back on every edge that rule produced. Same
 concept as upstream.
 
+**Revision**: One `GraphSchema` paired with when osint-engine fetched it, when it merged it, and which provider
+it came from (`revision`). Every node and edge inside a response repeats the graph's own revision, so a **Merge**
+never loses where each entity came from. Same concept as upstream. _Avoid_: snapshot
+
+**Content id**: An entity's identity derived from its full content (`content_id`), as opposed to `id`, derived only
+from the natural key (CPF, CNPJ). Two **Revision**s of the same entity share an `id` and differ by `content_id`,
+and identical content collapses to one `content_id` — the key overlapping graphs deduplicate on. Same concept as
+upstream. _Avoid_: fingerprint, digest
+
 **Merge**: Combining a freshly fetched `GraphSchema` into the accumulated graph (`mergeGraph`). A node or edge already
 present is replaced outright by the incoming one, never field-merged — the same no-field-synthesis default
 osint-engine uses server-side. Re-merging the same schema is idempotent: keyed by `node.id` and `edgeKey`
@@ -51,6 +60,8 @@ upstream. _Avoid_: placeholder
 
 - A **Whiteboard** renders one accumulated graph in either the **Graph** or **Table** view
 - **Expansion** and **Ingestion** both **Merge** a `GraphSchema` into the graph
+- Every **Expansion** and **Ingestion** returns one **Revision**, restamped onto each of its nodes and edges
+- Two **Revision**s of one graph share a **Root** and differ by **Content id**
 - An **Ingestion** carries one or more **Pattern name**s, chosen per submission, never fixed
 - A **Root** is a node reached by **Expansion** on its own identifier, not by any **Relationship**
 - Every line drawn between two nodes groups one or more **Relationship**s for that pair

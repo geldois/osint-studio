@@ -11,7 +11,17 @@ function makeZodError(): z.ZodError {
   return result.error;
 }
 
-const EMPTY_GRAPH = { root_id: "r1", nodes: [], edges: [] };
+const EMPTY_GRAPH = {
+  content_id: "g1",
+  edges: [],
+  nodes: [],
+  revision: {
+    fetched_at: "2026-08-21T14:03:00Z",
+    merged_at: null,
+    provider: "text_ingestion",
+  },
+  root_id: "r1",
+};
 
 function stubFetchReturning(payload: unknown): ReturnType<typeof vi.fn> {
   const mock = vi.fn().mockResolvedValue({

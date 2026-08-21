@@ -17,6 +17,7 @@ import type {
   PlainEdgeSchema,
   PossiblyMatchesEdgeSchema,
   ProviderSchema,
+  RevisionSchema,
   SanctionNodeSchema,
   TextPatternBundleSchema,
   TextPatternCatalogSchema,
@@ -30,6 +31,7 @@ export type Provider = z.infer<typeof ProviderSchema>;
 export type CredentialStatus = z.infer<typeof CredentialStatusSchema>;
 export type NodeType = z.infer<typeof NodeTypeSchema>;
 export type EdgeType = z.infer<typeof EdgeTypeSchema>;
+export type Revision = z.infer<typeof RevisionSchema>;
 
 export type AddressNode = z.infer<typeof AddressNodeSchema>;
 export type CnaeNode = z.infer<typeof CnaeNodeSchema>;
