@@ -6,12 +6,6 @@
   exists yet. When it does, the production value and the backend's `CORS_ORIGINS` need to be configured together —
   neither works without the other.
 
-## feat(auth)
-
-- Token lives only in memory (Zustand, no `persist`); a page refresh drops it and
-  forces re-login. Deferred: `sessionStorage` persistence via Zustand middleware with
-  hydration guard to avoid SSR flash.
-
 ## fix(api)
 
 - Error path assumes JSON: on a non-ok response the body is parsed as `{ detail }`,

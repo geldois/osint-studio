@@ -24,12 +24,20 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const setToken = useAuthStore((s) => s.setToken);
+  const token = useAuthStore((s) => s.token);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const router = useRouter();
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) });
+
+  useEffect(() => {
+    if (hasHydrated && token !== null) {
+      router.replace("/whiteboard");
+    }
+  }, [hasHydrated, token, router]);
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) {
