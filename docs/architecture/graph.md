@@ -9,11 +9,11 @@ single growing dataset, is the shape of the problem.
 
 The accumulated graph is held in render-ready shape, not as raw records — merging an incoming fragment
 deduplicates its nodes by identity and appends only the new ones, leaving every already-present node, including any
-position a user dragged it to, untouched. New nodes are placed radially around the node that triggered the
-expansion (or the origin, on first load); no general-purpose graph-layout library is used, since the domain graph
-routinely contains cycles that a tree-oriented layout algorithm rejects outright. Each expandable node runs its own
-expansion independently — expanding is a mutation with a side effect on the accumulated graph, not a cached read,
-and an independent request per node means one node's failure or in-flight state never blocks another's.
+position a user dragged it to, untouched. Nodes are laid out radially by a general-purpose layout engine, one run
+per connected component around that component's own anchor, with the components then packed side by side. Each
+expandable node runs its own expansion independently — expanding is a mutation with a side effect on the
+accumulated graph, not a cached read, and an independent request per node means one node's failure or in-flight
+state never blocks another's.
 
 ## Decisions
 
@@ -26,13 +26,15 @@ instance) would silently produce two different identities and duplicate the enti
 change to narrow identity down to the true natural key eliminated that failure mode structurally, with no change
 needed on this side of the boundary, since the merge already deduplicated by whatever identity a response carried.
 
+The layout engine's radial algorithm requires a strict tree, and this domain graph is not one: an address shared by
+a company and its owner gives that address two parents. The placement math therefore runs over a spanning tree
+derived from each component, while every relationship is still drawn. Very uneven card sizes can leave the
+algorithm's own radius calculation with residual overlap, repaired afterwards by a bounded local push-apart pass
+rather than by replacing the algorithm.
+
 Edge deduplication uses a composite key built from the edge's own endpoints and its relationship type, rather than
 an identifier the backend happens to assign the edge — this keeps the merge's own idempotency independent of
 however the backend chooses to identify edges, and immune to that choice ever changing.
-
-Whether to trust an incoming response's shape at the boundary, or verify it there with runtime schema validation,
-was deferred: a response is currently trusted as typed without a validation step, so a shape mismatch would only
-surface once something tries to render the malformed data, not at the moment it arrives.
 
 ## Consequences
 
@@ -42,6 +44,6 @@ at the cost that swapping the rendering library later would mean reshaping how t
 stored, since a decoupled alternative would need a second, hand-kept position map running in parallel, for no
 benefit in an app that only ever renders one way.
 
-Radial placement around the triggering node can still overlap pre-existing nodes in a dense graph; every node
+Radial placement can still leave nodes overlapping in a dense component; every node
 stays draggable, and tuning the layout algorithm's placement quality further is a deliberately separate concern
 from the accumulator itself (tracked in `TO-DO.md`).
