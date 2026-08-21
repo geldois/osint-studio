@@ -16,6 +16,21 @@ export function nodeTypeLabel(type: NodeType): string {
   return NODE_TYPE_LABELS[type];
 }
 
+const NODE_TYPE_PLURAL_LABELS: Record<NodeType, string> = {
+  address: "Endereços",
+  cnae: "CNAEs",
+  company: "Empresas",
+  email: "E-mails",
+  person: "Pessoas",
+  phone: "Telefones",
+  sanction: "Sanções",
+  text_source: "Textos",
+};
+
+export function nodeTypePluralLabel(type: NodeType): string {
+  return NODE_TYPE_PLURAL_LABELS[type];
+}
+
 const EDGE_TYPE_LABELS: Record<EdgeType, string> = {
   address_mentioned_in_text: "mencionado em texto",
   company_has_cnae: "possui CNAE",
