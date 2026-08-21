@@ -14,8 +14,13 @@ edges. Tracked as a set (`roots`) since more than one search can accumulate in t
 Mirrors osint-engine's own Expansion — the frontend never resolves an identifier itself, only asks the backend to and
 renders what comes back. _Avoid_: search, fetch, query
 
-**Ingestion**: Scanning free text for identifiers and merging what osint-engine recognizes into the current graph
-(`useIngestText`, `/ingest`). Mirrors osint-engine's own Ingestion. _Avoid_: parsing, scanning
+**Ingestion**: Scanning an uploaded file for identifiers and merging what osint-engine recognizes into the current
+graph (`useIngest`, `/ingest`). A `.txt` travels as text, a `.csv`/`.xlsx` as a file for osint-engine to flatten
+first — same recognition either way. Mirrors osint-engine's own Ingestion. _Avoid_: parsing, scanning
+
+**Pattern name**: One atomic recognition rule the analyst switches on or off before an **Ingestion** (`CPF_LOOSE`,
+`CEP_AND_NUMBER`), named exactly as osint-engine names it and carried back on every edge that rule produced. Same
+concept as upstream.
 
 **Merge**: Combining a freshly fetched `GraphSchema` into the accumulated graph (`mergeGraph`). A node or edge already
 present is replaced outright by the incoming one, never field-merged — the same no-field-synthesis default
@@ -46,6 +51,7 @@ upstream. _Avoid_: placeholder
 
 - A **Whiteboard** renders one accumulated graph in either the **Graph** or **Table** view
 - **Expansion** and **Ingestion** both **Merge** a `GraphSchema` into the graph
+- An **Ingestion** carries one or more **Pattern name**s, chosen per submission, never fixed
 - A **Root** is a node reached by **Expansion** on its own identifier, not by any **Relationship**
 - Every line drawn between two nodes groups one or more **Relationship**s for that pair
 - A **Possible match** is a **Relationship**, never acted on automatically

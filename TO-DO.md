@@ -29,3 +29,10 @@
 - Radial layout math (`layoutGraph`/`separateOverlaps` in `graph-adapter.ts`) has no
   coverage — async and ELK-backed, deferred per `docs/architecture/tooling.md`.
   `extractLabel`, `edgeKey`, and `mergeGraph` are now covered.
+- No test in the commit gate exercises a real osint-engine response. The five contract
+  breaks fixed in `mvp-temporal-navigation/0-reconnect-frontend-contract` were all
+  invisible to the unit suite, because every mock was written against the same wrong
+  assumption the code held. Only a request against a running backend catches that class of
+  drift, and it can't join the gate without a live server. Run it by hand after any change
+  to `api-schemas.ts`: ingest one `.txt` and one `.csv`, and parse both responses plus
+  `GET /text-ingestion/patterns` through the frontend's own schemas.

@@ -65,10 +65,12 @@ pnpm dev
 
 ## Routes
 
-| Path          | Screen     |
-| ------------- | ---------- |
-| `/login`      | Auth       |
-| `/whiteboard` | Whiteboard |
+| Path          | Screen     | Role    |
+| ------------- | ---------- | ------- |
+| `/login`      | Auth       | public  |
+| `/whiteboard` | Whiteboard | any     |
+| `/ingest`     | Ingestion  | `ADMIN` |
+| `/settings`   | Settings   | `ADMIN` |
 
 ## Environment
 
