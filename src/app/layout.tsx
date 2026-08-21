@@ -31,10 +31,10 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} min-h-dvh`}
+      className={`${geistSans.variable} ${geistMono.variable} h-dvh`}
       suppressHydrationWarning
     >
-      <body className="min-h-dvh bg-background text-foreground antialiased">
+      <body className="h-dvh bg-background text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
