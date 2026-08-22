@@ -30,10 +30,14 @@ export type EntityNode = Node<CardData, "entity">;
 
 const TEXT_PREVIEW_LENGTH = 60;
 
+function emptyToNull(value: string | null): string | null {
+  return value === "" ? null : value;
+}
+
 export function extractLabel(node: ApiNode): string {
   switch (node.type) {
     case "company":
-      return node.trade_name ?? node.legal_name ?? node.cnpj;
+      return emptyToNull(node.trade_name) ?? node.legal_name ?? node.cnpj;
     case "person":
       return node.name ?? node.cpf;
     case "address": {
@@ -65,7 +69,7 @@ export function nodeToRows(node: ApiNode): CardRow[] {
       return [
         { key: "cnpj", value: node.cnpj },
         { key: "razão social", value: node.legal_name ?? EMPTY },
-        { key: "nome fantasia", value: node.trade_name ?? EMPTY },
+        { key: "nome fantasia", value: emptyToNull(node.trade_name) ?? EMPTY },
         { key: "situação", value: node.registration_status ?? EMPTY },
         { key: "situação desde", value: node.registration_status_date ?? EMPTY },
         { key: "motivo", value: node.registration_status_reason ?? EMPTY },
@@ -347,10 +351,10 @@ function separateOverlaps(boxes: PositionedBox[]): void {
   }
 }
 
-// Each connected component (one per anchor search) is laid out independently
+// Each connected component (one per anchor Expansion) is laid out independently
 // with ELK's radial algorithm, then packed left to right — ELK's radial
 // layouter expects a single connected graph per run, so mixing unrelated
-// searches into one call would produce an undefined arrangement.
+// Expansions into one call would produce an undefined arrangement.
 export async function layoutGraph(
   nodes: EntityNode[],
   edges: Edge[],

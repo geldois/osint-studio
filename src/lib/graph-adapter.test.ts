@@ -40,6 +40,27 @@ describe("extractLabel", () => {
     );
   });
 
+  it("falls back past an empty trade_name the same as a null one", () => {
+    const base: CompanyNode = {
+      content_id: "c1",
+      id: "c1",
+      revision,
+      type: "company",
+      cnpj: "00000000000191",
+      legal_name: "Acme Ltda",
+      trade_name: "",
+      registration_status: null,
+      registration_status_date: null,
+      registration_status_reason: null,
+      size_category: null,
+      legal_nature: null,
+      share_capital: null,
+      activity_start_date: null,
+      is_headquarters: null,
+    };
+    expect(extractLabel(base)).toBe("Acme Ltda");
+  });
+
   it("joins non-null address fields with a middle dot", () => {
     const address: AddressNode = {
       content_id: "a1",
