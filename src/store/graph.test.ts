@@ -118,6 +118,20 @@ describe("useGraphStore", () => {
     expect(state.edgeOverrides).toEqual({});
   });
 
+  it("receiveGraph never touches focusNodeId — it's set explicitly, not inferred from any schema", () => {
+    useGraphStore.getState().setFocusNode("p1");
+    useGraphStore.getState().receiveGraph(graph("p2", "g2"));
+
+    expect(useGraphStore.getState().focusNodeId).toBe("p1");
+  });
+
+  it("setFocusNode overwrites whatever focus was set before", () => {
+    useGraphStore.getState().setFocusNode("p1");
+    useGraphStore.getState().setFocusNode("p2");
+
+    expect(useGraphStore.getState().focusNodeId).toBe("p2");
+  });
+
   it("reset clears revisions, order, selected and overrides", () => {
     useGraphStore.getState().receiveGraph(graph("p1", "g1"));
     useGraphStore.getState().overrideNode("p1", person("p1", "Alice"));

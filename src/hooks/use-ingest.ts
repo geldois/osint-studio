@@ -14,6 +14,7 @@ interface IngestVars {
 export function useIngest() {
   const token = useAuthStore((s) => s.token);
   const receiveGraph = useGraphStore((s) => s.receiveGraph);
+  const setFocusNode = useGraphStore((s) => s.setFocusNode);
   const selectNode = useSelectionStore((s) => s.selectNode);
   const queryClient = useQueryClient();
 
@@ -32,6 +33,7 @@ export function useIngest() {
     },
     onSuccess: (schema) => {
       receiveGraph(schema);
+      setFocusNode(schema.root_id);
       selectNode(schema.root_id);
       void queryClient.invalidateQueries({ queryKey: ["graph-catalog"] });
     },

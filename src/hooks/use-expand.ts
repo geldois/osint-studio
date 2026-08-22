@@ -12,6 +12,7 @@ interface ExpandVars {
 
 interface ExpandResult {
   errors: unknown[];
+  focusNodeId: string | null;
   schemas: GraphSchema[];
 }
 
@@ -19,6 +20,7 @@ export function useExpand() {
   const token = useAuthStore((s) => s.token);
   const role = useAuthStore((s) => s.role);
   const receiveGraph = useGraphStore((s) => s.receiveGraph);
+  const setFocusNode = useGraphStore((s) => s.setFocusNode);
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -59,11 +61,20 @@ export function useExpand() {
         )
         .map((result): unknown => result.reason as unknown);
 
-      return { errors, schemas };
+      const rootGraphResult = results[0];
+      const focusNodeId =
+        rootGraphResult?.status === "fulfilled" && rootGraphResult.value !== null
+          ? rootGraphResult.value.root_id
+          : null;
+
+      return { errors, focusNodeId, schemas };
     },
-    onSuccess: ({ schemas }) => {
+    onSuccess: ({ schemas, focusNodeId }) => {
       for (const schema of schemas) {
         receiveGraph(schema);
+      }
+      if (focusNodeId !== null) {
+        setFocusNode(focusNodeId);
       }
       if (schemas.length > 0) {
         void queryClient.invalidateQueries({ queryKey: ["graph-catalog"] });

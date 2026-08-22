@@ -8,6 +8,7 @@ function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T
 
 interface GraphStore {
   edgeOverrides: Record<string, ApiEdge>;
+  focusNodeId: string | null;
   hasHydrated: boolean;
   nodeOverrides: Record<string, ApiNode>;
   order: Record<string, string[]>;
@@ -21,11 +22,13 @@ interface GraphStore {
   receiveHistory: (rootId: string, schemas: GraphSchema[]) => void;
   reset: () => void;
   selectRevisions: (contentIds: string[]) => void;
+  setFocusNode: (nodeId: string) => void;
   setHasHydrated: () => void;
 }
 
 const INITIAL_STATE = {
   edgeOverrides: {},
+  focusNodeId: null,
   nodeOverrides: {},
   order: {},
   revisions: {},
@@ -84,6 +87,9 @@ export const useGraphStore = create<GraphStore>()(
       },
       selectRevisions: (contentIds) => {
         set({ selected: contentIds });
+      },
+      setFocusNode: (nodeId) => {
+        set({ focusNodeId: nodeId });
       },
       reset: () => {
         set(INITIAL_STATE);
