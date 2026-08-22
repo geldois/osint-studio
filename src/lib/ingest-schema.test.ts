@@ -43,7 +43,7 @@ describe("maxBytesFor", () => {
 
   it("gives the text limit the frontend chose", () => {
     expect(maxBytesFor("text")).toBe(MAX_TEXT_FILE_BYTES);
-    expect(MAX_TEXT_FILE_BYTES).toBe(1_000_000);
+    expect(MAX_TEXT_FILE_BYTES).toBe(10 * 1024 * 1024);
   });
 });
 
@@ -101,14 +101,6 @@ describe("ingestSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts a .csv well past the text limit but under the spreadsheet limit", () => {
-    const result = ingestSchema.safeParse({
-      file: makeFile("sheet.csv", MAX_TEXT_FILE_BYTES + 1),
-      patterns: ALL_PATTERNS,
-    });
-    expect(result.success).toBe(true);
-  });
-
   it("accepts a .csv of exactly the spreadsheet limit", () => {
     const result = ingestSchema.safeParse({
       file: makeFile("sheet.csv", MAX_SPREADSHEET_BYTES),
@@ -128,14 +120,6 @@ describe("ingestSchema", () => {
   it("rejects a .xlsx one byte past the spreadsheet limit", () => {
     const result = ingestSchema.safeParse({
       file: makeFile("book.xlsx", MAX_SPREADSHEET_BYTES + 1),
-      patterns: ALL_PATTERNS,
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects a .txt at a size a spreadsheet would be allowed", () => {
-    const result = ingestSchema.safeParse({
-      file: makeFile("notes.txt", MAX_SPREADSHEET_BYTES),
       patterns: ALL_PATTERNS,
     });
     expect(result.success).toBe(false);

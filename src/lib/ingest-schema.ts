@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { TextPatternCatalog } from "@/types/api";
 
-export const MAX_TEXT_FILE_BYTES = 1_000_000;
+export const MAX_TEXT_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_SPREADSHEET_BYTES = 10 * 1024 * 1024;
 
 export type IngestKind = "spreadsheet" | "text";
@@ -44,7 +44,7 @@ export const ingestSchema = z
     path: ["file"],
   })
   .refine((data) => data.file === null || isWithinSizeLimit(data.file), {
-    message: "Arquivo acima do limite (1 MB para .txt, 10 MB para planilha).",
+    message: "Arquivo acima do limite (10 MB).",
     path: ["file"],
   });
 
