@@ -1,9 +1,10 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { Check, Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import { Flyout } from "@/components/flyout";
 
 function subscribeNever(): () => void {
   return () => undefined;
@@ -17,9 +18,16 @@ function useMounted(): boolean {
   );
 }
 
+const OPTIONS = [
+  { value: "system", label: "Sistema", icon: Monitor },
+  { value: "light", label: "Claro", icon: Sun },
+  { value: "dark", label: "Escuro", icon: Moon },
+] as const;
+
 export function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const mounted = useMounted();
+  const [open, setOpen] = useState(false);
 
   if (!mounted) {
     return (
@@ -27,7 +35,7 @@ export function ThemeToggle() {
         type="button"
         variant="outline"
         size="icon"
-        className="size-10 sm:size-8"
+        className="size-8"
         disabled
         aria-label="Tema"
       >
@@ -36,21 +44,50 @@ export function ThemeToggle() {
     );
   }
 
-  const isDark = resolvedTheme === "dark";
+  const active = OPTIONS.find((option) => option.value === theme) ?? OPTIONS[0];
+  const ActiveIcon = active.icon;
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon"
-      className="size-10 sm:size-8"
-      onClick={() => {
-        setTheme(isDark ? "light" : "dark");
-      }}
-      aria-label={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
-      title={isDark ? "Tema claro" : "Tema escuro"}
+    <Flyout
+      open={open}
+      onOpenChange={setOpen}
+      title="Tema"
+      align="end"
+      trigger={
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-8"
+          aria-label="Tema"
+          title={`Tema: ${active.label}`}
+        >
+          <ActiveIcon size={16} />
+        </Button>
+      }
     >
-      {isDark ? <Sun size={16} /> : <Moon size={16} />}
-    </Button>
+      <ul className="p-1.5">
+        {OPTIONS.map((option) => {
+          const Icon = option.icon;
+          const isActive = option.value === theme;
+          return (
+            <li key={option.value}>
+              <button
+                type="button"
+                onClick={() => {
+                  setTheme(option.value);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2 rounded-md p-1.5 text-left text-[12px] hover:bg-surface-2"
+              >
+                <Icon size={14} className="text-muted" />
+                <span className="flex-1">{option.label}</span>
+                {isActive ? <Check size={14} /> : null}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </Flyout>
   );
 }
