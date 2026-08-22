@@ -21,8 +21,14 @@ export function maxBytesFor(kind: IngestKind): number {
   return kind === "spreadsheet" ? MAX_SPREADSHEET_BYTES : MAX_TEXT_FILE_BYTES;
 }
 
+const DEFAULT_PATTERN_NAMES = ["CPF_LOOSE", "CNPJ_LOOSE"];
+
 export function defaultSelectedPatterns(catalog: TextPatternCatalog): string[] {
-  return catalog.patterns.map((pattern) => pattern.name);
+  const available = new Set(catalog.patterns.map((pattern) => pattern.name));
+  const defaults = DEFAULT_PATTERN_NAMES.filter((name) => available.has(name));
+  return defaults.length > 0
+    ? defaults
+    : catalog.patterns.map((pattern) => pattern.name);
 }
 
 function isWithinSizeLimit(file: File): boolean {

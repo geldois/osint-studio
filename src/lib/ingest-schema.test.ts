@@ -48,15 +48,32 @@ describe("maxBytesFor", () => {
 });
 
 describe("defaultSelectedPatterns", () => {
-  it("selects every atomic pattern, in catalog order, ignoring bundles", () => {
+  it("selects CPF_LOOSE and CNPJ_LOOSE when both exist, ignoring bundles and other patterns", () => {
     const catalog: TextPatternCatalog = {
       patterns: [
+        { name: "CEP_AND_NUMBER", node_type: "Address", fields: ["cep", "number"] },
         { name: "CPF_LOOSE", node_type: "Person", fields: ["cpf"] },
         { name: "CNPJ_LOOSE", node_type: "Company", fields: ["cnpj"] },
       ],
       bundles: [{ id: "brazilian_documents_v1", pattern_names: ["CPF_LOOSE"] }],
     };
     expect(defaultSelectedPatterns(catalog)).toEqual(["CPF_LOOSE", "CNPJ_LOOSE"]);
+  });
+
+  it("selects only CPF_LOOSE when CNPJ_LOOSE is absent from the catalog", () => {
+    const catalog: TextPatternCatalog = {
+      patterns: [{ name: "CPF_LOOSE", node_type: "Person", fields: ["cpf"] }],
+      bundles: [],
+    };
+    expect(defaultSelectedPatterns(catalog)).toEqual(["CPF_LOOSE"]);
+  });
+
+  it("falls back to every atomic pattern when neither default name exists", () => {
+    const catalog: TextPatternCatalog = {
+      patterns: [{ name: "GHOST", node_type: "Person", fields: ["cpf"] }],
+      bundles: [],
+    };
+    expect(defaultSelectedPatterns(catalog)).toEqual(["GHOST"]);
   });
 
   it("returns nothing for a catalog with no atomic patterns", () => {
