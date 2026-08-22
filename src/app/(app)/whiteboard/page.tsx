@@ -11,32 +11,24 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { Search, Upload } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { BatchBar } from "@/components/data-table/batch-bar";
 import { DataTable } from "@/components/data-table/data-table";
 import { DetailPanel } from "@/components/detail-panel/detail-panel";
 import { RelationshipEdge } from "@/components/edges/relationship-edge";
+import { GraphInfoButton } from "@/components/graph-info-button";
 import { EntityNode } from "@/components/nodes/entity-node";
 import { SettingsMenu } from "@/components/settings-menu";
-import { OverlaySummary } from "@/components/temporal/overlay-summary";
-import { TimelineMenu } from "@/components/temporal/timeline-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ViewSwitch } from "@/components/view-switch";
-import { useExpand } from "@/hooks/use-expand";
+import { WhiteboardSearchBar } from "@/components/whiteboard-search-bar";
 import { useOverlay } from "@/hooks/use-overlay";
-import { RateLimitError } from "@/lib/api";
-import { translateError, visibleErrorMessages } from "@/lib/errors";
 import {
   type EntityNode as EntityNodeType,
   groupEdgesByPair,
   layoutGraph,
   projectGraph,
 } from "@/lib/graph-adapter";
-import { useAuthStore } from "@/store/auth";
 import { useConflictFilterStore } from "@/store/conflict-filter";
 import { useGraphStore } from "@/store/graph";
 import { useSelectionStore } from "@/store/selection";
@@ -48,8 +40,9 @@ const EDGE_TYPES: EdgeTypes = { relationship: RelationshipEdge };
 function Flow() {
   const overlay = useOverlay();
   const nodeOverrides = useGraphStore((s) => s.nodeOverrides);
+  const focusNodeId = useGraphStore((s) => s.focusNodeId);
   const conflictFilterActive = useConflictFilterStore((s) => s.active);
-  const { fitView } = useReactFlow();
+  const { fitView, setCenter, getZoom, getNodesBounds } = useReactFlow();
 
   const overriddenNodeIds = useMemo(
     () => new Set(Object.keys(nodeOverrides)),
@@ -137,7 +130,19 @@ function Flow() {
         return;
       }
       setNodes(laidOut);
-      void fitView({ duration: 300 });
+
+      const focusNode =
+        laidOut.find((node) => node.id === focusNodeId) ??
+        laidOut.find((node) => roots.has(node.id));
+      if (focusNode !== undefined) {
+        const bounds = getNodesBounds([focusNode]);
+        void setCenter(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, {
+          zoom: getZoom(),
+          duration: 300,
+        });
+      } else {
+        void fitView({ duration: 300 });
+      }
     }
 
     void runLayout();
@@ -153,6 +158,10 @@ function Flow() {
     edges,
     setNodes,
     fitView,
+    setCenter,
+    getZoom,
+    getNodesBounds,
+    focusNodeId,
   ]);
 
   const clearSelection = useSelectionStore((s) => s.clearSelection);
@@ -175,130 +184,27 @@ function Flow() {
 
 export default function WhiteboardPage() {
   const view = useViewStore((s) => s.view);
-  const role = useAuthStore((s) => s.role);
   const overlay = useOverlay();
-  const [query, setQuery] = useState("");
-  const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
-  const { mutate, isPending, error, data } = useExpand();
-  const searchPlaceholder = role === "VIEWER" ? "CNPJ" : "CPF ou CNPJ";
-
-  useEffect(() => {
-    if (retryAfterSeconds <= 0) {
-      return;
-    }
-    const interval = setInterval(() => {
-      setRetryAfterSeconds((seconds) => Math.max(0, seconds - 1));
-    }, 1000);
-    return () => {
-      clearInterval(interval);
-    };
-  }, [retryAfterSeconds]);
-
-  const isBlocked = retryAfterSeconds > 0;
-  const visibleErrors = data ? visibleErrorMessages(data.errors) : [];
-  const statusMessage = isBlocked
-    ? `Limite atingido. Tente novamente em ${String(retryAfterSeconds)}s.`
-    : error
-      ? translateError(error)
-      : visibleErrors.length > 0
-        ? visibleErrors.join(" ")
-        : null;
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between gap-2 border-b border-border p-3 sm:gap-3">
-        <span className="shrink-0 font-semibold text-sm">OSINT Studio</span>
-
-        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-          <div className="relative min-w-0">
-            <Search
-              size={14}
-              className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
-            />
-            <Input
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (
-                  e.key === "Enter" &&
-                  !isPending &&
-                  !isBlocked &&
-                  query.trim() !== ""
-                ) {
-                  mutate(
-                    { document: query.trim() },
-                    {
-                      onError: (mutationError) => {
-                        if (mutationError instanceof RateLimitError) {
-                          setRetryAfterSeconds(
-                            Math.ceil(mutationError.retryAfterSeconds),
-                          );
-                        }
-                      },
-                    },
-                  );
-                }
-              }}
-              placeholder={searchPlaceholder}
-              className="w-28 pl-8 sm:w-64"
-            />
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isPending || isBlocked || query.trim() === ""}
-            onClick={() => {
-              mutate(
-                { document: query.trim() },
-                {
-                  onError: (mutationError) => {
-                    if (mutationError instanceof RateLimitError) {
-                      setRetryAfterSeconds(Math.ceil(mutationError.retryAfterSeconds));
-                    }
-                  },
-                },
-              );
-            }}
-            aria-label="Expandir"
-            className="shrink-0 px-2 sm:px-3"
-          >
-            <Search size={14} className="sm:hidden" />
-            <span className="hidden sm:inline">
-              {isPending ? "Expandindo..." : "Expandir"}
-            </span>
-          </Button>
-          {role === "ADMIN" ? (
-            <Link
-              href="/ingest"
-              aria-label="Ingestão de texto"
-              title="Ingestão de texto"
-              className="flex size-10 shrink-0 items-center justify-center rounded-sm border border-border bg-surface text-foreground hover:bg-white/10 sm:size-8"
-            >
-              <Upload size={16} />
-            </Link>
-          ) : null}
-          <TimelineMenu />
+      <header className="flex items-center gap-2 border-b border-border bg-surface p-2">
+        <div className="flex shrink-0 items-center gap-2">
+          <GraphInfoButton />
+          <ViewSwitch />
+        </div>
+        <div className="flex flex-1 justify-center">
+          <WhiteboardSearchBar />
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
           <SettingsMenu />
         </div>
       </header>
 
-      {statusMessage ? (
-        <div
-          className={`px-3 py-1.5 text-sm ${
-            isBlocked || visibleErrors.length > 0 ? "text-amber-500" : "text-red-500"
-          }`}
-        >
-          {statusMessage}
-        </div>
-      ) : null}
-
-      <OverlaySummary />
       <BatchBar nodes={overlay.nodes} />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
         <div className="relative flex-1">
           {view === "graph" ? (
             <ReactFlowProvider>
@@ -307,7 +213,6 @@ export default function WhiteboardPage() {
           ) : (
             <DataTable />
           )}
-          <ViewSwitch />
         </div>
         <DetailPanel />
       </div>

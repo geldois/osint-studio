@@ -1,6 +1,14 @@
-import type { BatchCPFEstimate } from "@/types/api";
+import type { BatchCPFEstimate, BatchCPFOutcome } from "@/types/api";
 
 export const KIPFLOW_CPF_COST_BRL = 0.19;
+
+export const BATCH_CPF_OUTCOME_LABELS: Record<BatchCPFOutcome["status"], string> = {
+  already_fetched: "já buscado",
+  empty: "sem dados",
+  expanded: "expandido",
+  failed: "falhou",
+  invalid: "inválido",
+};
 
 export function formatCostBRL(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

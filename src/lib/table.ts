@@ -2,31 +2,57 @@ import { isConsumableCpf } from "@/lib/document";
 import { nodeTypePluralLabel } from "@/lib/relationships";
 import type { ApiNode, NodeType } from "@/types/api";
 
-export interface TypedTab {
+export interface TypeFilterOption {
   count: number;
   label: string;
-  nodeType: NodeType | "all";
+  value: NodeType;
 }
 
-export function typedTabs(nodes: ApiNode[]): TypedTab[] {
+export function typeFilterOptionsFor<T>(
+  items: T[],
+  typeOf: (item: T) => NodeType,
+): TypeFilterOption[] {
   const countByType = new Map<NodeType, number>();
-  for (const node of nodes) {
-    countByType.set(node.type, (countByType.get(node.type) ?? 0) + 1);
+  for (const item of items) {
+    const nodeType = typeOf(item);
+    countByType.set(nodeType, (countByType.get(nodeType) ?? 0) + 1);
   }
 
-  const typeTabs = [...countByType.entries()]
-    .map(([nodeType, count]): TypedTab => ({
+  return [...countByType.entries()]
+    .map(([nodeType, count]): TypeFilterOption => ({
       count,
       label: nodeTypePluralLabel(nodeType),
-      nodeType,
+      value: nodeType,
     }))
     .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
-
-  return [{ count: nodes.length, label: "Todos", nodeType: "all" }, ...typeTabs];
 }
 
-export function nodesForTab(nodes: ApiNode[], tab: NodeType | "all"): ApiNode[] {
-  return tab === "all" ? nodes : nodes.filter((node) => node.type === tab);
+export function itemsMatchingSelection<T, V>(
+  items: T[],
+  valueOf: (item: T) => V,
+  selected: V[],
+): T[] {
+  if (selected.length === 0) {
+    return items;
+  }
+  const selectedValues = new Set(selected);
+  return items.filter((item) => selectedValues.has(valueOf(item)));
+}
+
+export function itemsForTypeFilter<T>(
+  items: T[],
+  typeOf: (item: T) => NodeType,
+  selected: NodeType[],
+): T[] {
+  return itemsMatchingSelection(items, typeOf, selected);
+}
+
+export function typeFilterOptions(nodes: ApiNode[]): TypeFilterOption[] {
+  return typeFilterOptionsFor(nodes, (node) => node.type);
+}
+
+export function nodesForTypeFilter(nodes: ApiNode[], selected: NodeType[]): ApiNode[] {
+  return itemsForTypeFilter(nodes, (node) => node.type, selected);
 }
 
 export function consumableSelection(

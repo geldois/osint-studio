@@ -5,18 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useBatchEstimate, useBatchExpand } from "@/hooks/use-batch-expand";
 import { translateError } from "@/lib/errors";
-import { formatCostBRL, KIPFLOW_CPF_COST_BRL } from "@/lib/pricing";
+import {
+  BATCH_CPF_OUTCOME_LABELS,
+  formatCostBRL,
+  KIPFLOW_CPF_COST_BRL,
+} from "@/lib/pricing";
 import { consumableSelection } from "@/lib/table";
 import { useTableSelectionStore } from "@/store/table-selection";
-import type { ApiNode, BatchCPFOutcome } from "@/types/api";
-
-const OUTCOME_STATUS_LABELS: Record<BatchCPFOutcome["status"], string> = {
-  already_fetched: "já buscado",
-  empty: "sem dados",
-  expanded: "expandido",
-  failed: "falhou",
-  invalid: "inválido",
-};
+import type { ApiNode } from "@/types/api";
 
 export function BatchBar({ nodes }: { nodes: ApiNode[] }) {
   const selectedIds = useTableSelectionStore((s) => s.selectedIds);
@@ -87,7 +83,8 @@ export function BatchBar({ nodes }: { nodes: ApiNode[] }) {
         <p className="text-muted">
           {batchExpand.data.outcomes
             .map(
-              (outcome) => `${outcome.cpf}: ${OUTCOME_STATUS_LABELS[outcome.status]}`,
+              (outcome) =>
+                `${outcome.cpf}: ${BATCH_CPF_OUTCOME_LABELS[outcome.status]}`,
             )
             .join(" · ")}
         </p>

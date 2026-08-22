@@ -1,7 +1,8 @@
 import type { ColumnDef, Table } from "@tanstack/react-table";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import { Checkbox } from "@/components/ui/checkbox";
-import { extractLabel, nodeToRows } from "@/lib/graph-adapter";
+import { extractLabel, nodeToRows, type CardRow } from "@/lib/graph-adapter";
+import { formatFetchedAt } from "@/lib/overlay";
 import { nodeTypeLabel } from "@/lib/relationships";
 import { useTableSelectionStore } from "@/store/table-selection";
 import type { ApiNode, NodeType } from "@/types/api";
@@ -18,15 +19,15 @@ export interface TableRow {
   label: string;
   nodeType: NodeType;
   summary: string;
+  attributes: CardRow[];
+  fetchedAt: string;
+  provider: string;
   relationshipCount: number;
   isRoot: boolean;
 }
 
-function nodeSummary(node: ApiNode): string {
-  const rows = nodeToRows(node);
-  // The label itself is always the first row for most node types (cnpj,
-  // cpf, cep...) — skip it here since it's already its own column.
-  return rows
+function nodeSummary(attributes: CardRow[]): string {
+  return attributes
     .slice(1, 3)
     .map((row) => row.value)
     .filter((value) => value !== "" && value !== "—")
@@ -38,11 +39,15 @@ export function toTableRow(
   relationshipCount: number,
   isRoot: boolean,
 ): TableRow {
+  const attributes = nodeToRows(node);
   return {
     node,
     label: extractLabel(node),
     nodeType: node.type,
-    summary: nodeSummary(node),
+    summary: nodeSummary(attributes),
+    attributes,
+    fetchedAt: node.revision.fetched_at,
+    provider: node.revision.provider,
     relationshipCount,
     isRoot,
   };
@@ -94,50 +99,100 @@ function SelectAllCheckbox({ table }: { table: Table<TableRow> }) {
   );
 }
 
-export const columns: ColumnDef<TableRow>[] = [
-  {
-    id: "select",
-    size: 40,
-    enableSorting: false,
-    header: ({ table }) => <SelectAllCheckbox table={table} />,
-    cell: ({ row }) => <SelectRowCheckbox id={row.original.node.id} />,
-  },
-  {
-    accessorKey: "nodeType",
-    header: "Tipo",
-    size: 110,
-    cell: ({ row }) => (
-      <span className="flex items-center gap-1.5">
-        <EntityIcon nodeType={row.original.nodeType} size={13} />
-        <span>{nodeTypeLabel(row.original.nodeType)}</span>
-      </span>
-    ),
-  },
-  {
-    accessorKey: "label",
-    header: "Nome",
-    cell: ({ row }) => (
-      <span className="font-medium">
-        {row.original.label}
-        {row.original.isRoot ? (
-          <span className="ml-1.5 text-[9px] text-muted">● raiz</span>
-        ) : null}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "summary",
-    header: "Resumo",
+const selectColumn: ColumnDef<TableRow> = {
+  id: "select",
+  size: 40,
+  enableSorting: false,
+  header: ({ table }) => <SelectAllCheckbox table={table} />,
+  cell: ({ row }) => <SelectRowCheckbox id={row.original.node.id} />,
+};
+
+const typeColumn: ColumnDef<TableRow> = {
+  accessorKey: "nodeType",
+  header: "Tipo",
+  cell: ({ row }) => (
+    <span className="flex items-center gap-1.5 whitespace-nowrap">
+      <EntityIcon nodeType={row.original.nodeType} size={13} />
+      <span>{nodeTypeLabel(row.original.nodeType)}</span>
+    </span>
+  ),
+};
+
+const labelColumn: ColumnDef<TableRow> = {
+  accessorKey: "label",
+  header: "Nome",
+  cell: ({ row }) => (
+    <span className="whitespace-nowrap font-medium">
+      {row.original.label}
+      {row.original.isRoot ? (
+        <span className="ml-1.5 text-[9px] text-muted">● raiz</span>
+      ) : null}
+    </span>
+  ),
+};
+
+const originColumn: ColumnDef<TableRow> = {
+  id: "origin",
+  header: "Origem",
+  meta: { hiddenBelowMd: true },
+  cell: ({ row }) => (
+    <span className="whitespace-nowrap text-muted">
+      {formatFetchedAt(row.original.fetchedAt)} · {row.original.provider}
+    </span>
+  ),
+};
+
+const relationshipCountColumn: ColumnDef<TableRow> = {
+  accessorKey: "relationshipCount",
+  header: "Relações",
+  size: 80,
+  meta: { hiddenBelowMd: true },
+  cell: ({ row }) => row.original.relationshipCount,
+};
+
+const summaryColumn: ColumnDef<TableRow> = {
+  accessorKey: "summary",
+  header: "Resumo",
+  meta: { hiddenBelowMd: true },
+  cell: ({ row }) => <span className="text-muted">{row.original.summary || "—"}</span>,
+};
+
+function summaryColumns(): ColumnDef<TableRow>[] {
+  return [
+    selectColumn,
+    typeColumn,
+    labelColumn,
+    summaryColumn,
+    originColumn,
+    relationshipCountColumn,
+  ];
+}
+
+function richColumnsFor(sampleAttributes: CardRow[]): ColumnDef<TableRow>[] {
+  const attributeColumns: ColumnDef<TableRow>[] = sampleAttributes.map((sample) => ({
+    id: `attr:${sample.key}`,
+    header: sample.key,
     meta: { hiddenBelowMd: true },
-    cell: ({ row }) => (
-      <span className="text-muted">{row.original.summary || "—"}</span>
-    ),
-  },
-  {
-    accessorKey: "relationshipCount",
-    header: "Relações",
-    size: 80,
-    meta: { hiddenBelowMd: true },
-    cell: ({ row }) => row.original.relationshipCount,
-  },
-];
+    cell: ({ row }) => {
+      const value = row.original.attributes.find(
+        (attribute) => attribute.key === sample.key,
+      )?.value;
+      return <span className="whitespace-nowrap">{value ?? "—"}</span>;
+    },
+  }));
+  return [
+    selectColumn,
+    typeColumn,
+    labelColumn,
+    ...attributeColumns,
+    originColumn,
+    relationshipCountColumn,
+  ];
+}
+
+export function columnsFor(sampleNode: ApiNode | null): ColumnDef<TableRow>[] {
+  if (sampleNode === null) {
+    return summaryColumns();
+  }
+  return richColumnsFor(nodeToRows(sampleNode));
+}

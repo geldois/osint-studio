@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { consumableSelection, nodesForTab, typedTabs } from "@/lib/table";
+import {
+  consumableSelection,
+  itemsForTypeFilter,
+  itemsMatchingSelection,
+  nodesForTypeFilter,
+  typeFilterOptions,
+  typeFilterOptionsFor,
+} from "@/lib/table";
 import type { ApiNode, CompanyNode, PersonNode, Revision } from "@/types/api";
 
 const revision: Revision = {
@@ -43,42 +50,123 @@ function company(id: string, cnpj: string): CompanyNode {
   };
 }
 
-describe("typedTabs", () => {
-  it("returns only the all tab, count 0, for an empty list", () => {
-    expect(typedTabs([])).toEqual([{ count: 0, label: "Todos", nodeType: "all" }]);
+describe("typeFilterOptions", () => {
+  it("returns an empty list for an empty list of nodes", () => {
+    expect(typeFilterOptions([])).toEqual([]);
   });
 
-  it("returns all first plus one tab per present type, alphabetically by pt-BR label", () => {
+  it("returns one option per present type, alphabetically by pt-BR label", () => {
     const nodes: ApiNode[] = [
       person("p1", "11144477735"),
       company("c1", "00000000000191"),
       person("p2", "22233344456"),
     ];
-    const tabs = typedTabs(nodes);
-    expect(tabs).toHaveLength(3);
-    expect(tabs[0]).toEqual({ count: 3, label: "Todos", nodeType: "all" });
-    expect(tabs.map((t) => t.nodeType).slice(1)).toEqual(["company", "person"]);
-    expect(tabs.find((t) => t.nodeType === "person")?.count).toBe(2);
+    const options = typeFilterOptions(nodes);
+    expect(options).toHaveLength(2);
+    expect(options.map((o) => o.value)).toEqual(["company", "person"]);
+    expect(options.find((o) => o.value === "person")?.count).toBe(2);
   });
 
-  it("never creates a tab for a type with no nodes", () => {
-    const tabs = typedTabs([person("p1", "11144477735")]);
-    expect(tabs.some((t) => t.nodeType === "company")).toBe(false);
+  it("never creates an option for a type with no nodes", () => {
+    const options = typeFilterOptions([person("p1", "11144477735")]);
+    expect(options.some((o) => o.value === "company")).toBe(false);
   });
 });
 
-describe("nodesForTab", () => {
+describe("nodesForTypeFilter", () => {
   const nodes: ApiNode[] = [
     person("p1", "11144477735"),
     company("c1", "00000000000191"),
   ];
 
-  it("returns every node for the all tab", () => {
-    expect(nodesForTab(nodes, "all")).toEqual(nodes);
+  it("returns every node when nothing is selected", () => {
+    expect(nodesForTypeFilter(nodes, [])).toEqual(nodes);
   });
 
-  it("returns only nodes of the requested type", () => {
-    expect(nodesForTab(nodes, "person")).toEqual([nodes[0]]);
+  it("returns every node when every present type is selected", () => {
+    expect(nodesForTypeFilter(nodes, ["person", "company"])).toEqual(nodes);
+  });
+
+  it("returns only nodes of the selected types", () => {
+    expect(nodesForTypeFilter(nodes, ["person"])).toEqual([nodes[0]]);
+  });
+});
+
+describe("typeFilterOptionsFor", () => {
+  interface Relationship {
+    counterpartType: ApiNode["type"];
+  }
+  const typeOf = (r: Relationship) => r.counterpartType;
+
+  it("groups and counts by an arbitrary type accessor, not just node.type", () => {
+    const relationships: Relationship[] = [
+      { counterpartType: "person" },
+      { counterpartType: "company" },
+      { counterpartType: "person" },
+    ];
+    const options = typeFilterOptionsFor(relationships, typeOf);
+    expect(options.find((o) => o.value === "person")?.count).toBe(2);
+    expect(options.find((o) => o.value === "company")?.count).toBe(1);
+  });
+
+  it("returns an empty list for an empty collection", () => {
+    expect(typeFilterOptionsFor<Relationship>([], typeOf)).toEqual([]);
+  });
+});
+
+describe("itemsForTypeFilter", () => {
+  interface Relationship {
+    counterpartType: ApiNode["type"];
+  }
+  const typeOf = (r: Relationship) => r.counterpartType;
+  const relationships: Relationship[] = [
+    { counterpartType: "person" },
+    { counterpartType: "company" },
+  ];
+
+  it("returns every item when nothing is selected", () => {
+    expect(itemsForTypeFilter(relationships, typeOf, [])).toEqual(relationships);
+  });
+
+  it("returns every item when every present type is selected", () => {
+    expect(itemsForTypeFilter(relationships, typeOf, ["person", "company"])).toEqual(
+      relationships,
+    );
+  });
+
+  it("returns only items of the selected types", () => {
+    expect(itemsForTypeFilter(relationships, typeOf, ["company"])).toEqual([
+      relationships[1],
+    ]);
+  });
+
+  it("returns an empty list when the selected type is absent from the collection", () => {
+    expect(itemsForTypeFilter(relationships, typeOf, ["address"])).toEqual([]);
+  });
+});
+
+describe("itemsMatchingSelection", () => {
+  const items = [
+    { id: "a", direction: "outgoing" as const },
+    { id: "b", direction: "incoming" as const },
+    { id: "c", direction: "outgoing" as const },
+  ];
+  const directionOf = (item: (typeof items)[number]) => item.direction;
+
+  it("returns every item when nothing is selected", () => {
+    expect(itemsMatchingSelection(items, directionOf, [])).toEqual(items);
+  });
+
+  it("returns only items matching the selected values", () => {
+    expect(itemsMatchingSelection(items, directionOf, ["incoming"])).toEqual([
+      items[1],
+    ]);
+  });
+
+  it("returns every item when every present value is selected", () => {
+    expect(
+      itemsMatchingSelection(items, directionOf, ["outgoing", "incoming"]),
+    ).toEqual(items);
   });
 });
 

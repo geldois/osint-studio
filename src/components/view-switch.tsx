@@ -10,8 +10,8 @@ export function ViewSwitch() {
 
   return (
     <ToggleGroup
-      className="absolute right-3 bottom-3 z-10 flex-col overflow-hidden rounded-sm border border-border bg-surface shadow-lg md:top-3 md:bottom-auto"
-      orientation="vertical"
+      className="flex overflow-hidden rounded-md border border-border bg-surface-2"
+      orientation="horizontal"
       spacing={0}
       value={[view]}
       onValueChange={(value: string[]) => {
@@ -25,17 +25,17 @@ export function ViewSwitch() {
         value="graph"
         aria-label="Visualizar em grafo"
         title="Grafo"
-        className="size-10 rounded-none border-border border-b sm:size-8"
+        className="size-8 border-border border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
       >
-        <Network size={15} />
+        <Network size={14} />
       </ToggleGroupItem>
       <ToggleGroupItem
         value="table"
         aria-label="Visualizar em tabela"
         title="Tabela"
-        className="size-10 rounded-none sm:size-8"
+        className="size-8 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
       >
-        <Table2 size={15} />
+        <Table2 size={14} />
       </ToggleGroupItem>
     </ToggleGroup>
   );

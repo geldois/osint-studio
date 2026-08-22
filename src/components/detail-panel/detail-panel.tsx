@@ -1,11 +1,17 @@
 "use client";
 
-import { X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Search, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FilterChips } from "@/components/filter-chips";
+import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import { PossibleMatchesPanel } from "@/components/possible-matches/possible-matches-panel";
 import { NodeVersionMenu, EdgeVersionMenu } from "@/components/temporal/version-menu";
+import { useConsumeCpf } from "@/hooks/use-consume-cpf";
 import { useExpand } from "@/hooks/use-expand";
 import { useOverlay } from "@/hooks/use-overlay";
 import { isMaskedCpf } from "@/lib/document";
@@ -13,26 +19,287 @@ import { edgeKey, extractLabel, nodeToRows } from "@/lib/graph-adapter";
 import { translateError, visibleErrorMessages } from "@/lib/errors";
 import { canFetchDocumentType, type FetchDocumentType } from "@/lib/permissions";
 import {
+  BATCH_CPF_OUTCOME_LABELS,
+  formatCostBRL,
+  KIPFLOW_CPF_COST_BRL,
+} from "@/lib/pricing";
+import {
   counterpartLabel,
   edgeAttributes,
   edgeTypeLabel,
+  nodeTypeAccentBorder,
   nodeTypeLabel,
   relationshipsForNode,
+  type NodeRelationship,
 } from "@/lib/relationships";
+import { cn } from "@/lib/utils";
+import {
+  itemsForTypeFilter,
+  itemsMatchingSelection,
+  typeFilterOptionsFor,
+} from "@/lib/table";
 import { useAuthStore } from "@/store/auth";
 import { useGraphStore } from "@/store/graph";
 import { useSelectionStore } from "@/store/selection";
+import type { NodeType } from "@/types/api";
+
+const RELATIONSHIPS_PAGE_SIZE = 50;
+
+function RelationshipCard({
+  relationship,
+  onSelectCounterpart,
+}: {
+  relationship: NodeRelationship;
+  onSelectCounterpart: (id: string) => void;
+}) {
+  const { edge, direction, counterpart } = relationship;
+  const attributes = edgeAttributes(edge);
+
+  return (
+    <li className="rounded-lg border border-border bg-surface-2 p-2.5">
+      <div className="mb-2 flex items-center gap-1.5">
+        <span
+          className={cn(
+            "flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium",
+            direction === "outgoing"
+              ? "bg-primary/15 text-primary"
+              : "bg-surface text-muted",
+          )}
+        >
+          {direction === "outgoing" ? (
+            <ArrowRight size={11} />
+          ) : (
+            <ArrowLeft size={11} />
+          )}
+          {direction === "outgoing" ? "para" : "de"}
+        </span>
+        <span className="text-[12px] font-medium">{edgeTypeLabel(edge.type)}</span>
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          onSelectCounterpart(counterpart.id);
+        }}
+        className={cn(
+          "flex w-full items-start gap-2 rounded-md border-2 bg-surface px-2.5 py-2 text-left transition-colors hover:bg-white/5",
+          nodeTypeAccentBorder(counterpart.type),
+        )}
+      >
+        <span className="mt-0.5 shrink-0 opacity-70">
+          <EntityIcon nodeType={counterpart.type} size={16} />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate font-medium text-[12px] leading-snug">
+            {counterpartLabel(counterpart)}
+          </span>
+          <span className="text-[9px] text-muted uppercase tracking-wide">
+            {nodeTypeLabel(counterpart.type)}
+          </span>
+        </span>
+      </button>
+      {attributes.length > 0 ? (
+        <dl className="mt-2 space-y-0.5 pl-1">
+          {attributes.map((attribute) => (
+            <div key={attribute.key} className="flex gap-1.5 text-[11px] text-muted">
+              <dt>{attribute.key}:</dt>
+              <dd>{attribute.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </li>
+  );
+}
+
+type RelationshipDirection = NodeRelationship["direction"];
+
+const DIRECTION_LABELS: Record<RelationshipDirection, string> = {
+  outgoing: "Para",
+  incoming: "De",
+};
+
+function RelationshipList({ relationships }: { relationships: NodeRelationship[] }) {
+  const [selectedTypes, setSelectedTypes] = useState<NodeType[]>([]);
+  const [selectedDirections, setSelectedDirections] = useState<RelationshipDirection[]>(
+    [],
+  );
+  const [filter, setFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const selectNode = useSelectionStore((s) => s.selectNode);
+
+  const typeOptions = useMemo(
+    () => typeFilterOptionsFor(relationships, (r) => r.counterpart.type),
+    [relationships],
+  );
+  const directionOptions = useMemo(() => {
+    const countByDirection = new Map<RelationshipDirection, number>();
+    for (const relationship of relationships) {
+      const direction = relationship.direction;
+      countByDirection.set(direction, (countByDirection.get(direction) ?? 0) + 1);
+    }
+    return (["outgoing", "incoming"] as const)
+      .filter((direction) => countByDirection.has(direction))
+      .map((direction) => ({
+        value: direction,
+        label: DIRECTION_LABELS[direction],
+        count: countByDirection.get(direction) ?? 0,
+      }));
+  }, [relationships]);
+  const filteredByType = useMemo(
+    () => itemsForTypeFilter(relationships, (r) => r.counterpart.type, selectedTypes),
+    [relationships, selectedTypes],
+  );
+  const filtered = useMemo(
+    () =>
+      itemsMatchingSelection(filteredByType, (r) => r.direction, selectedDirections),
+    [filteredByType, selectedDirections],
+  );
+  const needle = filter.trim().toLowerCase();
+  const visible =
+    needle === ""
+      ? filtered
+      : filtered.filter((r) =>
+          `${counterpartLabel(r.counterpart)} ${edgeTypeLabel(r.edge.type)}`
+            .toLowerCase()
+            .includes(needle),
+        );
+
+  const pageCount = Math.max(1, Math.ceil(visible.length / RELATIONSHIPS_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const paginated = visible.slice(
+    (currentPage - 1) * RELATIONSHIPS_PAGE_SIZE,
+    currentPage * RELATIONSHIPS_PAGE_SIZE,
+  );
+
+  if (relationships.length === 0) {
+    return (
+      <p className="text-[12px] text-muted">Nenhum relacionamento nesta expansão.</p>
+    );
+  }
+
+  return (
+    <div className="-mx-3 -mb-3">
+      <div className="space-y-2 bg-surface p-2">
+        <div className="relative">
+          <Search
+            size={13}
+            className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
+          />
+          <Input
+            value={filter}
+            onChange={(e) => {
+              setFilter(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Filtrar relacionamentos..."
+            className="pl-7"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterChips
+            options={typeOptions}
+            selected={selectedTypes}
+            onChange={(next) => {
+              setSelectedTypes(next as NodeType[]);
+              setPage(1);
+            }}
+          />
+          <FilterChips
+            options={directionOptions}
+            selected={selectedDirections}
+            onChange={(next) => {
+              setSelectedDirections(next as RelationshipDirection[]);
+              setPage(1);
+            }}
+          />
+        </div>
+      </div>
+      {visible.length === 0 ? (
+        <p className="p-3 text-[12px] text-muted">
+          Nenhum relacionamento corresponde ao filtro.
+        </p>
+      ) : (
+        <>
+          <ul className="space-y-2 bg-surface p-3">
+            {paginated.map((relationship) => (
+              <RelationshipCard
+                key={relationship.edge.id}
+                relationship={relationship}
+                onSelectCounterpart={selectNode}
+              />
+            ))}
+          </ul>
+          <div className="border-border border-t bg-surface p-3">
+            <Pagination
+              page={currentPage}
+              pageCount={pageCount}
+              onPageChange={setPage}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ConsumeCpfBlock({
+  consumeCpf,
+}: {
+  consumeCpf: ReturnType<typeof useConsumeCpf>;
+}) {
+  const [force, setForce] = useState(false);
+  const { estimate, estimateLoading, isPending, error, data, consume } = consumeCpf;
+
+  const alreadyFetched = (estimate?.already_fetched.length ?? 0) > 0;
+  const billableCount = force ? 1 : (estimate?.billable.length ?? 0);
+  const totalBRL = billableCount * KIPFLOW_CPF_COST_BRL;
+  const outcome = data?.outcomes[0];
+
+  return (
+    <div className="space-y-2">
+      {alreadyFetched ? (
+        <label className="flex items-center gap-1.5 text-[11px] text-muted">
+          <Checkbox
+            checked={force}
+            onCheckedChange={(checked) => {
+              setForce(checked);
+            }}
+          />
+          consultar de novo (já buscado)
+        </label>
+      ) : null}
+      <Button
+        type="button"
+        className="w-full"
+        disabled={estimateLoading || isPending}
+        onClick={() => {
+          consume(force);
+        }}
+      >
+        {isPending
+          ? "Consultando..."
+          : `Consultar CPF (${estimateLoading ? "—" : formatCostBRL(totalBRL)})`}
+      </Button>
+      {outcome !== undefined ? (
+        <p className="text-[11px] text-muted">
+          {BATCH_CPF_OUTCOME_LABELS[outcome.status]}
+        </p>
+      ) : null}
+      {error ? <p className="text-red-500 text-xs">{translateError(error)}</p> : null}
+    </div>
+  );
+}
 
 function NodePanel({ nodeId }: { nodeId: string }) {
   const overlay = useOverlay();
   const nodeOverride = useGraphStore((s) => s.nodeOverrides[nodeId]);
-  const selectNode = useSelectionStore((s) => s.selectNode);
   const role = useAuthStore((s) => s.role);
   const { mutate, isPending, error, data } = useExpand();
   const backgroundErrors = data ? visibleErrorMessages(data.errors) : [];
 
   const nodeById = new Map(overlay.nodes.map((n) => [n.id, n] as const));
   const node = nodeById.get(nodeId);
+  const consumeCpf = useConsumeCpf(node?.type === "person" ? node.cpf : null);
 
   if (node === undefined) {
     return null;
@@ -52,9 +319,17 @@ function NodePanel({ nodeId }: { nodeId: string }) {
     documentType !== null &&
     canFetchDocumentType(role, documentType);
 
+  function handleDocumentClick(): void {
+    if (documentType === "cnpj" && expandableDocument !== null) {
+      mutate({ document: expandableDocument });
+    } else if (documentType === "cpf") {
+      consumeCpf.consume(false);
+    }
+  }
+
   return (
     <ScrollArea className="h-full">
-      <div className="flex items-start gap-2.5 border-border border-b p-4">
+      <div className="flex items-start gap-2.5 border-border border-b p-3">
         <span className="mt-0.5 shrink-0 opacity-70">
           <EntityIcon nodeType={node.type} size={18} />
         </span>
@@ -66,7 +341,7 @@ function NodePanel({ nodeId }: { nodeId: string }) {
         </div>
       </div>
 
-      <section className="border-border border-b p-4">
+      <section className="border-border border-b p-3">
         <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">
           Identificação
         </h3>
@@ -78,76 +353,61 @@ function NodePanel({ nodeId }: { nodeId: string }) {
         </dl>
       </section>
 
-      <section className="border-border border-b p-4">
+      <section className="border-border border-b p-3">
         <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">
           Atributos
         </h3>
         <dl className="space-y-1 text-[12px]">
-          {rows.map((row) => (
-            <div key={row.key} className="flex justify-between gap-3">
-              <dt className="shrink-0 text-muted">{row.key}</dt>
-              <dd className="break-all text-right">{row.value}</dd>
-            </div>
-          ))}
+          {rows.map((row) => {
+            const isDocumentRow =
+              canExpand && (row.key === "cnpj" || row.key === "cpf");
+            const isMaskedDocumentRow = maskedCpf && row.key === "cpf";
+            return (
+              <div key={row.key} className="flex justify-between gap-3">
+                <dt className="shrink-0 text-muted">{row.key}</dt>
+                {isDocumentRow ? (
+                  <dd className="text-right">
+                    <button
+                      type="button"
+                      disabled={documentType === "cnpj" && isPending}
+                      onClick={handleDocumentClick}
+                      className="break-all text-primary hover:underline disabled:opacity-50"
+                    >
+                      {row.value}
+                    </button>
+                  </dd>
+                ) : isMaskedDocumentRow ? (
+                  <dd
+                    className="break-all text-right text-muted"
+                    title="CPF mascarado — não é possível consultar diretamente. Veja as possíveis correspondências abaixo."
+                  >
+                    {row.value}
+                  </dd>
+                ) : (
+                  <dd className="break-all text-right">{row.value}</dd>
+                )}
+              </div>
+            );
+          })}
         </dl>
+        {documentType === "cnpj" && error ? (
+          <p className="mt-2 text-red-500 text-xs">{translateError(error)}</p>
+        ) : documentType === "cnpj" && backgroundErrors.length > 0 ? (
+          <p className="mt-2 text-amber-500 text-xs">{backgroundErrors.join(" ")}</p>
+        ) : null}
       </section>
 
-      <section className="border-border border-b p-4">
+      <section className="border-border border-b p-3">
         <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">
           Relacionamentos ({relationships.length})
         </h3>
-        {relationships.length === 0 ? (
-          <p className="text-[12px] text-muted">
-            Nenhum relacionamento nesta expansão.
-          </p>
-        ) : (
-          <ul className="space-y-2.5">
-            {relationships.map(({ edge, direction, counterpart }) => {
-              const attributes = edgeAttributes(edge);
-              return (
-                <li key={edge.id} className="text-[12px]">
-                  <div className="flex items-center gap-1.5">
-                    <span className="opacity-50">
-                      {direction === "outgoing" ? "→" : "←"}
-                    </span>
-                    <span className="text-muted">{edgeTypeLabel(edge.type)}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      selectNode(counterpart.id);
-                    }}
-                    className="flex items-center gap-1.5 pl-4 text-left font-medium hover:underline"
-                  >
-                    <span className="shrink-0 opacity-70">
-                      <EntityIcon nodeType={counterpart.type} size={12} />
-                    </span>
-                    {counterpartLabel(counterpart)}
-                  </button>
-                  {attributes.length > 0 ? (
-                    <dl className="mt-1 space-y-0.5 pl-4">
-                      {attributes.map((attribute) => (
-                        <div
-                          key={attribute.key}
-                          className="flex gap-1.5 text-[11px] text-muted"
-                        >
-                          <dt>{attribute.key}:</dt>
-                          <dd>{attribute.value}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <RelationshipList key={nodeId} relationships={relationships} />
       </section>
 
       {node.type === "person" ? <PossibleMatchesPanel node={node} /> : null}
 
       {conflictCandidates.length > 0 || nodeOverride !== undefined ? (
-        <section className="border-border border-b p-4">
+        <section className="border-border border-b p-3">
           <NodeVersionMenu
             nodeId={nodeId}
             conflictCandidates={conflictCandidates}
@@ -156,30 +416,10 @@ function NodePanel({ nodeId }: { nodeId: string }) {
         </section>
       ) : null}
 
-      {maskedCpf ? (
-        <p className="p-4 text-[12px] text-muted">
-          CPF mascarado — não é possível consultar diretamente. Veja as possíveis
-          correspondências acima.
-        </p>
-      ) : canExpand ? (
-        <div className="space-y-2 p-4">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={isPending}
-            onClick={() => {
-              mutate({ document: expandableDocument });
-            }}
-          >
-            {isPending ? "Expandindo..." : "Expandir relacionamentos"}
-          </Button>
-          {error ? (
-            <p className="text-red-500 text-xs">{translateError(error)}</p>
-          ) : backgroundErrors.length > 0 ? (
-            <p className="text-amber-500 text-xs">{backgroundErrors.join(" ")}</p>
-          ) : null}
-        </div>
+      {canExpand && documentType === "cpf" ? (
+        <section className="border-border border-t p-3">
+          <ConsumeCpfBlock consumeCpf={consumeCpf} />
+        </section>
       ) : null}
     </ScrollArea>
   );
@@ -203,12 +443,12 @@ function EdgePanel({ edgeId }: { edgeId: string }) {
 
   return (
     <ScrollArea className="h-full">
-      <div className="border-border border-b p-4">
+      <div className="border-border border-b p-3">
         <div className="font-medium text-sm">{edgeTypeLabel(edge.type)}</div>
         <div className="text-[11px] text-muted">relação</div>
       </div>
 
-      <section className="border-border border-b p-4">
+      <section className="border-border border-b p-3">
         <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">
           Entidades
         </h3>
@@ -228,7 +468,7 @@ function EdgePanel({ edgeId }: { edgeId: string }) {
         </dl>
       </section>
 
-      <section className="p-4">
+      <section className="p-3">
         <h3 className="mb-2 text-[11px] text-muted uppercase tracking-wide">
           Atributos
         </h3>
@@ -249,7 +489,7 @@ function EdgePanel({ edgeId }: { edgeId: string }) {
       </section>
 
       {conflictCandidates.length > 0 || edgeOverride !== undefined ? (
-        <section className="border-border border-t p-4">
+        <section className="border-border border-t p-3">
           <EdgeVersionMenu
             overlayEdgeKey={edgeId}
             edgeEntityId={edge.id}
@@ -274,24 +514,29 @@ export function DetailPanel() {
   return (
     <aside
       className="
-        fixed inset-x-0 bottom-0 z-20 max-h-[70dvh] border-border border-t bg-surface
+        fixed inset-x-0 bottom-0 z-20 flex max-h-[70dvh] flex-col overflow-hidden
+        rounded-t-xl border border-border bg-surface
         pb-[env(safe-area-inset-bottom)]
-        md:static md:inset-auto md:h-full md:max-h-none md:w-80 md:shrink-0
-        md:border-t-0 md:border-l md:pb-0
+        md:absolute md:inset-y-2 md:right-2 md:bottom-2 md:left-auto md:h-auto md:max-h-none
+        md:w-104 md:rounded-xl md:border md:shadow-lg
       "
     >
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-xs"
-        onClick={clearSelection}
-        aria-label="Fechar painel"
-        className="absolute top-3 right-3 z-10"
-      >
-        <X size={14} />
-      </Button>
-      {selectedNodeId !== null ? <NodePanel nodeId={selectedNodeId} /> : null}
-      {selectedEdgeId !== null ? <EdgePanel edgeId={selectedEdgeId} /> : null}
+      <div className="flex shrink-0 items-center justify-between gap-2 border-border border-b p-2">
+        <span className="pl-1 font-medium text-sm">Detalhes</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          onClick={clearSelection}
+          aria-label="Fechar painel"
+        >
+          <X size={14} />
+        </Button>
+      </div>
+      <div className="min-h-0 flex-1">
+        {selectedNodeId !== null ? <NodePanel nodeId={selectedNodeId} /> : null}
+        {selectedEdgeId !== null ? <EdgePanel edgeId={selectedEdgeId} /> : null}
+      </div>
     </aside>
   );
 }

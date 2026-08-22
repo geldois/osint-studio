@@ -16,6 +16,21 @@ export function nodeTypeLabel(type: NodeType): string {
   return NODE_TYPE_LABELS[type];
 }
 
+const NODE_TYPE_ACCENT_BORDER: Record<NodeType, string> = {
+  address: "border-amber-500",
+  cnae: "border-sky-400",
+  company: "border-emerald-500",
+  email: "border-violet-500",
+  person: "border-blue-500",
+  phone: "border-orange-500",
+  sanction: "border-red-500",
+  text_source: "border-slate-400",
+};
+
+export function nodeTypeAccentBorder(type: NodeType): string {
+  return NODE_TYPE_ACCENT_BORDER[type];
+}
+
 const NODE_TYPE_PLURAL_LABELS: Record<NodeType, string> = {
   address: "Endereços",
   cnae: "CNAEs",
