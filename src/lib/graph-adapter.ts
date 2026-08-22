@@ -37,7 +37,7 @@ function emptyToNull(value: string | null): string | null {
 export function extractLabel(node: ApiNode): string {
   switch (node.type) {
     case "company":
-      return emptyToNull(node.trade_name) ?? node.legal_name ?? node.cnpj;
+      return emptyToNull(node.legal_name) ?? emptyToNull(node.trade_name) ?? node.cnpj;
     case "person":
       return node.name ?? node.cpf;
     case "address": {
@@ -92,6 +92,9 @@ export function nodeToRows(node: ApiNode): CardRow[] {
         { key: "nome", value: node.name ?? EMPTY },
         { key: "cpf", value: node.cpf },
         { key: "faixa etária", value: node.age_range ?? EMPTY },
+        { key: "data de nascimento", value: node.birthdate ?? EMPTY },
+        { key: "situação cadastral", value: node.registration_status ?? EMPTY },
+        { key: "data de cadastro", value: node.registration_date ?? EMPTY },
       ];
     case "address":
       return [

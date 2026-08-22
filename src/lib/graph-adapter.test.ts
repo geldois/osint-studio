@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { edgeKey, extractLabel, groupEdgesByPair } from "@/lib/graph-adapter";
+import {
+  edgeKey,
+  extractLabel,
+  groupEdgesByPair,
+  nodeToRows,
+} from "@/lib/graph-adapter";
 import type {
   AddressNode,
   CompanyNode,
   OwnsCompanyEdge,
+  PersonNode,
   PlainEdge,
   Revision,
 } from "@/types/api";
@@ -15,7 +21,7 @@ const revision: Revision = {
 };
 
 describe("extractLabel", () => {
-  it("prefers trade_name over legal_name over cnpj for a company", () => {
+  it("prefers legal_name over trade_name over cnpj for a company", () => {
     const base: CompanyNode = {
       content_id: "c1",
       id: "c1",
@@ -33,22 +39,22 @@ describe("extractLabel", () => {
       activity_start_date: null,
       is_headquarters: null,
     };
-    expect(extractLabel(base)).toBe("Acme");
-    expect(extractLabel({ ...base, trade_name: null })).toBe("Acme Ltda");
+    expect(extractLabel(base)).toBe("Acme Ltda");
+    expect(extractLabel({ ...base, legal_name: null })).toBe("Acme");
     expect(extractLabel({ ...base, trade_name: null, legal_name: null })).toBe(
       "00000000000191",
     );
   });
 
-  it("falls back past an empty trade_name the same as a null one", () => {
+  it("falls back past an empty legal_name or trade_name the same as a null one", () => {
     const base: CompanyNode = {
       content_id: "c1",
       id: "c1",
       revision,
       type: "company",
       cnpj: "00000000000191",
-      legal_name: "Acme Ltda",
-      trade_name: "",
+      legal_name: "",
+      trade_name: "Acme",
       registration_status: null,
       registration_status_date: null,
       registration_status_reason: null,
@@ -58,7 +64,8 @@ describe("extractLabel", () => {
       activity_start_date: null,
       is_headquarters: null,
     };
-    expect(extractLabel(base)).toBe("Acme Ltda");
+    expect(extractLabel(base)).toBe("Acme");
+    expect(extractLabel({ ...base, trade_name: "" })).toBe("00000000000191");
   });
 
   it("joins non-null address fields with a middle dot", () => {
@@ -104,6 +111,46 @@ describe("extractLabel", () => {
       text: "short",
     });
     expect(label).toBe("short");
+  });
+});
+
+describe("nodeToRows", () => {
+  it("exposes every attribute the API sends for a person, not just name/cpf/age_range", () => {
+    const person: PersonNode = {
+      content_id: "p1",
+      id: "p1",
+      revision,
+      type: "person",
+      name: "Fulano de Tal",
+      cpf: "11144477735",
+      age_range: "31 a 40 anos",
+      birthdate: "1990-01-01",
+      registration_status: "REGULAR",
+      registration_date: "2010-05-20",
+    };
+    const rows = nodeToRows(person);
+    expect(rows).toContainEqual({ key: "data de nascimento", value: "1990-01-01" });
+    expect(rows).toContainEqual({ key: "situação cadastral", value: "REGULAR" });
+    expect(rows).toContainEqual({ key: "data de cadastro", value: "2010-05-20" });
+  });
+
+  it("falls back to an em dash for null person fields instead of dropping the row", () => {
+    const person: PersonNode = {
+      content_id: "p1",
+      id: "p1",
+      revision,
+      type: "person",
+      name: null,
+      cpf: "11144477735",
+      age_range: null,
+      birthdate: null,
+      registration_status: null,
+      registration_date: null,
+    };
+    const rows = nodeToRows(person);
+    expect(rows).toContainEqual({ key: "data de nascimento", value: "—" });
+    expect(rows).toContainEqual({ key: "situação cadastral", value: "—" });
+    expect(rows).toContainEqual({ key: "data de cadastro", value: "—" });
   });
 });
 
