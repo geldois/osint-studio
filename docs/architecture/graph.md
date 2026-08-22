@@ -43,6 +43,37 @@ Edge deduplication uses a composite key built from the edge's own endpoints and 
 an identifier the backend happens to assign the edge — this keeps the merge's own idempotency independent of
 however the backend chooses to identify edges, and immune to that choice ever changing.
 
+Re-laying-out the graph after a merge no longer re-frames the whole viewport to fit every node. It instead keeps
+whatever zoom level the analyst already had and re-centers on whichever node the analyst's own action was about.
+The earlier behavior recalculated a fit around the bounding box of every node on screen, which is a point that
+corresponds to no node in particular once the graph has more than a couple of components — visually, it read as
+landing on an arbitrary card rather than on what the analyst just asked to expand. The one exception is a graph
+with no reachable root among its current nodes, which still falls back to fitting everything, since there is
+nothing more specific to center on.
+
+Which node counts as "what the action was about" is tracked as its own piece of state, set explicitly by the
+action that triggered a merge — never inferred from the root_id a just-received fragment happens to carry. A
+single Expansion can merge more than one fragment at once (the CNEP/CEIS sanction lookups that ride along with
+an admin's CNPJ/CPF Expansion, for instance), and a sanction fragment's own root can be the sanctioned party
+rather than the document the analyst actually expanded — inferring focus from "whichever fragment merged last"
+picked that unrelated party's Card as often as it picked the one the Expansion was actually for. Only the
+primary fragment's root ever sets focus now.
+
+A company's own label — on its Card, in the table, everywhere its name is shown — now prefers its registered
+legal name over its trade name over its registration number, the reverse of the order it used before. The trade
+name is what a company is publicly known as and reads friendlier, but the legal name is what every official
+record actually keys on, and this is a tool for tracing formal registrations and ownership, not for recognizing
+a storefront — matching the record's own primary identifier by default was judged more useful than the more
+casual name.
+
+The detail panel no longer offers a single generic "expand" action for every expandable node. A company's CNPJ,
+shown among its attributes, is itself the trigger — clicking it Expands directly, since looking up a CNPJ costs
+nothing. A person's CPF is not directly clickable in the same way: expanding a CPF has a real per-lookup cost
+(the same `KIPFLOW_CPF_COST_BRL` the table's batch consumption bar already prices), so clicking it and the
+panel's own consumption block both run the same estimate-then-confirm flow the table already used for a batch —
+now available one entity at a time from the graph, not just from a row selection in the table. A masked CPF
+offers neither path, since the backend can't resolve one to look anything up.
+
 ## Consequences
 
 Coupling the accumulated state's own shape to the graph-rendering library's node/edge types keeps the split clean

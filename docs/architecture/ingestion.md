@@ -13,11 +13,13 @@ with no way for the analyst to tell the difference between "this document has no
 looked for". Listing every rule the backend advertises, all switched on to start, makes what a run covers visible and
 adjustable at the moment it matters, and costs one request that was already being made to populate the screen.
 
-Every rule starts switched on, including the only one that has no checksum to confirm its matches. That rule can
-therefore invent an address from a coincidence of digits in prose, which the others structurally cannot. The trade was
-made toward the visible failure: a spurious address node is obvious on the graph and can be ignored, whereas the
-alternative failure mode — a run that quietly matched less than the analyst assumed — looks identical to a clean run
-and is the one that misleads a conclusion.
+Only the loose CPF and loose CNPJ rules start switched on; every other rule the backend advertises starts off and is
+turned on by hand behind the pattern picker. Every rule used to start switched on, including the one with no checksum
+to confirm its matches, on the reasoning that a spurious match is obvious on the graph and ignorable, while a run that
+quietly matched less than the analyst assumed looks identical to a clean one. That reasoning still holds for why
+turning a rule on is one click away rather than buried in a settings screen — it just no longer decides the starting
+state. The two Brazilian document identifiers are what nearly every upload is actually about, and defaulting the rest
+off keeps a first run's result legible instead of surfacing rules the analyst didn't ask for by default.
 
 A spreadsheet is handed to the backend as a file rather than being read in the browser and forwarded as text. The
 backend already flattens every sheet, cell by cell, including the last computed value of a formula, and applies its own
