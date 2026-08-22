@@ -1,12 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const zedMono = localFont({
+  src: [
+    { path: "./fonts/ZedMonoNerdFontMono-Regular.ttf", weight: "400", style: "normal" },
+    { path: "./fonts/ZedMonoNerdFontMono-Bold.ttf", weight: "700", style: "normal" },
+  ],
+  variable: "--font-zed-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -29,11 +32,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-dvh`}
-      suppressHydrationWarning
-    >
+    <html lang="pt-BR" className={`${zedMono.variable} h-dvh`} suppressHydrationWarning>
       <body className="h-dvh bg-background text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>
