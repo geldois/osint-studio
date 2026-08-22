@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { FieldWarning } from "@/components/field-warning";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { API_URL, login, loginAsVisitor, RateLimitError } from "@/lib/api";
@@ -78,6 +79,7 @@ export default function LoginPage() {
   const isBlocked = retryAfterSeconds > 0;
   const isPending = loginMutation.isPending || visitorMutation.isPending;
   const error = loginMutation.error ?? visitorMutation.error;
+  const hasCredentialsError = error !== null && !isBlocked;
 
   return (
     <main className="flex h-full flex-col items-center justify-center gap-6">
@@ -89,62 +91,72 @@ export default function LoginPage() {
                 loginMutation.mutate(values);
               })(e);
             }}
-            className="space-y-4"
+            className="space-y-2"
           >
-            <h1 className="text-lg font-semibold">OSINT Studio</h1>
-
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="username" className="sr-only">
                 Usuário
               </Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Usuário"
-                autoComplete="username"
-                data-1p-ignore
-                data-lpignore="true"
-                data-bwignore="true"
-                {...register("username")}
-              />
-              {errors.username ? (
-                <p className="text-red-500 text-xs">{errors.username.message}</p>
-              ) : null}
+              <div className="relative">
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Usuário"
+                  autoComplete="username"
+                  data-1p-ignore
+                  data-lpignore="true"
+                  data-bwignore="true"
+                  aria-invalid={errors.username !== undefined || hasCredentialsError}
+                  className={hasCredentialsError ? "pr-8" : undefined}
+                  {...register("username")}
+                />
+                {errors.username ? (
+                  <FieldWarning tone="error" message={errors.username.message ?? ""} />
+                ) : null}
+              </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="password" className="sr-only">
                 Senha
               </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Senha"
-                autoComplete="current-password"
-                data-1p-ignore
-                data-lpignore="true"
-                data-bwignore="true"
-                {...register("password")}
-              />
-              {errors.password ? (
-                <p className="text-red-500 text-xs">{errors.password.message}</p>
-              ) : null}
+              <div className="relative">
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Senha"
+                  autoComplete="current-password"
+                  data-1p-ignore
+                  data-lpignore="true"
+                  data-bwignore="true"
+                  aria-invalid={errors.password !== undefined || hasCredentialsError}
+                  className={hasCredentialsError ? "pr-8" : undefined}
+                  {...register("password")}
+                />
+                {errors.password ? (
+                  <FieldWarning tone="error" message={errors.password.message ?? ""} />
+                ) : hasCredentialsError ? (
+                  <FieldWarning tone="error" message={translateError(error)} />
+                ) : null}
+              </div>
             </div>
 
-            <div className="min-h-5">
-              {error && !isBlocked ? (
-                <p className="text-sm text-red-500">{translateError(error)}</p>
-              ) : null}
+            <div className="flex items-center gap-2">
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={isPending || isBlocked}
+              >
+                {loginMutation.isPending ? "Entrando..." : "Entrar"}
+              </Button>
               {isBlocked ? (
-                <p className="text-sm text-amber-500">
-                  Limite atingido. Tente novamente em {retryAfterSeconds}s.
-                </p>
+                <FieldWarning
+                  tone="warning"
+                  inField={false}
+                  message={`Limite atingido. Tente novamente em ${String(retryAfterSeconds)}s.`}
+                />
               ) : null}
             </div>
-
-            <Button type="submit" className="w-full" disabled={isPending || isBlocked}>
-              {loginMutation.isPending ? "Entrando..." : "Entrar"}
-            </Button>
 
             <Button
               type="button"
