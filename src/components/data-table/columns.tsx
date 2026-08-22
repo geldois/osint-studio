@@ -1,5 +1,4 @@
 import type { ColumnDef, Table } from "@tanstack/react-table";
-import { History } from "lucide-react";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { extractLabel, nodeToRows } from "@/lib/graph-adapter";
@@ -140,17 +139,5 @@ export const columns: ColumnDef<TableRow>[] = [
     size: 80,
     meta: { hiddenBelowMd: true },
     cell: ({ row }) => row.original.relationshipCount,
-  },
-  {
-    id: "history",
-    header: () => (
-      <span className="flex items-center gap-1" title="Histórico de revisão — em breve">
-        <History size={12} />
-        Histórico
-      </span>
-    ),
-    size: 90,
-    enableSorting: false,
-    cell: () => <span className="text-muted/50">em breve</span>,
   },
 ];
