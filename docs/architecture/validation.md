@@ -29,6 +29,28 @@ A failed response parse surfaces to the user as the same generic, already-existi
 never the parser's own technical detail, since a shape mismatch is a backend drift bug the user can't act on, the
 same reasoning already applied to server error codes with no user-facing meaning.
 
+A rejected-credentials response on a public endpoint (signing in, requesting a visitor session) is never treated
+the same as the same status on an endpoint that requires an existing session: the former means the attempt itself
+was wrong and must never clear or redirect an unrelated session, the latter means the session's own token expired
+mid-use and does clear it, letting the existing guard react to the token becoming absent. A stored external
+provider credential being rejected returns the same status as an expired session but is deliberately excluded from
+that clearing path, since only the external credential is bad — the session's own token is still good. An empty
+result for a per-document lookup is its own distinct, successful status, never folded into the error path, since
+finding nothing for a given document is a valid outcome, not a failure.
+
+Only the error codes a normal user flow can actually trigger are translated to a message; a code the backend would
+only ever attach to its own internal failure is deliberately left out and falls through to the same generic
+message, since surfacing an internal code as if it meant something to the user would be worse than saying nothing
+specific. A request that never reaches a server at all — offline, a DNS failure, a blocked connection — carries no
+such code to key off, so that class of failure is recognized instead by the distinct, code-less error the browser
+itself raises for it.
+
+A stored credential's own errors surface through the settings menu's own status indicator rather than through a
+banner built from the same generic error list every other failure feeds — showing both would mean the same problem
+appearing twice in two different places on screen, so the generic list explicitly filters that class out and
+collapses whatever duplicates remain, since one missing credential can fail more than one lookup identically in the
+same batch.
+
 ## Consequences
 
 A backend response that drops or renames a field now fails loudly, close to the network call, instead of surfacing

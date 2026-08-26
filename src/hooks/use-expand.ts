@@ -36,9 +36,6 @@ export function useExpand() {
 
       const fetchRootGraph = documentIsCpf ? fetchGraphByCpf : fetchGraph;
 
-      // CNEP/CEIS are sourced from the Portal da Transparência, which
-      // requires a caller-supplied API key restricted to admins — visitors
-      // only consume the anonymous BrasilAPI-backed root graph.
       const fetches =
         role === "ADMIN"
           ? [

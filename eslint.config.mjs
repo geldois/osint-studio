@@ -41,21 +41,11 @@ export default defineConfig(
     ...reactHooksPlugin.configs.flat["recommended-latest"],
   },
   {
-    // A deliberate subset of `configs.recommended`, not the whole bundle:
-    // `enforce-consistent-class-order`/`enforce-consistent-line-wrapping`
-    // are large, invasive reformats (near every multi-class `className`)
-    // this project never asked for — everything kept here catches an
-    // actual defect (typo, contradiction, duplication) or the exact
-    // canonical-class drift this plugin was added for.
     files: ["**/*.{ts,tsx}"],
     plugins: {
       "better-tailwindcss": betterTailwindcss,
     },
     rules: {
-      // "dark" is this project's manual dark-mode toggle class (not a
-      // Tailwind utility); "nodrag"/"nopan" are @xyflow/react's own marker
-      // classes for the Whiteboard's draggable nodes — neither is Tailwind's
-      // to know about.
       "better-tailwindcss/no-unknown-classes": [
         "error",
         { ignore: ["^dark$", "^nodrag$", "^nopan$"] },

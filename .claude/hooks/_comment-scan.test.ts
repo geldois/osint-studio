@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPragmaComment, newCommentLines } from "./_comment-scan";
+import { isPragmaComment, newCommentLines, newCommentLinesHash } from "./_comment-scan";
 
 describe("newCommentLines", () => {
   it("reports a whole-line comment's line", () => {
@@ -39,9 +39,6 @@ describe("newCommentLines", () => {
   });
 
   it("does not flag a vitest-environment pragma", () => {
-    // Built via concatenation, not a literal magic comment — Vitest's own
-    // environment detector greps the raw file text for this exact string,
-    // and a literal occurrence here would flip this test file into jsdom.
     const source = "// @vitest-" + 'environment jsdom\nimport { it } from "vitest";\n';
     expect(newCommentLines(source, null)).toEqual([]);
   });
@@ -93,5 +90,57 @@ describe("isPragmaComment", () => {
 
   it("rejects an ordinary comment even if it mentions a pragma word", () => {
     expect(isPragmaComment("// this used to have an eslint-disable here")).toBe(false);
+  });
+});
+
+describe("newCommentLinesHash", () => {
+  it("reports a whole-line comment's line", () => {
+    const source = "set -e\n# just a comment\necho hi\n";
+    expect(newCommentLinesHash(source, null)).toEqual([2]);
+  });
+
+  it("reports a trailing comment's line", () => {
+    const source = "echo hi  # trailing\n";
+    expect(newCommentLinesHash(source, null)).toEqual([1]);
+  });
+
+  it("never flags a shebang", () => {
+    const source = "#!/bin/sh\necho hi\n";
+    expect(newCommentLinesHash(source, null)).toEqual([]);
+  });
+
+  it("does not flag a shellcheck disable pragma", () => {
+    const source = "# shellcheck disable=SC2034\nx=1\n";
+    expect(newCommentLinesHash(source, null)).toEqual([]);
+  });
+
+  it("does not flag a shellcheck source pragma", () => {
+    const source = "# shellcheck source=/dev/null\n. ./lib.sh\n";
+    expect(newCommentLinesHash(source, null)).toEqual([]);
+  });
+
+  it("does not flag a pinned action version comment", () => {
+    const source = "  - uses: actions/checkout@abc123 # v7.0.0\n";
+    expect(newCommentLinesHash(source, null)).toEqual([]);
+  });
+
+  it("never flags a hash inside a single-quoted string", () => {
+    const source = "echo 'not # a comment'\n";
+    expect(newCommentLinesHash(source, null)).toEqual([]);
+  });
+
+  it("never flags a hash inside a double-quoted string", () => {
+    const source = 'echo "not # a comment"\n';
+    expect(newCommentLinesHash(source, null)).toEqual([]);
+  });
+
+  it("handles an escaped double quote inside a string", () => {
+    const source = 'echo "she said \\"hi\\" # still a string"\n';
+    expect(newCommentLinesHash(source, null)).toEqual([]);
+  });
+
+  it("restricts to the given changed lines", () => {
+    const source = "echo hi  # keep\necho bye  # flag\n";
+    expect(newCommentLinesHash(source, new Set([2]))).toEqual([2]);
   });
 });

@@ -37,6 +37,13 @@ and handled by the path that already existed. Arming a timer at the expiry momen
 and was left out because a client-side clock has to stay correct across a suspended tab, a hibernated machine and
 an adjusted system clock, which is real complexity spent on a transition that is already handled.
 
+Which document type a session's own role may Expand, and whether a paid-provider lookup rides along with that
+Expansion at all, are both decided on this side purely to keep the interface from offering an action the backend
+will reject — the backend's own per-route role guard remains the actual boundary, exactly like every other
+convenience-only control this document already covers. A viewer session never has a stored external credential to
+begin with, so the request that reads one is disabled for that role rather than left to fail against a route the
+backend would reject anyway.
+
 ## Consequences
 
 Restoring a session is asynchronous, so there is a moment where the interface knows neither that a session exists

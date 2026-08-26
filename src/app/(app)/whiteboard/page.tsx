@@ -16,7 +16,9 @@ import { BatchBar } from "@/components/data-table/batch-bar";
 import { DataTable } from "@/components/data-table/data-table";
 import { DetailPanel } from "@/components/detail-panel/detail-panel";
 import { RelationshipEdge } from "@/components/edges/relationship-edge";
+import { FindingsPanel } from "@/components/findings/findings-panel";
 import { GraphInfoButton } from "@/components/graph-info-button";
+import { ReportButton } from "@/components/findings/report-dialog";
 import { EntityNode } from "@/components/nodes/entity-node";
 import { SettingsMenu } from "@/components/settings-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -42,7 +44,7 @@ function Flow() {
   const nodeOverrides = useGraphStore((s) => s.nodeOverrides);
   const focusNodeId = useGraphStore((s) => s.focusNodeId);
   const conflictFilterActive = useConflictFilterStore((s) => s.active);
-  const { fitView, setCenter, getZoom, getNodesBounds } = useReactFlow();
+  const { fitView, setCenter, getZoom } = useReactFlow();
 
   const overriddenNodeIds = useMemo(
     () => new Set(Object.keys(nodeOverrides)),
@@ -71,13 +73,6 @@ function Flow() {
 
   const edges = useMemo(() => groupEdgesByPair(rawEdges), [rawEdges]);
 
-  // Kept in sync via effect (not during render) and read from inside the
-  // async layout poll below. React Flow fires internal dimension-change
-  // events while nodes settle after a reset, updating `nodes` several times
-  // in quick succession — depending on `nodes` directly in the layout effect
-  // would tear down and cancel the in-flight layout on every one of those
-  // churns, so re-expanding an already-rendered graph could cancel its own
-  // layout before it finished and leave every card stacked at (0, 0).
   const nodesRef = useRef(nodes);
   useEffect(() => {
     nodesRef.current = nodes;
@@ -122,9 +117,6 @@ function Flow() {
         return;
       }
       const laidOut = await layoutGraph(nodesRef.current, edges);
-      // eslint's static analysis can't see that the effect cleanup (a separate
-      // closure) can flip `cancellation.requested` during this await — it's a
-      // real, reachable branch.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (cancellation.requested) {
         return;
@@ -134,12 +126,15 @@ function Flow() {
       const focusNode =
         laidOut.find((node) => node.id === focusNodeId) ??
         laidOut.find((node) => roots.has(node.id));
-      if (focusNode !== undefined) {
-        const bounds = getNodesBounds([focusNode]);
-        void setCenter(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, {
-          zoom: getZoom(),
-          duration: 300,
-        });
+      if (
+        focusNode?.measured?.width !== undefined &&
+        focusNode.measured.height !== undefined
+      ) {
+        void setCenter(
+          focusNode.position.x + focusNode.measured.width / 2,
+          focusNode.position.y + focusNode.measured.height / 2,
+          { zoom: getZoom(), duration: 300 },
+        );
       } else {
         void fitView({ duration: 300 });
       }
@@ -160,7 +155,6 @@ function Flow() {
     fitView,
     setCenter,
     getZoom,
-    getNodesBounds,
     focusNodeId,
   ]);
 
@@ -197,6 +191,7 @@ export default function WhiteboardPage() {
           <WhiteboardSearchBar />
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <ReportButton />
           <ThemeToggle />
           <SettingsMenu />
         </div>
@@ -210,8 +205,10 @@ export default function WhiteboardPage() {
             <ReactFlowProvider>
               <Flow />
             </ReactFlowProvider>
-          ) : (
+          ) : view === "table" ? (
             <DataTable />
+          ) : (
+            <FindingsPanel />
           )}
         </div>
         <DetailPanel />

@@ -21,6 +21,11 @@ export function toolInput(event: JsonRecord, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
+export function toolName(event: JsonRecord): string {
+  const value = event["tool_name"];
+  return typeof value === "string" ? value : "";
+}
+
 export interface RunResult {
   status: number;
   stdout: string;

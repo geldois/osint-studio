@@ -8,5 +8,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    coverage: {
+      reportsDirectory: ".cache/coverage",
+    },
   },
 });

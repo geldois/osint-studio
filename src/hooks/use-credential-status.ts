@@ -14,9 +14,6 @@ export function useCredentialStatus() {
       }
       return fetchCredentialStatus(token);
     },
-    // Credentials are Portal da Transparência API keys, an admin-only
-    // resource (osint-engine's credentials_router) — visitors have no use
-    // for this and the backend would just 403 the request.
     enabled: token !== null && role === "ADMIN",
   });
 }

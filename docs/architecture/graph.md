@@ -43,6 +43,12 @@ Edge deduplication uses a composite key built from the edge's own endpoints and 
 an identifier the backend happens to assign the edge — this keeps the merge's own idempotency independent of
 however the backend chooses to identify edges, and immune to that choice ever changing.
 
+A layout run in progress watches the accumulated node set through a value the render loop itself never depends on,
+kept in step by a separate effect instead. The rendering library fires several internal size-change updates while
+newly placed nodes settle right after a reset, and depending on the node set directly from inside the layout would
+tear the in-flight run down and restart it on every one of those incidental updates — the running expansion could
+then cancel its own layout before it finished and leave every card stacked in place.
+
 Re-laying-out the graph after a merge no longer re-frames the whole viewport to fit every node. It instead keeps
 whatever zoom level the analyst already had and re-centers on whichever node the analyst's own action was about.
 The earlier behavior recalculated a fit around the bounding box of every node on screen, which is a point that
@@ -65,6 +71,13 @@ name is what a company is publicly known as and reads friendlier, but the legal 
 record actually keys on, and this is a tool for tracing formal registrations and ownership, not for recognizing
 a storefront — matching the record's own primary identifier by default was judged more useful than the more
 casual name.
+
+Two nodes can carry more than one relationship between them at once, and the rendering library draws one line per
+relationship rather than one line carrying several — a marker representing that pair therefore has to know which of
+the two directions it belongs to, computed the same way for every relationship rather than trusted to whatever the
+rendering library's own generic edge label position happens to report, since that generic position is only the
+bounding-box midpoint and drifts off the actual line once a path curves; the true midpoint of a straight path is
+still just the average of its two endpoints.
 
 The detail panel no longer offers a single generic "expand" action for every expandable node. A company's CNPJ,
 shown among its attributes, is itself the trigger — clicking it Expands directly, since looking up a CNPJ costs

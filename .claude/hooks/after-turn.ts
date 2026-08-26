@@ -1,19 +1,3 @@
-// End-of-turn type check and docs nudge — `Stop`.
-//
-// One process, one injection, read-only. Runs at the end of the turn
-// rather than per edit for two reasons: the code is finally complete
-// (mid-refactor a type-checker reports cascading errors from code not yet
-// written, and the model chases them), and one run costs a fraction of one
-// run per edit.
-//
-// `tsc` has no reliable single-file mode with full project (tsconfig)
-// context, so unlike the per-file `report-lint` pass this always
-// type-checks the whole project — `incremental: true` in tsconfig.json
-// keeps repeat runs cheap via `.tsbuildinfo`.
-//
-// Both signals derive from `git status --porcelain` — no marker files, no
-// temp-directory sweep, and accurate even across a session restart.
-
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { context, gitRoot, readEvent, run } from "./_hook-io";
@@ -21,14 +5,12 @@ import { context, gitRoot, readEvent, run } from "./_hook-io";
 const TSC = ["pnpm", "exec", "tsc", "--noEmit"];
 const MAX_OUTPUT_LINES = 40;
 const TS_SUFFIXES = new Set([".ts", ".tsx"]);
-const PATH_START = 3; // porcelain line is "XY <path>"
+const PATH_START = 3;
 const ARCHITECTURE_DIR = "docs/architecture";
 const ADR_DIR = "docs/adr";
 
 function main(): void {
   const event = readEvent();
-  // Claude Code sets this when the turn was itself resumed by a Stop hook.
-  // Without the guard, an unfixable type error would loop forever.
   if (event["stop_hook_active"] === true) {
     return;
   }
@@ -56,9 +38,6 @@ function main(): void {
   }
 }
 
-/** Mirrors osint-engine's after_turn.py docs-sync nudge: docs/architecture/<area>.md
- * is always the default, never docs/adr/, per manage-docs — silent if the project
- * has no docs/architecture/ at all (nowhere for a decision to live). */
 function docsNudge(root: string): string {
   const architectureDir = resolve(root, ARCHITECTURE_DIR);
   if (!existsSync(architectureDir)) {
@@ -93,7 +72,6 @@ function suffixOf(path: string): string {
   return dot === -1 ? "" : path.slice(dot);
 }
 
-/** Paths changed vs HEAD, staged, unstaged or untracked; repo-relative. */
 function changedFiles(root: string): string[] {
   const result = run(["git", "status", "--porcelain", "--untracked-files=all"], root);
   if (result?.status !== 0) {
@@ -105,7 +83,6 @@ function changedFiles(root: string): string[] {
     if (line.length <= PATH_START || line.startsWith("D") || line[1] === "D") {
       continue;
     }
-    // A rename entry is "R  old -> new"; only the destination exists.
     const segments = line.slice(PATH_START).split(" -> ");
     const path = (segments.at(-1) ?? "").replace(/^"|"$/g, "");
     if (existsSync(resolve(root, path)) && statSync(resolve(root, path)).isFile()) {

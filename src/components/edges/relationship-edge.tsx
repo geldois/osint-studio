@@ -12,7 +12,6 @@ import type { EdgeRelationship, RelationshipEdgeData } from "@/lib/graph-adapter
 import { edgeTypeLabel } from "@/lib/relationships";
 import { useSelectionStore } from "@/store/selection";
 
-// Incoming (←) relationships are listed before outgoing (→) ones, per request.
 function byDirection(a: EdgeRelationship, b: EdgeRelationship): number {
   if (a.direction === b.direction) {
     return 0;
@@ -31,10 +30,6 @@ export function RelationshipEdge({
   const selectedEdgeId = useSelectionStore((s) => s.selectedEdgeId);
   const selectEdge = useSelectionStore((s) => s.selectEdge);
 
-  // A straight path's midpoint is the exact average of its two endpoints,
-  // so the diamond marker sits precisely on the line — a stepped/bezier
-  // path's reported "label" point is only the bounding-box midpoint, which
-  // drifts off the actual curve whenever the path bends.
   const [edgePath, labelX, labelY] = getStraightPath({
     sourceX,
     sourceY,

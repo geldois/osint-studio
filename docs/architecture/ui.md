@@ -48,9 +48,11 @@ header) now runs on the same component set — `Card`/`Button`/`Input`/`Table`/`
 pass above proved the pattern held. `src/components/nodes/` and `src/components/edges/` keep their own custom
 React Flow renderers, since no shadcn primitive maps to a graph node or edge.
 
-A relationship edge's list of relationships renders inside a real `Popover`, opened by clicking the diamond
-marker — a deliberate UX choice: relationships stay hidden until asked for, trading always-visible detail for a
-quieter Whiteboard on graphs with many edges. Its one known gap: the popup doesn't track the diamond during an
+A relationship edge's list of relationships always lists every incoming one before any outgoing one, a fixed order
+rather than whatever order the backend happened to return them in, and renders inside a real `Popover`, opened by
+clicking the diamond marker — a deliberate UX choice: relationships stay hidden until asked for, trading
+always-visible detail for a quieter Whiteboard on graphs with many edges. Its one known gap: the popup doesn't
+track the diamond during an
 active pan or zoom while it's already open, since Base UI's positioning follows scroll/resize/layout-shift but not
 a pure CSS-transform move — closing and reopening it re-anchors correctly. Fixing that live-tracking case would
 need shared state between the Whiteboard and every edge just to close the popover on pan-start, judged not worth

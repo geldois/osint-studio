@@ -1,16 +1,10 @@
-// Comment detection — read-only AST scan, never a rewrite. A prior version of
-// this pipeline auto-stripped new comments at pre-commit; removed because its
-// edge cases (nested trivia, JSX expression containers) could silently
-// mismatch what the model still holds in context. report-comments.ts nudges
-// instead, so a misparse here costs an extra reminder, never a corrupted file.
-//
-// Uses the real TypeScript parser (not a regex scanner) so a `//` inside a
-// string, template literal, or regex literal is never misread as a comment.
-
 import ts from "typescript";
 
 const PRAGMA =
   /^(?:eslint-(?:disable|enable)|@ts-(?:expect-error|ignore|nocheck|check)|prettier-ignore|c8 ignore|istanbul ignore|v8 ignore|@vitest-environment)\b/;
+
+const HASH_PRAGMA =
+  /^#\s*(?:shellcheck\s+(?:disable|enable|source)=\S+|v\d+(?:\.\d+){1,2})\s*$/;
 
 interface Span {
   start: number;
@@ -63,11 +57,6 @@ export function commentSpans(source: string): Span[] {
     }
   };
 
-  // A JSX expression container holding nothing but a comment (`{/* .. */}`)
-  // parses its content as trivia the scanner never exposes as a comment
-  // range — the container itself has no `expression` child to recurse into,
-  // so this is the one place a comment must be found by trimming the
-  // container's own text instead of asking the scanner for trivia.
   const collectEmptyJsxExpression = (node: ts.Node): void => {
     if (!ts.isJsxExpression(node) || node.expression !== undefined) {
       return;
@@ -85,9 +74,6 @@ export function commentSpans(source: string): Span[] {
 
   const visit = (node: ts.Node): void => {
     collectAt(node.getFullStart());
-    // Trailing trivia between this node's last real token and its own end
-    // (e.g. a comment sitting right before a closing brace, which has no
-    // child node of its own for the next getFullStart() to reach).
     collectAt(node.getEnd());
     collectEmptyJsxExpression(node);
     ts.forEachChild(node, visit);
@@ -97,8 +83,6 @@ export function commentSpans(source: string): Span[] {
   return spans;
 }
 
-/** Line numbers (1-based) of every non-pragma comment fully inside `changedLines`
- * (`null` = unrestricted, every comment counts). */
 export function newCommentLines(
   source: string,
   changedLines: ReadonlySet<number> | null,
@@ -129,4 +113,59 @@ export function newCommentLines(
     lines.add(startLine);
   }
   return [...lines].sort((a, b) => a - b);
+}
+
+export function newCommentLinesHash(
+  source: string,
+  changedLines: ReadonlySet<number> | null,
+): number[] {
+  const lines: number[] = [];
+  const rows = source.split("\n");
+  for (let i = 0; i < rows.length; i += 1) {
+    const lineNumber = i + 1;
+    if (changedLines !== null && !changedLines.has(lineNumber)) {
+      continue;
+    }
+    const row = rows[i] ?? "";
+    if (lineNumber === 1 && row.startsWith("#!")) {
+      continue;
+    }
+    const index = unquotedHashIndex(row);
+    if (index === null) {
+      continue;
+    }
+    if (HASH_PRAGMA.test(row.slice(index).trim())) {
+      continue;
+    }
+    lines.push(lineNumber);
+  }
+  return lines;
+}
+
+function unquotedHashIndex(content: string): number | null {
+  let inSingle = false;
+  let inDouble = false;
+  let i = 0;
+  while (i < content.length) {
+    const char = content[i];
+    if (inSingle) {
+      if (char === "'") {
+        inSingle = false;
+      }
+    } else if (inDouble) {
+      if (char === "\\") {
+        i += 1;
+      } else if (char === '"') {
+        inDouble = false;
+      }
+    } else if (char === "'") {
+      inSingle = true;
+    } else if (char === '"') {
+      inDouble = true;
+    } else if (char === "#") {
+      return i;
+    }
+    i += 1;
+  }
+  return null;
 }

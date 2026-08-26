@@ -1,62 +1,98 @@
-// Comment-introduction nudge — `PostToolUse(Edit|Write|MultiEdit)`.
-//
-// Read-only: reports, never strips — see `_comment-scan.ts`'s header for why
-// the prior auto-stripping pipeline was removed. Flags a newly-introduced,
-// non-pragma comment inside a path CLAUDE.md forbids one from, so the model
-// removes it or renames instead of leaving it to a fixer that no longer runs.
-
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { isAbsolute, relative, resolve, sep } from "node:path";
-import { newCommentLines } from "./_comment-scan";
-import { addContext, gitRoot, readEvent, run, toolInput } from "./_hook-io";
+import { basename, isAbsolute, relative, resolve, sep } from "node:path";
+import { newCommentLines, newCommentLinesHash } from "./_comment-scan";
+import { addContext, gitRoot, readEvent, run, toolInput, toolName } from "./_hook-io";
 
-const ENFORCED_ROOTS = ["src/"];
-const SUFFIXES = new Set([".ts", ".tsx"]);
+const TS_SUFFIXES = new Set([".ts", ".tsx"]);
+const HASH_SUFFIXES = new Set([".sh", ".yml", ".yaml", ".toml"]);
+const HASH_FILENAMES = new Set([
+  "Dockerfile",
+  ".gitconfig",
+  ".gitignore",
+  ".dockerignore",
+  ".editorconfig",
+  ".nvmrc",
+  "run",
+]);
 const HUNK_HEADER = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
 
 function main(): void {
-  const file = toolInput(readEvent(), "file_path");
+  const event = readEvent();
+  const file = toolInput(event, "file_path");
   if (!file) {
     return;
   }
 
+  const target = resolveTarget(file);
+  if (target === null) {
+    return;
+  }
+  const { path, root, rel } = target;
+
+  const isRead = toolName(event) === "Read";
+  const lines = isRead ? null : changedLines(rel, root);
+  if (!isRead && lines !== null && lines.size === 0) {
+    return;
+  }
+
+  const source = readFileSync(path, "utf-8");
+  const hits = scan(rel, source, lines);
+  if (hits.length > 0) {
+    report(rel, hits, isRead);
+  }
+}
+
+interface Target {
+  path: string;
+  root: string;
+  rel: string;
+}
+
+function resolveTarget(file: string): Target | null {
   const path = isAbsolute(file) ? file : resolve(process.cwd(), file);
   if (!existsSync(path) || !statSync(path).isFile()) {
-    return;
+    return null;
   }
 
   const root = gitRoot(path);
   if (root === null || !path.startsWith(root + sep)) {
-    return;
+    return null;
   }
 
   const rel = relative(root, path).split(sep).join("/");
   const suffix = rel.slice(rel.lastIndexOf("."));
   if (
-    !SUFFIXES.has(suffix) ||
-    !ENFORCED_ROOTS.some((enforced) => rel.startsWith(enforced))
+    !HASH_FILENAMES.has(basename(rel)) &&
+    !TS_SUFFIXES.has(suffix) &&
+    !HASH_SUFFIXES.has(suffix)
   ) {
-    return;
+    return null;
   }
 
-  const lines = changedLines(rel, root);
-  if (lines !== null && lines.size === 0) {
-    return;
-  }
-
-  const source = readFileSync(path, "utf-8");
-  const hits = newCommentLines(source, lines);
-  if (hits.length > 0) {
-    addContext(
-      `New comment on ${rel} (no comments in enforced paths — CLAUDE.md). ` +
-        `Lines: ${hits.join(", ")}. Remove it, or make the name say what it says.`,
-    );
-  }
+  return { path, root, rel };
 }
 
-/** `null` means every line counts (an untracked/new file has no HEAD version
- * for `git diff` to compare against). Empty set means a tracked file with no
- * actual diff, so nothing to scan. */
+function scan(
+  rel: string,
+  source: string,
+  lines: ReadonlySet<number> | null,
+): number[] {
+  const suffix = rel.slice(rel.lastIndexOf("."));
+  if (TS_SUFFIXES.has(suffix)) {
+    return newCommentLines(source, lines);
+  }
+  return newCommentLinesHash(source, lines);
+}
+
+function report(rel: string, hits: number[], preexisting: boolean): void {
+  const lead = preexisting ? "Pre-existing comment(s) in" : "New comment on";
+  addContext(
+    `${lead} ${rel} (this repo allows none, anywhere, except a linter-ignore pragma — ` +
+      `CLAUDE.md). Lines: ${hits.join(", ")}. Remove it, make the name say what it says, ` +
+      "or move the decision into README/TO-DO/docs/architecture/CLAUDE/CONTEXT.",
+  );
+}
+
 function changedLines(rel: string, root: string): ReadonlySet<number> | null {
   const status = run(["git", "status", "--porcelain", "--", rel], root);
   if (status?.stdout.startsWith("??") === true) {

@@ -1,49 +1,18 @@
-// Direct-run enforcement — `PreToolUse(Bash)`.
-//
-// `pre-commit` already runs the full gate (`scripts/run precommit`, itself
-// fix-staged-then-`scripts/run check`) on every commit and reports any
-// failure inline — every commit is born green by construction. Running the
-// gate facade yourself (`scripts/run check`, `scripts/run precommit`,
-// `pnpm run gates`, `pnpm run precommit`) or a bare full-project
-// lint/format/type/build/test run is pure duplication of a guarantee
-// `pre-commit` already gives; block those and redirect to just committing.
-// A targeted single-file run stays allowed, for fast local feedback while
-// writing code.
+import { context, readEvent, toolInput } from "./_hook-io";
 
-import { deny, readEvent, toolInput } from "./_hook-io";
-
-// A Bash tool call is routinely a whole shell script (leading `cd`, chained
-// `&&`/`;`/`|`, subshell parens), not one bare invocation — every check
-// below must run per statement, never against the raw string's start, or a
-// leading `cd studio && pnpm run lint` walks straight past every anchor.
 const STATEMENT_SPLIT = /&&|[;\n]|\|+|[()]/;
 
-// A heredoc body (a commit message passed via `<<'EOF' ... EOF`, the
-// prescribed way to commit) is literal data, never a shell statement — but
-// splitting on bare `(`/`)` above has no notion of that, so a conventional
-// commit's own `(scope):` collides with a targetable name once split (e.g.
-// `feat(lint): ...` yields the bare statement `lint`). Strip every heredoc
-// down to its opening redirect before splitting, so its body and closing
-// marker are never seen as statements at all.
 const HEREDOC = /<<-?(['"]?)(\w+)\1\n[\s\S]*?\n\s*\2(?=\s|$)/g;
 
 function stripHeredocs(command: string): string {
   return command.replace(HEREDOC, (_match, _quote, marker: string) => `<<${marker}`);
 }
 
-// Strip every leading runner/flag token (pnpm exec, pnpm run, npx, mise
-// exec --, stray -q/--flags) so wrapping the call cannot bypass the match
-// below.
 const LEADING = /^(?:pnpm|npx|mise|exec|run|--?\S+)\s+/;
 
 const FACADE_NAMES = new Set(["gates", "precommit"]);
-// "run fix" is a fixer, not a verifier — safe and idempotent to run directly,
-// so only "run check"/"run precommit" are blocked as facade duplication.
 const FACADE_SCRIPT = /^scripts\/run\s+(?:check|precommit)\b/;
 
-// tsc has no reliable single-file mode with full project (tsconfig)
-// context, and `next build` only ever builds the whole app — both are
-// always full-project, never a targeted run.
 const FULL_ONLY_NAMES = new Set(["tsc", "type-check", "build"]);
 const NEXT_BUILD = /^next\s+build\b/;
 
@@ -92,12 +61,12 @@ function main(): void {
     const head = normalized.split(/\s+/)[0] ?? "";
 
     if (FACADE_SCRIPT.test(normalized) || FACADE_NAMES.has(head)) {
-      deny(REASON);
+      context("PreToolUse", REASON);
       return;
     }
 
     if (FULL_ONLY_NAMES.has(head) || NEXT_BUILD.test(normalized)) {
-      deny(REASON);
+      context("PreToolUse", REASON);
       return;
     }
 
@@ -108,7 +77,7 @@ function main(): void {
       continue;
     }
 
-    deny(REASON);
+    context("PreToolUse", REASON);
     return;
   }
 }

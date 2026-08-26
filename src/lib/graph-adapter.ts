@@ -140,8 +140,6 @@ export function edgeKey(edge: ApiEdge): string {
 export interface EdgeRelationship {
   edgeId: string;
   edgeType: ApiEdge["type"];
-  /** "forward" if this relationship's source_id is the RF edge's source
-   * (line points source → target); "backward" if it runs the other way. */
   direction: "forward" | "backward";
 }
 
@@ -149,12 +147,6 @@ export interface RelationshipEdgeData extends Record<string, unknown> {
   relationships: EdgeRelationship[];
 }
 
-/** React Flow draws one line per array entry, so two relationships between
- * the same pair of nodes (e.g. a person owns a company AND shares its
- * address) would render as two overlapping lines each with their own
- * marker. Grouping by unordered node pair collapses them into a single
- * line with one marker carrying every relationship for that pair, so the
- * UI shows one diamond + a stacked list instead of duplicates. */
 export function groupEdgesByPair(edges: ApiEdge[]): Edge<RelationshipEdgeData>[] {
   const groups = new Map<
     string,
@@ -246,11 +238,6 @@ function findConnectedComponents(nodeIds: string[], edges: Edge[]): string[][] {
   return [...groups.values()];
 }
 
-// ELK's radial algorithm requires a strict tree (one parent per node) or it
-// throws "The given graph is not a tree!" — this domain graph can have
-// multi-parent nodes (e.g. an address shared by a company and its owner), so
-// a BFS spanning tree from the component's anchor is used for the radial
-// layout math only. The full edge list is still what gets rendered.
 function buildSpanningTreeEdges(
   rootId: string,
   componentIds: string[],
@@ -298,17 +285,8 @@ interface PositionedBox {
   height: number;
 }
 
-// ELK's radial radius calculation doesn't fully account for very uneven node
-// sizes (large company/sanction cards next to a one-line email card), which
-// can leave residual overlap. This is a small, bounded local repair pass —
-// push apart along the axis of least penetration — run after the algorithm,
-// not a replacement for it.
 function separateOverlaps(boxes: PositionedBox[]): void {
   const PADDING = 24;
-  // A pairwise push-apart pass only resolves one overlapping pair per sweep in
-  // the worst case (a long chain of stacked siblings, e.g. a company with 40+
-  // directors) — 12 passes converged for small graphs but left large fan-outs
-  // still overlapping. Scale with node count so dense components fully settle.
   const MAX_PASSES = Math.max(60, boxes.length * 4);
   for (let pass = 0; pass < MAX_PASSES; pass += 1) {
     let moved = false;
@@ -354,10 +332,6 @@ function separateOverlaps(boxes: PositionedBox[]): void {
   }
 }
 
-// Each connected component (one per anchor Expansion) is laid out independently
-// with ELK's radial algorithm, then packed left to right — ELK's radial
-// layouter expects a single connected graph per run, so mixing unrelated
-// Expansions into one call would produce an undefined arrangement.
 export async function layoutGraph(
   nodes: EntityNode[],
   edges: Edge[],

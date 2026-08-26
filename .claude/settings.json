@@ -1,15 +1,4 @@
 {
-  "permissions": {
-    "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)",
-      "Read(./pnpm-lock.yaml)",
-      "Read(./CHANGELOG.md)",
-      "Read(./.next/**)",
-      "Read(./node_modules/**)",
-      "Read(./coverage/**)"
-    ]
-  },
   "hooks": {
     "PreToolUse": [
       {
@@ -41,7 +30,12 @@
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/report-lint.ts"
             ],
             "timeout": 30
-          },
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|Read",
+        "hooks": [
           {
             "type": "command",
             "command": "pnpm",

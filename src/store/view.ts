@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type WhiteboardView = "graph" | "table";
+export type WhiteboardView = "graph" | "table" | "findings";
 
 interface ViewStore {
   view: WhiteboardView;

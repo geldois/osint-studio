@@ -145,3 +145,43 @@ button:not(:disabled) {
     @apply font-sans;
   }
 }
+
+@media print {
+  [data-slot="dialog-overlay"],
+  [data-slot="dialog-close"] {
+    display: none !important;
+  }
+  [data-slot="dialog-content"] {
+    position: static !important;
+    inset: auto !important;
+    translate: 0 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    --background: #fcfcfd;
+    --foreground: #1c2024;
+    --surface: #f9f9fb;
+    --surface-2: #e8e8ec;
+    --border: #cdced6;
+    --muted: #60646c;
+    --popover: #f9f9fb;
+    --popover-foreground: #1c2024;
+    --destructive: #e54d2e;
+    --warning: #ab6400;
+    --warning-foreground: #fefdfb;
+    background: var(--popover) !important;
+    color: var(--popover-foreground) !important;
+  }
+  [data-slot="scroll-area"] {
+    max-height: none !important;
+  }
+  [data-slot="scroll-area-viewport"] {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  body > *:not(:has([data-slot="dialog-content"])) {
+    display: none !important;
+  }
+}

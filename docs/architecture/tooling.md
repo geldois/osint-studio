@@ -42,7 +42,29 @@ serialization and not routing, so a route or guard regression still needs the li
 A newly-introduced comment is never auto-removed, at commit time or otherwise — the real TypeScript-parser rewrite
 this used to run carried edge cases (a JSX expression container holding only a comment, trivia trailing a node's own
 end) that could silently corrupt a file nobody reviews before it lands. A per-edit hook instead nudges the assistant
-to remove it or make the name say what it said, leaving the actual judgment call to whoever wrote the comment.
+to remove it or make the name say what it said, leaving the actual judgment call to whoever wrote the comment. That
+check is widened beyond the shipped source alone to every tracked, non-generated file in the repository — root
+configuration, CI workflow, and this project's own tooling included — since every comment that used to live in one
+of those had a real decision behind it, and that decision now lives in one of this project's own documentation
+surfaces instead. A written change is checked against its own diff; a plain file read has nothing to diff against,
+so it is checked whole, surfacing a pre-existing comment as a pattern not to imitate rather than as something newly
+introduced.
+
+A check running before every shell command nudges — it does not block — away from re-running the gate façade or a
+bare full-project lint/format/type/build/test tool directly, redirecting to just committing instead: `pre-commit`
+already runs the full gate on every commit and reports any failure inline, so a direct run duplicates a guarantee
+already given. A targeted single-file run is left alone for fast local iteration.
+
+One test file builds a pragma-shaped string via concatenation rather than as a literal comment: the test framework's
+own environment detector greps the raw file's text for that exact string, and a literal occurrence anywhere in the
+file — including inside a test asserting how the detector's pragma is recognized — would flip that whole file's own
+test environment, not just the input being asserted on.
+
+Every tool's own cache or incremental-build file is redirected under one gitignored root, rather than left at each
+tool's own default location — the repository root otherwise accumulates one more file or dot-directory per tool.
+The framework's own build output directory is the one exception: it is deeply assumed at its default path by the
+framework's own tooling and by this project's own multi-stage container build, so relocating it trades a real,
+working assumption for a cosmetic one.
 
 Tailwind class validity and canonical-form drift (an arbitrary-variant selector that a newer Tailwind release turned
 into a built-in shorthand) were previously only ever caught by an editor's own IntelliSense extension — a diagnostic

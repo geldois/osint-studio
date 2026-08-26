@@ -81,9 +81,6 @@ async function parseApiError(res: Response): Promise<ApiError> {
   return new ApiError(message, type);
 }
 
-/** For unauthenticated endpoints (login, viewer-token): a 401 here means
- * rejected credentials, not an expired session — it must not clear the
- * token or redirect. */
 async function throwForPublicEndpointError(res: Response): Promise<never> {
   if (res.status === 429) {
     throw new RateLimitError(parseRetryAfterSeconds(res));
@@ -91,14 +88,8 @@ async function throwForPublicEndpointError(res: Response): Promise<never> {
   throw await parseApiError(res);
 }
 
-/** A rejected external-provider API key (Portal da Transparência) also maps
- * to 401, but it's the session's own JWT that's still valid — only the
- * stored external credential is bad. Must not clear the session token. */
 const _EXTERNAL_CREDENTIAL_ERROR_CODES = new Set(["EXTERNAL_CREDENTIAL_REJECTED"]);
 
-/** For endpoints that require an existing session: a 401 here means the
- * token expired mid-use, so it clears the store — AuthGuard reacts to
- * token becoming null and redirects to /login on its own. */
 async function throwForAuthenticatedEndpointError(res: Response): Promise<never> {
   if (res.status === 401) {
     const apiError = await parseApiError(res);
@@ -166,7 +157,6 @@ export async function fetchGraphByCpf(
   return parseJson(GraphSchemaSchema, res);
 }
 
-/** 204 means no sanctions were found for this CPF/CNPJ — a valid empty result. */
 async function fetchSanctions(
   path: "cnep" | "ceis",
   cpfOrCnpj: string,

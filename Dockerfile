@@ -12,9 +12,6 @@ FROM base AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# NEXT_PUBLIC_* vars are frozen into the client bundle at `next build` time,
-# not read at container runtime — must arrive as a Docker build arg, not a
-# runtime env var on the hosting platform.
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NODE_ENV=production

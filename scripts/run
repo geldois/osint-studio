@@ -57,8 +57,6 @@ write_report() {
 }
 
 run_check() {
-    # snapshot is intentionally not local: the EXIT trap below still needs to
-    # read it after run_check itself has returned.
     local tree
     tree="$(git write-tree)"
     snapshot="$(mktemp -d -t osint-studio-gates-XXXXXX)"

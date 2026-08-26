@@ -4,6 +4,7 @@
     "esModuleInterop": true,
     "exactOptionalPropertyTypes": true,
     "incremental": true,
+    "tsBuildInfoFile": ".cache/typescript/tsconfig.tsbuildinfo",
     "isolatedModules": true,
     "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "esnext"],
