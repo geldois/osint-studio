@@ -43,7 +43,12 @@ export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
       }}
       className={nodeVariants({ nodeType: data.nodeType, isSelected })}
     >
-      <Handle type="target" position={Position.Top} className="opacity-0!" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="opacity-0!"
+        style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
+      />
       <span className="mt-0.5 shrink-0 opacity-70">
         <EntityIcon nodeType={data.nodeType} />
       </span>
@@ -71,7 +76,12 @@ export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
           </span>
         ) : null}
       </span>
-      <Handle type="source" position={Position.Bottom} className="opacity-0!" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="opacity-0!"
+        style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
+      />
     </button>
   );
 }
