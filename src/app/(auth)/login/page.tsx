@@ -36,7 +36,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (hasHydrated && token !== null) {
-      router.replace("/whiteboard");
+      router.replace("/graph");
     }
   }, [hasHydrated, token, router]);
 
@@ -62,7 +62,7 @@ export default function LoginPage() {
     mutationFn: (values: LoginFormValues) => login(values.username, values.password),
     onSuccess: (res) => {
       setToken(res.access_token);
-      router.push("/whiteboard");
+      router.push("/graph");
     },
     onError: handleError,
   });
@@ -71,7 +71,7 @@ export default function LoginPage() {
     mutationFn: loginAsVisitor,
     onSuccess: (res) => {
       setToken(res.access_token);
-      router.push("/whiteboard");
+      router.push("/graph");
     },
     onError: handleError,
   });

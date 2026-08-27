@@ -12,18 +12,8 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import { useEffect, useMemo, useRef } from "react";
-import { BatchBar } from "@/components/data-table/batch-bar";
-import { DataTable } from "@/components/data-table/data-table";
-import { DetailPanel } from "@/components/detail-panel/detail-panel";
 import { RelationshipEdge } from "@/components/edges/relationship-edge";
-import { FindingsPanel } from "@/components/findings/findings-panel";
-import { GraphInfoButton } from "@/components/graph-info-button";
-import { ReportButton } from "@/components/findings/report-dialog";
 import { EntityNode } from "@/components/nodes/entity-node";
-import { SettingsMenu } from "@/components/settings-menu";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { ViewSwitch } from "@/components/view-switch";
-import { WhiteboardSearchBar } from "@/components/whiteboard-search-bar";
 import { useOverlay } from "@/hooks/use-overlay";
 import {
   type EntityNode as EntityNodeType,
@@ -34,7 +24,6 @@ import {
 import { useConflictFilterStore } from "@/store/conflict-filter";
 import { useGraphStore } from "@/store/graph";
 import { useSelectionStore } from "@/store/selection";
-import { useViewStore } from "@/store/view";
 
 const NODE_TYPES: NodeTypes = { entity: EntityNode };
 const EDGE_TYPES: EdgeTypes = { relationship: RelationshipEdge };
@@ -176,43 +165,10 @@ function Flow() {
   );
 }
 
-export default function WhiteboardPage() {
-  const view = useViewStore((s) => s.view);
-  const overlay = useOverlay();
-
+export function GraphView() {
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center gap-2 border-b border-border bg-surface p-2">
-        <div className="flex shrink-0 items-center gap-2">
-          <GraphInfoButton />
-          <ViewSwitch />
-        </div>
-        <div className="flex flex-1 justify-center">
-          <WhiteboardSearchBar />
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <ReportButton />
-          <ThemeToggle />
-          <SettingsMenu />
-        </div>
-      </header>
-
-      <BatchBar nodes={overlay.nodes} />
-
-      <div className="relative flex flex-1 overflow-hidden">
-        <div className="relative flex-1">
-          {view === "graph" ? (
-            <ReactFlowProvider>
-              <Flow />
-            </ReactFlowProvider>
-          ) : view === "table" ? (
-            <DataTable />
-          ) : (
-            <FindingsPanel />
-          )}
-        </div>
-        <DetailPanel />
-      </div>
-    </div>
+    <ReactFlowProvider>
+      <Flow />
+    </ReactFlowProvider>
   );
 }

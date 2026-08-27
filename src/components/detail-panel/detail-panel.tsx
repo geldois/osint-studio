@@ -1,16 +1,36 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Search, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  FileText,
+  Network,
+  Search,
+  SquareUser,
+  Table2,
+  X,
+} from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FilterChips } from "@/components/filter-chips";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { GroupedFilterChips } from "@/components/grouped-filter-chips";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EntityIcon } from "@/components/nodes/entity-icon";
+import { ReportContent } from "@/components/findings/report-content";
 import { PossibleMatchesPanel } from "@/components/possible-matches/possible-matches-panel";
 import { NodeVersionMenu, EdgeVersionMenu } from "@/components/temporal/version-menu";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useConsumeCpf } from "@/hooks/use-consume-cpf";
 import { useExpand } from "@/hooks/use-expand";
 import { useOverlay } from "@/hooks/use-overlay";
@@ -195,24 +215,28 @@ function RelationshipList({ relationships }: { relationships: NodeRelationship[]
             className="pl-7"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterChips
-            options={typeOptions}
-            selected={selectedTypes}
-            onChange={(next) => {
-              setSelectedTypes(next as NodeType[]);
-              setPage(1);
-            }}
-          />
-          <FilterChips
-            options={directionOptions}
-            selected={selectedDirections}
-            onChange={(next) => {
-              setSelectedDirections(next as RelationshipDirection[]);
-              setPage(1);
-            }}
-          />
-        </div>
+        <GroupedFilterChips
+          groups={[
+            {
+              title: "Tipo",
+              options: typeOptions,
+              selected: selectedTypes,
+              onChange: (next) => {
+                setSelectedTypes(next as NodeType[]);
+                setPage(1);
+              },
+            },
+            {
+              title: "Direção",
+              options: directionOptions,
+              selected: selectedDirections,
+              onChange: (next) => {
+                setSelectedDirections(next as RelationshipDirection[]);
+                setPage(1);
+              },
+            },
+          ]}
+        />
       </div>
       {visible.length === 0 ? (
         <p className="p-3 text-[12px] text-muted">
@@ -502,40 +526,141 @@ function EdgePanel({ edgeId }: { edgeId: string }) {
   );
 }
 
-export function DetailPanel() {
-  const selectedNodeId = useSelectionStore((s) => s.selectedNodeId);
-  const selectedEdgeId = useSelectionStore((s) => s.selectedEdgeId);
-  const clearSelection = useSelectionStore((s) => s.clearSelection);
+type DetailPanelTab = "detalhes" | "relatorio";
 
-  if (selectedNodeId === null && selectedEdgeId === null) {
+const JUMP_TO_DESTINATIONS = [
+  { href: "/graph", icon: Network, label: "Grafo" },
+  { href: "/table", icon: Table2, label: "Tabela" },
+  { href: "/dashboard", icon: AlertTriangle, label: "Dashboard" },
+] as const;
+
+function JumpToMenu({ nodeId }: { nodeId: string }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const setFocusNode = useGraphStore((s) => s.setFocusNode);
+  const destinations = JUMP_TO_DESTINATIONS.filter(
+    (destination) => destination.href !== pathname,
+  );
+
+  if (destinations.length === 0) {
     return null;
   }
 
   return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Ver em outra tela"
+          >
+            <ArrowUpRight size={14} />
+          </Button>
+        }
+      />
+      <DropdownMenuContent align="end">
+        {destinations.map((destination) => (
+          <DropdownMenuItem
+            key={destination.href}
+            onClick={() => {
+              setFocusNode(nodeId);
+              router.push(destination.href);
+            }}
+          >
+            <destination.icon size={13} />
+            Ver no {destination.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function EmptyDetailsTab() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center">
+      <SquareUser size={28} className="text-muted" />
+      <p className="max-w-64 text-muted text-sm">
+        Selecione um nó ou uma relação no Grafo, na Tabela ou no Dashboard para ver os
+        detalhes aqui.
+      </p>
+    </div>
+  );
+}
+
+export function DetailPanel() {
+  const selectedNodeId = useSelectionStore((s) => s.selectedNodeId);
+  const selectedEdgeId = useSelectionStore((s) => s.selectedEdgeId);
+  const clearSelection = useSelectionStore((s) => s.clearSelection);
+  const [tab, setTab] = useState<DetailPanelTab>("detalhes");
+
+  const hasSelection = selectedNodeId !== null || selectedEdgeId !== null;
+
+  return (
     <aside
-      className="
-        fixed inset-x-0 bottom-0 z-20 flex max-h-[70dvh] flex-col overflow-hidden
-        rounded-t-xl border border-border bg-surface
-        pb-[env(safe-area-inset-bottom)]
-        md:absolute md:inset-y-2 md:right-2 md:bottom-2 md:left-auto md:h-auto md:max-h-none
-        md:w-104 md:rounded-xl md:border md:shadow-lg
-      "
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-20 flex max-h-[70dvh] flex-col overflow-hidden",
+        "rounded-t-xl border border-border bg-surface pb-[env(safe-area-inset-bottom)]",
+        "md:static md:z-auto md:my-2 md:mr-2 md:h-auto md:max-h-none md:shrink-0",
+        "md:flex md:w-104 md:rounded-xl md:border md:shadow-lg",
+        hasSelection || tab === "relatorio" ? "flex" : "hidden",
+      )}
     >
-      <div className="flex shrink-0 items-center justify-between gap-2 border-border border-b p-2">
-        <span className="pl-1 font-medium text-sm">Detalhes</span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          onClick={clearSelection}
-          aria-label="Fechar painel"
+      <div className="flex shrink-0 items-center justify-between gap-2 border-border border-b bg-surface-2 p-1.5">
+        <ToggleGroup
+          className="flex overflow-hidden rounded-md border border-border bg-surface"
+          orientation="horizontal"
+          spacing={0}
+          value={[tab]}
+          onValueChange={(value: string[]) => {
+            const next = value[0];
+            if (next === "detalhes" || next === "relatorio") {
+              setTab(next);
+            }
+          }}
         >
-          <X size={14} />
-        </Button>
+          <ToggleGroupItem
+            value="detalhes"
+            className="h-7 gap-1.5 border-border border-r px-2.5 text-[12px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
+            <SquareUser size={13} />
+            Detalhes
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="relatorio"
+            className="h-7 gap-1.5 px-2.5 text-[12px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
+            <FileText size={13} />
+            Relatório
+          </ToggleGroupItem>
+        </ToggleGroup>
+        {hasSelection ? (
+          <div className="flex items-center gap-0.5">
+            {selectedNodeId !== null ? <JumpToMenu nodeId={selectedNodeId} /> : null}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={clearSelection}
+              aria-label="Limpar seleção"
+            >
+              <X size={14} />
+            </Button>
+          </div>
+        ) : null}
       </div>
       <div className="min-h-0 flex-1">
-        {selectedNodeId !== null ? <NodePanel nodeId={selectedNodeId} /> : null}
-        {selectedEdgeId !== null ? <EdgePanel edgeId={selectedEdgeId} /> : null}
+        {tab === "relatorio" ? (
+          <ReportContent />
+        ) : selectedNodeId !== null ? (
+          <NodePanel nodeId={selectedNodeId} />
+        ) : selectedEdgeId !== null ? (
+          <EdgePanel edgeId={selectedEdgeId} />
+        ) : (
+          <EmptyDetailsTab />
+        )}
       </div>
     </aside>
   );

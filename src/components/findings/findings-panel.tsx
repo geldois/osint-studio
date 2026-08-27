@@ -3,7 +3,7 @@
 import { AlertTriangle, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EntityIcon } from "@/components/nodes/entity-icon";
-import { FilterChips } from "@/components/filter-chips";
+import { GroupedFilterChips } from "@/components/grouped-filter-chips";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useOverlay } from "@/hooks/use-overlay";
@@ -21,7 +21,6 @@ import { itemsMatchingSelection } from "@/lib/table";
 import { cn } from "@/lib/utils";
 import { useGraphStore } from "@/store/graph";
 import { useSelectionStore } from "@/store/selection";
-import { useViewStore } from "@/store/view";
 import type { ApiNode } from "@/types/api";
 
 const SEVERITY_ORDER = ["alto", "medio", "baixo"] as const;
@@ -99,14 +98,12 @@ export function FindingsPanel() {
   const [selectedCategories, setSelectedCategories] = useState<FindingCategory[]>([]);
   const [filter, setFilter] = useState("");
 
-  const setView = useViewStore((s) => s.setView);
   const selectNode = useSelectionStore((s) => s.selectNode);
   const setFocusNode = useGraphStore((s) => s.setFocusNode);
 
   function jumpTo(nodeId: string): void {
     setFocusNode(nodeId);
     selectNode(nodeId);
-    setView("graph");
   }
 
   const severityOptions = useMemo(() => {
@@ -180,22 +177,26 @@ export function FindingsPanel() {
             className="pl-7"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterChips
-            options={severityOptions}
-            selected={selectedSeverities}
-            onChange={(next) => {
-              setSelectedSeverities(next as FindingSeverity[]);
-            }}
-          />
-          <FilterChips
-            options={categoryOptions}
-            selected={selectedCategories}
-            onChange={(next) => {
-              setSelectedCategories(next as FindingCategory[]);
-            }}
-          />
-        </div>
+        <GroupedFilterChips
+          groups={[
+            {
+              title: "Severidade",
+              options: severityOptions,
+              selected: selectedSeverities,
+              onChange: (next) => {
+                setSelectedSeverities(next as FindingSeverity[]);
+              },
+            },
+            {
+              title: "Categoria",
+              options: categoryOptions,
+              selected: selectedCategories,
+              onChange: (next) => {
+                setSelectedCategories(next as FindingCategory[]);
+              },
+            },
+          ]}
+        />
         {visible.length === 0 ? (
           <p className="p-3 text-[12px] text-muted">
             Nenhum achado corresponde ao filtro.

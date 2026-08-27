@@ -91,7 +91,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (role !== null && role !== "ADMIN") {
-      router.replace("/whiteboard");
+      router.replace("/graph");
     }
   }, [role, router]);
 
@@ -108,7 +108,7 @@ function SettingsForm({ token }: { token: string }) {
   return (
     <div className="mx-auto max-w-lg p-6">
       <Link
-        href="/whiteboard"
+        href="/graph"
         className="mb-4 inline-flex items-center gap-1.5 text-muted text-sm hover:text-foreground"
       >
         <ArrowLeft size={14} />
