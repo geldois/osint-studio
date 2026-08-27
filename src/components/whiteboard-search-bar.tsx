@@ -1,6 +1,6 @@
 "use client";
 
-import { CornerDownLeft, Loader2, Search } from "lucide-react";
+import { CornerDownLeft, Loader2, RotateCcw, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FieldWarning } from "@/components/field-warning";
@@ -8,7 +8,11 @@ import { IngestFlyout } from "@/components/ingest/ingest-flyout";
 import { Input } from "@/components/ui/input";
 import { useExpand } from "@/hooks/use-expand";
 import { RateLimitError } from "@/lib/api";
-import { translateError, visibleErrorMessages } from "@/lib/errors";
+import {
+  isAlreadyFetchedError,
+  translateError,
+  visibleErrorMessages,
+} from "@/lib/errors";
 import { useAuthStore } from "@/store/auth";
 
 export function WhiteboardSearchBar() {
@@ -32,6 +36,7 @@ export function WhiteboardSearchBar() {
 
   const isBlocked = retryAfterSeconds > 0;
   const visibleErrors = data ? visibleErrorMessages(data.errors) : [];
+  const canForceRetry = error !== null && isAlreadyFetchedError(error);
   const warningMessage = isBlocked
     ? `Limite atingido. Tente novamente em ${String(retryAfterSeconds)}s.`
     : error
@@ -42,12 +47,12 @@ export function WhiteboardSearchBar() {
   const warningTone: "error" | "warning" =
     isBlocked || visibleErrors.length > 0 ? "warning" : "error";
 
-  function submit(): void {
+  function submit(force = false): void {
     if (isPending || isBlocked || query.trim() === "") {
       return;
     }
     mutate(
-      { document: query.trim() },
+      { document: query.trim(), force },
       {
         onError: (mutationError) => {
           if (mutationError instanceof RateLimitError) {
@@ -89,13 +94,23 @@ export function WhiteboardSearchBar() {
         variant="ghost"
         size="icon"
         disabled={isPending || isBlocked || query.trim() === ""}
-        onClick={submit}
-        aria-label="Expandir"
-        title={isPending ? "Expandindo..." : "Expandir"}
-        className="size-8 shrink-0"
+        onClick={() => {
+          submit(canForceRetry);
+        }}
+        aria-label={canForceRetry ? "Buscar novamente" : "Expandir"}
+        title={
+          isPending
+            ? "Expandindo..."
+            : canForceRetry
+              ? "Este documento já foi consultado antes. Buscar novamente consome um novo crédito."
+              : "Expandir"
+        }
+        className={canForceRetry ? "size-8 shrink-0 text-amber-500" : "size-8 shrink-0"}
       >
         {isPending ? (
           <Loader2 size={14} className="animate-spin" />
+        ) : canForceRetry ? (
+          <RotateCcw size={14} />
         ) : (
           <CornerDownLeft size={14} />
         )}

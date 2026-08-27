@@ -32,6 +32,7 @@ import { PossibleMatchesPanel } from "@/components/possible-matches/possible-mat
 import { NodeVersionMenu, EdgeVersionMenu } from "@/components/temporal/version-menu";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useConsumeCpf } from "@/hooks/use-consume-cpf";
+import { useConsumptionHistory } from "@/hooks/use-consumption-history";
 import { useExpand } from "@/hooks/use-expand";
 import { useOverlay } from "@/hooks/use-overlay";
 import { isMaskedCpf } from "@/lib/document";
@@ -266,9 +267,45 @@ function RelationshipList({ relationships }: { relationships: NodeRelationship[]
   );
 }
 
+const CONSUMPTION_HISTORY_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
+function ConsumptionHistoryList({ cpf }: { cpf: string }) {
+  const { data: records, isLoading } = useConsumptionHistory(cpf);
+
+  if (isLoading || records === undefined || records.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-1 border-border border-t pt-2">
+      <h4 className="text-[10px] text-muted uppercase tracking-wide">
+        Histórico de consultas ({records.length})
+      </h4>
+      <ul className="space-y-1">
+        {records.map((record) => (
+          <li
+            key={record.id}
+            className="flex items-center justify-between gap-2 text-[11px] text-muted"
+          >
+            <span>
+              {CONSUMPTION_HISTORY_FORMATTER.format(new Date(record.requested_at))}
+            </span>
+            <span>{BATCH_CPF_OUTCOME_LABELS[record.outcome]}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function ConsumeCpfBlock({
+  cpf,
   consumeCpf,
 }: {
+  cpf: string;
   consumeCpf: ReturnType<typeof useConsumeCpf>;
 }) {
   const [force, setForce] = useState(false);
@@ -310,6 +347,7 @@ function ConsumeCpfBlock({
         </p>
       ) : null}
       {error ? <p className="text-red-500 text-xs">{translateError(error)}</p> : null}
+      <ConsumptionHistoryList cpf={cpf} />
     </div>
   );
 }
@@ -442,7 +480,7 @@ function NodePanel({ nodeId }: { nodeId: string }) {
 
       {canExpand && documentType === "cpf" ? (
         <section className="border-border border-t p-3">
-          <ConsumeCpfBlock consumeCpf={consumeCpf} />
+          <ConsumeCpfBlock cpf={expandableDocument} consumeCpf={consumeCpf} />
         </section>
       ) : null}
     </ScrollArea>

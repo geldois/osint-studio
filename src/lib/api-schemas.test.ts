@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   ApiEdgeSchema,
   ApiNodeSchema,
+  EntityRecordSchema,
+  EntityRefSchema,
   GraphSchemaSchema,
   RevisionSchema,
   TextPatternCatalogSchema,
@@ -340,6 +342,71 @@ describe("TextPatternCatalogSchema", () => {
   it("rejects a catalog missing bundles", () => {
     const result = TextPatternCatalogSchema.safeParse({
       patterns: PATTERN_CATALOG.patterns,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+const ENTITY_REF = { id: "e1", content_id: "c1" };
+
+describe("EntityRefSchema", () => {
+  it("parses id and content_id", () => {
+    expect(EntityRefSchema.safeParse(ENTITY_REF).success).toBe(true);
+  });
+
+  it("rejects a ref missing content_id", () => {
+    expect(EntityRefSchema.safeParse({ id: "e1" }).success).toBe(false);
+  });
+});
+
+describe("EntityRecordSchema", () => {
+  it("parses an expanded attempt carrying an entity_ref", () => {
+    const result = EntityRecordSchema.safeParse({
+      id: "rec1",
+      entity_id: "e1",
+      entity_ref: ENTITY_REF,
+      outcome: "expanded",
+      provider: "kipflow",
+      requested_at: "2026-08-21T14:03:00Z",
+      username: "alice",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("parses a blocked attempt with entity_ref null", () => {
+    const result = EntityRecordSchema.safeParse({
+      id: "rec1",
+      entity_id: "e1",
+      entity_ref: null,
+      outcome: "failed",
+      provider: "kipflow",
+      requested_at: "2026-08-21T14:03:00Z",
+      username: "alice",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an unknown outcome", () => {
+    const result = EntityRecordSchema.safeParse({
+      id: "rec1",
+      entity_id: "e1",
+      entity_ref: null,
+      outcome: "cancelled",
+      provider: "kipflow",
+      requested_at: "2026-08-21T14:03:00Z",
+      username: "alice",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects entity_ref omitted, since null is what a contentless outcome sends", () => {
+    const result = EntityRecordSchema.safeParse({
+      id: "rec1",
+      entity_id: "e1",
+      outcome: "empty",
+      provider: "kipflow",
+      requested_at: "2026-08-21T14:03:00Z",
+      username: "alice",
     });
     expect(result.success).toBe(false);
   });

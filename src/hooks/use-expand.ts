@@ -15,6 +15,7 @@ import type { GraphSchema } from "@/types/api";
 
 interface ExpandVars {
   document: string;
+  force?: boolean;
 }
 
 interface ExpandResult {
@@ -31,7 +32,10 @@ export function useExpand() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ document }: ExpandVars): Promise<ExpandResult> => {
+    mutationFn: async ({
+      document,
+      force = false,
+    }: ExpandVars): Promise<ExpandResult> => {
       if (token === null) {
         throw new Error("Sessão expirada. Faça login novamente.");
       }
@@ -41,17 +45,19 @@ export function useExpand() {
         throw new Error("Sua conta não tem permissão para esta ação.");
       }
 
-      const fetchRootGraph = documentIsCpf ? fetchGraphByCpf : fetchGraph;
+      const fetchRootGraph = documentIsCpf
+        ? fetchGraphByCpf(document, token, force)
+        : fetchGraph(document, token);
 
       const fetches =
         role === "ADMIN"
           ? [
-              fetchRootGraph(document, token),
+              fetchRootGraph,
               fetchCNEP(document, token),
               fetchCEIS(document, token),
               documentIsCpf ? fetchCEAF(document, token) : fetchCEPIM(document, token),
             ]
-          : [fetchRootGraph(document, token)];
+          : [fetchRootGraph];
 
       const results = await Promise.allSettled(fetches);
 

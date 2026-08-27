@@ -11,6 +11,8 @@ import type {
   CredentialStatusSchema,
   EdgeTypeSchema,
   EmailNodeSchema,
+  EntityRecordSchema,
+  EntityRefSchema,
   GraphCatalogEntrySchema,
   GraphCatalogSchema,
   GraphSchemaSchema,
@@ -64,3 +66,6 @@ export type GraphCatalog = z.infer<typeof GraphCatalogSchema>;
 export type BatchCPFEstimate = z.infer<typeof BatchCPFEstimateSchema>;
 export type BatchCPFOutcome = z.infer<typeof BatchCPFOutcomeSchema>;
 export type BatchCPFResult = z.infer<typeof BatchCPFResultSchema>;
+
+export type EntityRef = z.infer<typeof EntityRefSchema>;
+export type EntityRecord = z.infer<typeof EntityRecordSchema>;

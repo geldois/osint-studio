@@ -11,6 +11,7 @@ export class ApiError extends Error {
 const ERROR_MESSAGES: Record<string, string> = {
   AUTH_INVALID_CREDENTIALS: "Usuário ou senha incorretos.",
   AUTHORIZATION_INSUFFICIENT_ROLE: "Sua conta não tem permissão para esta ação.",
+  ENTITY_ALREADY_FETCHED: "Este documento já foi consultado antes.",
   ENTITY_NOT_FOUND: "Nenhum registro encontrado para este documento.",
   EXTERNAL_CREDENTIAL_NOT_FOUND:
     "Uma credencial necessária não está configurada. Confira o status de cada fonte em Configurações.",
@@ -65,6 +66,10 @@ export function isCredentialError(error: unknown): boolean {
     error.errorCode !== null &&
     _CREDENTIAL_ERROR_CODES.has(error.errorCode)
   );
+}
+
+export function isAlreadyFetchedError(error: unknown): boolean {
+  return error instanceof ApiError && error.errorCode === "ENTITY_ALREADY_FETCHED";
 }
 
 export function visibleErrorMessages(errors: readonly unknown[]): string[] {

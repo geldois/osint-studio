@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { ApiSchemaError, ingestFile, ingestText } from "@/lib/api";
+import {
+  ApiSchemaError,
+  fetchEntityRecordCatalog,
+  fetchEntityRecordsByCpf,
+  fetchGraphByCpf,
+  ingestFile,
+  ingestText,
+} from "@/lib/api";
 import { translateError, UNKNOWN_ERROR_MESSAGE } from "@/lib/errors";
 
 function makeZodError(): z.ZodError {
@@ -78,6 +85,52 @@ describe("ingestText", () => {
     const init = requestInitFrom(mock);
     expect(init.method).toBe("POST");
     expect(init.headers).toMatchObject({ Authorization: "Bearer t0ken" });
+  });
+});
+
+describe("fetchGraphByCpf", () => {
+  it("defaults to force=false when no override is given", async () => {
+    const mock = stubFetchReturning(EMPTY_GRAPH);
+    await fetchGraphByCpf("11144477735", "t0ken");
+
+    expect(String(mock.mock.calls[0]?.[0])).toMatch(/\/cpf\/11144477735\?force=false$/);
+  });
+
+  it("sends force=true when a re-fetch is explicitly requested", async () => {
+    const mock = stubFetchReturning(EMPTY_GRAPH);
+    await fetchGraphByCpf("11144477735", "t0ken", true);
+
+    expect(String(mock.mock.calls[0]?.[0])).toMatch(/\/cpf\/11144477735\?force=true$/);
+  });
+});
+
+const ENTITY_RECORD = {
+  id: "rec1",
+  entity_id: "e1",
+  entity_ref: { id: "e1", content_id: "c1" },
+  outcome: "expanded",
+  provider: "kipflow",
+  requested_at: "2026-08-21T14:03:00Z",
+  username: "alice",
+};
+
+describe("fetchEntityRecordsByCpf", () => {
+  it("requests the per-cpf consumption endpoint", async () => {
+    const mock = stubFetchReturning([ENTITY_RECORD]);
+    const records = await fetchEntityRecordsByCpf("11144477735", "t0ken");
+
+    expect(String(mock.mock.calls[0]?.[0])).toMatch(/\/consumption\/11144477735$/);
+    expect(records).toEqual([ENTITY_RECORD]);
+  });
+});
+
+describe("fetchEntityRecordCatalog", () => {
+  it("requests the consumption catalog endpoint", async () => {
+    const mock = stubFetchReturning([ENTITY_RECORD]);
+    const records = await fetchEntityRecordCatalog("t0ken");
+
+    expect(String(mock.mock.calls[0]?.[0])).toMatch(/\/consumption$/);
+    expect(records).toEqual([ENTITY_RECORD]);
   });
 });
 

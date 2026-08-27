@@ -5,6 +5,7 @@ import {
   BatchCPFEstimateSchema,
   BatchCPFResultSchema,
   CredentialStatusSchema,
+  EntityRecordSchema,
   GraphCatalogSchema,
   GraphSchemaSchema,
   TextPatternCatalogSchema,
@@ -18,6 +19,7 @@ import type {
   BatchCPFEstimate,
   BatchCPFResult,
   CredentialStatus,
+  EntityRecord,
   GraphCatalog,
   GraphSchema,
   Provider,
@@ -144,8 +146,9 @@ export async function fetchGraph(cnpj: string, token: string): Promise<GraphSche
 export async function fetchGraphByCpf(
   cpf: string,
   token: string,
+  force = false,
 ): Promise<GraphSchema | null> {
-  const res = await fetch(`${API_URL}/cpf/${cpf}`, {
+  const res = await fetch(`${API_URL}/cpf/${cpf}?force=${String(force)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (res.status === 204) {
@@ -280,6 +283,29 @@ export async function expandCpfBatch(
     return throwForAuthenticatedEndpointError(res);
   }
   return parseJson(BatchCPFResultSchema, res);
+}
+
+export async function fetchEntityRecordsByCpf(
+  cpf: string,
+  token: string,
+): Promise<EntityRecord[]> {
+  const res = await fetch(`${API_URL}/consumption/${cpf}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return parseJson(z.array(EntityRecordSchema), res);
+}
+
+export async function fetchEntityRecordCatalog(token: string): Promise<EntityRecord[]> {
+  const res = await fetch(`${API_URL}/consumption`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return parseJson(z.array(EntityRecordSchema), res);
 }
 
 export async function fetchCredentialStatus(

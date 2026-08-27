@@ -238,3 +238,18 @@ export const TextPatternCatalogSchema = z.object({
   patterns: z.array(TextPatternNameSchema),
   bundles: z.array(TextPatternBundleSchema),
 });
+
+export const EntityRefSchema = z.object({
+  id: z.string(),
+  content_id: z.string(),
+});
+
+export const EntityRecordSchema = z.object({
+  id: z.string(),
+  entity_id: z.string(),
+  entity_ref: EntityRefSchema.nullable(),
+  outcome: z.enum(["already_fetched", "empty", "expanded", "failed", "invalid"]),
+  provider: z.string(),
+  requested_at: z.iso.datetime(),
+  username: z.string(),
+});
