@@ -73,7 +73,10 @@ function textSource(id: string, text: string): TextSourceNode {
   return { content_id: `c-${id}`, id, revision: revision(), text, type: "text_source" };
 }
 
-function sanction(id: string, organ: "CEIS" | "CNEP" = "CEIS"): SanctionNode {
+function sanction(
+  id: string,
+  organ: "CEIS" | "CNEP" | "CEPIM" | "CEAF" = "CEIS",
+): SanctionNode {
   return {
     content_id: `c-${id}`,
     end_date: null,
@@ -87,6 +90,7 @@ function sanction(id: string, organ: "CEIS" | "CNEP" = "CEIS"): SanctionNode {
     revision: revision(),
     sanction_type: "Inidoneidade",
     sanctioning_body: "CGU",
+    source_id: `s-${id}`,
     start_date: "2025-01-01",
     type: "sanction",
   };

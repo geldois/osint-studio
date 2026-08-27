@@ -158,7 +158,7 @@ export async function fetchGraphByCpf(
 }
 
 async function fetchSanctions(
-  path: "cnep" | "ceis",
+  path: "cnep" | "ceis" | "ceaf" | "cepim",
   cpfOrCnpj: string,
   token: string,
 ): Promise<GraphSchema | null> {
@@ -186,6 +186,14 @@ export function fetchCEIS(
   token: string,
 ): Promise<GraphSchema | null> {
   return fetchSanctions("ceis", cpfOrCnpj, token);
+}
+
+export function fetchCEAF(cpf: string, token: string): Promise<GraphSchema | null> {
+  return fetchSanctions("ceaf", cpf, token);
+}
+
+export function fetchCEPIM(cnpj: string, token: string): Promise<GraphSchema | null> {
+  return fetchSanctions("cepim", cnpj, token);
 }
 
 export async function fetchGraphCatalog(token: string): Promise<GraphCatalog> {

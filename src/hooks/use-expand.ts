@@ -1,5 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCEIS, fetchCNEP, fetchGraph, fetchGraphByCpf } from "@/lib/api";
+import {
+  fetchCEAF,
+  fetchCEIS,
+  fetchCEPIM,
+  fetchCNEP,
+  fetchGraph,
+  fetchGraphByCpf,
+} from "@/lib/api";
 import { isCpf } from "@/lib/document";
 import { canFetchDocumentType } from "@/lib/permissions";
 import { useAuthStore } from "@/store/auth";
@@ -42,6 +49,7 @@ export function useExpand() {
               fetchRootGraph(document, token),
               fetchCNEP(document, token),
               fetchCEIS(document, token),
+              documentIsCpf ? fetchCEAF(document, token) : fetchCEPIM(document, token),
             ]
           : [fetchRootGraph(document, token)];
 

@@ -116,12 +116,13 @@ export const SanctionNodeSchema = EntityBaseSchema.extend({
   end_date: z.string().nullable(),
   fine_amount: z.string().nullable(),
   legal_basis: z.array(z.string()),
-  organ: z.enum(["CEIS", "CNEP"]),
+  organ: z.enum(["CEIS", "CNEP", "CEPIM", "CEAF"]),
   process_number: z.string().nullable(),
   publication_date: z.string().nullable(),
   publication_link: z.string(),
   sanction_type: z.string(),
   sanctioning_body: z.string(),
+  source_id: z.string(),
   start_date: z.string().nullable(),
 });
 
