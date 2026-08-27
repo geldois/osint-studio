@@ -117,7 +117,7 @@ export function IngestForm({ onSuccess, compact = false }: IngestFormProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".txt,.csv,.xlsx"
+        accept=".txt,.md,.csv,.xlsx"
         className="hidden"
         onChange={(e) => {
           handleFileChange(e.target.files?.[0] ?? null);
@@ -183,7 +183,7 @@ export function IngestForm({ onSuccess, compact = false }: IngestFormProps) {
             <button
               type="button"
               onClick={() => {
-                router.push("/whiteboard");
+                router.push("/graph");
               }}
               className="block underline hover:text-emerald-300"
             >

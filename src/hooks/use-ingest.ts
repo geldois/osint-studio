@@ -25,7 +25,7 @@ export function useIngest() {
       }
       const kind = ingestKindFor(file);
       if (kind === null) {
-        throw new Error("Formato não suportado. Use .txt, .csv ou .xlsx.");
+        throw new Error("Formato não suportado. Use .txt, .md, .csv ou .xlsx.");
       }
       return kind === "spreadsheet"
         ? ingestFile(file, patterns, token)

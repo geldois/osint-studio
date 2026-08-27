@@ -19,6 +19,9 @@ describe("ingestKindFor", () => {
   it.each([
     ["notes.txt", "text"],
     ["NOTES.TXT", "text"],
+    ["notes.md", "text"],
+    ["NOTES.MD", "text"],
+    [".txt.md", "text"],
     ["sheet.csv", "spreadsheet"],
     ["SHEET.CSV", "spreadsheet"],
     ["book.xlsx", "spreadsheet"],
@@ -27,12 +30,15 @@ describe("ingestKindFor", () => {
     expect(ingestKindFor(makeFile(name))).toBe(expected);
   });
 
-  it.each(["notes.pdf", "archive.zip", "noextension", "payload.txt.exe", ".txt.md"])(
-    "maps %s to null",
-    (name) => {
-      expect(ingestKindFor(makeFile(name))).toBeNull();
-    },
-  );
+  it.each([
+    "notes.pdf",
+    "archive.zip",
+    "noextension",
+    "payload.txt.exe",
+    "payload.md.exe",
+  ])("maps %s to null", (name) => {
+    expect(ingestKindFor(makeFile(name))).toBeNull();
+  });
 });
 
 describe("maxBytesFor", () => {
@@ -94,13 +100,16 @@ describe("ingestSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it.each(["sheet.csv", "book.xlsx"])("parses %s within its limit", (name) => {
-    const result = ingestSchema.safeParse({
-      file: makeFile(name),
-      patterns: ALL_PATTERNS,
-    });
-    expect(result.success).toBe(true);
-  });
+  it.each(["notes.md", "sheet.csv", "book.xlsx"])(
+    "parses %s within its limit",
+    (name) => {
+      const result = ingestSchema.safeParse({
+        file: makeFile(name),
+        patterns: ALL_PATTERNS,
+      });
+      expect(result.success).toBe(true);
+    },
+  );
 
   it("accepts a .txt of exactly the text limit", () => {
     const result = ingestSchema.safeParse({
@@ -150,7 +159,7 @@ describe("ingestSchema", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0]?.message).toBe(
-        "Formato não suportado. Use .txt, .csv ou .xlsx.",
+        "Formato não suportado. Use .txt, .md, .csv ou .xlsx.",
       );
     }
   });

@@ -13,7 +13,7 @@ export default function IngestPage() {
 
   useEffect(() => {
     if (role !== null && role !== "ADMIN") {
-      router.replace("/whiteboard");
+      router.replace("/graph");
     }
   }, [role, router]);
 
@@ -24,7 +24,7 @@ export default function IngestPage() {
   return (
     <div className="mx-auto max-w-lg p-3 sm:p-4">
       <Link
-        href="/whiteboard"
+        href="/graph"
         className="mb-2.5 inline-flex items-center gap-1.5 text-muted text-sm hover:text-foreground"
       >
         <ArrowLeft size={14} />
@@ -32,7 +32,7 @@ export default function IngestPage() {
       </Link>
       <h1 className="mb-1 font-semibold text-lg">Ingestão de arquivo</h1>
       <p className="mb-2.5 text-muted text-sm">
-        Envie um .txt, .csv ou .xlsx. Os documentos encontrados viram entidades
+        Envie um .txt, .md, .csv ou .xlsx. Os documentos encontrados viram entidades
         vinculadas à fonte, e são automaticamente linkados a entidades já existentes no
         grafo.
       </p>
