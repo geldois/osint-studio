@@ -1,5 +1,3 @@
-import ELK from "elkjs/lib/elk.bundled.js";
-import type { ElkExtendedEdge, ElkNode } from "elkjs/lib/elk-api";
 import type { Edge, Node } from "@xyflow/react";
 import type { ApiEdge, ApiNode, NodeType } from "@/types/api";
 
@@ -7,7 +5,9 @@ const DEFAULT_NODE_WIDTH = 208;
 const DEFAULT_NODE_HEIGHT = 64;
 const COMPONENT_MARGIN = 160;
 
-const elk = new ELK();
+const RING_BASE_RADIUS = 180;
+const RING_GAP = 150;
+const RING_NODE_ARC = 248;
 
 export interface CardRow {
   key: string;
@@ -238,44 +238,91 @@ function findConnectedComponents(nodeIds: string[], edges: Edge[]): string[][] {
   return [...groups.values()];
 }
 
-function buildSpanningTreeEdges(
-  rootId: string,
+function buildDepthGroups(
+  anchorId: string,
   componentIds: string[],
   edges: Edge[],
-): Edge[] {
+): string[][] {
   const idSet = new Set(componentIds);
-  const adjacency = new Map<string, Edge[]>();
-  const addAdjacency = (id: string, edge: Edge): void => {
+  const adjacency = new Map<string, string[]>();
+  const addAdjacency = (id: string, neighbor: string): void => {
     const existing = adjacency.get(id);
     if (existing === undefined) {
-      adjacency.set(id, [edge]);
+      adjacency.set(id, [neighbor]);
     } else {
-      existing.push(edge);
+      existing.push(neighbor);
     }
   };
   for (const edge of edges) {
     if (!idSet.has(edge.source) || !idSet.has(edge.target)) {
       continue;
     }
-    addAdjacency(edge.source, edge);
-    addAdjacency(edge.target, edge);
+    addAdjacency(edge.source, edge.target);
+    addAdjacency(edge.target, edge.source);
   }
 
-  const visited = new Set([rootId]);
-  const treeEdges: Edge[] = [];
-  const queue = [rootId];
-  for (const current of queue) {
-    for (const edge of adjacency.get(current) ?? []) {
-      const neighbor = edge.source === current ? edge.target : edge.source;
-      if (visited.has(neighbor)) {
-        continue;
+  const visited = new Set([anchorId]);
+  const depthGroups: string[][] = [[anchorId]];
+  let frontier = [anchorId];
+  while (frontier.length > 0) {
+    const next: string[] = [];
+    for (const current of frontier) {
+      for (const neighbor of adjacency.get(current) ?? []) {
+        if (visited.has(neighbor)) {
+          continue;
+        }
+        visited.add(neighbor);
+        next.push(neighbor);
       }
-      visited.add(neighbor);
-      treeEdges.push(edge);
-      queue.push(neighbor);
+    }
+    if (next.length === 0) {
+      break;
+    }
+    depthGroups.push(next);
+    frontier = next;
+  }
+  const unreached = componentIds.filter((id) => !visited.has(id));
+  if (unreached.length > 0) {
+    depthGroups.push(unreached);
+  }
+  return depthGroups;
+}
+
+interface RingPoint {
+  x: number;
+  y: number;
+}
+
+function radialRingPositions(depthGroups: string[][]): Map<string, RingPoint> {
+  const positions = new Map<string, RingPoint>();
+  const anchorId = depthGroups[0]?.[0];
+  if (anchorId !== undefined) {
+    positions.set(anchorId, { x: 0, y: 0 });
+  }
+
+  let radius = RING_BASE_RADIUS;
+  for (let depth = 1; depth < depthGroups.length; depth += 1) {
+    const ids = depthGroups[depth] ?? [];
+    let index = 0;
+    while (index < ids.length) {
+      const capacity = Math.max(1, Math.floor((2 * Math.PI * radius) / RING_NODE_ARC));
+      const take = Math.min(capacity, ids.length - index);
+      for (let k = 0; k < take; k += 1) {
+        const id = ids[index + k];
+        if (id === undefined) {
+          continue;
+        }
+        const angle = (2 * Math.PI * k) / take;
+        positions.set(id, {
+          x: radius * Math.cos(angle),
+          y: radius * Math.sin(angle),
+        });
+      }
+      index += take;
+      radius += RING_GAP;
     }
   }
-  return treeEdges;
+  return positions;
 }
 
 interface PositionedBox {
@@ -332,10 +379,15 @@ function separateOverlaps(boxes: PositionedBox[]): void {
   }
 }
 
-export async function layoutGraph(
-  nodes: EntityNode[],
-  edges: Edge[],
-): Promise<EntityNode[]> {
+interface RingChild {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export function layoutGraph(nodes: EntityNode[], edges: Edge[]): EntityNode[] {
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const components = findConnectedComponents(
     nodes.map((node) => node.id),
@@ -350,55 +402,33 @@ export async function layoutGraph(
       .map((id) => byId.get(id))
       .filter((node): node is EntityNode => node !== undefined);
     const anchor = componentNodes.find((node) => node.data.isRoot) ?? componentNodes[0];
-    const treeEdges =
-      anchor === undefined
-        ? []
-        : buildSpanningTreeEdges(anchor.id, componentIds, edges);
 
-    const elkGraph: ElkNode = {
-      id: "root",
-      layoutOptions: {
-        "elk.algorithm": "radial",
-        "elk.spacing.nodeNode": "80",
-      },
-      children: componentNodes.map((node) => ({
+    const depthGroups =
+      anchor === undefined ? [] : buildDepthGroups(anchor.id, componentIds, edges);
+    const ringPositions = radialRingPositions(depthGroups);
+
+    let children: RingChild[] = componentNodes.map((node) => {
+      const point = ringPositions.get(node.id) ?? { x: 0, y: 0 };
+      return {
         id: node.id,
+        x: point.x,
+        y: point.y,
         width: node.measured?.width ?? DEFAULT_NODE_WIDTH,
         height: node.measured?.height ?? DEFAULT_NODE_HEIGHT,
-      })),
-      edges: treeEdges.map((edge): ElkExtendedEdge => ({
-        id: edge.id,
-        sources: [edge.source],
-        targets: [edge.target],
-      })),
-    };
-
-    let children: ElkNode[];
-    try {
-      const result = await elk.layout(elkGraph);
-      children = result.children ?? [];
-    } catch (error) {
-      console.error("radial layout failed, falling back to a simple grid", error);
-      children = componentNodes.map((node, index) => ({
-        id: node.id,
-        x: (index % 4) * (DEFAULT_NODE_WIDTH + 40),
-        y: Math.floor(index / 4) * (DEFAULT_NODE_HEIGHT + 40),
-        width: node.measured?.width ?? DEFAULT_NODE_WIDTH,
-        height: node.measured?.height ?? DEFAULT_NODE_HEIGHT,
-      }));
-    }
+      };
+    });
 
     const boxes: PositionedBox[] = children.map((child) => ({
-      x: child.x ?? 0,
-      y: child.y ?? 0,
-      width: child.width ?? DEFAULT_NODE_WIDTH,
-      height: child.height ?? DEFAULT_NODE_HEIGHT,
+      x: child.x,
+      y: child.y,
+      width: child.width,
+      height: child.height,
     }));
     separateOverlaps(boxes);
     children = children.map((child, index) => ({
       ...child,
-      x: boxes[index]?.x ?? child.x ?? 0,
-      y: boxes[index]?.y ?? child.y ?? 0,
+      x: boxes[index]?.x ?? child.x,
+      y: boxes[index]?.y ?? child.y,
     }));
 
     let minX = Infinity;
@@ -406,14 +436,10 @@ export async function layoutGraph(
     let minY = Infinity;
     let maxY = -Infinity;
     for (const child of children) {
-      const x = child.x ?? 0;
-      const y = child.y ?? 0;
-      const width = child.width ?? DEFAULT_NODE_WIDTH;
-      const height = child.height ?? DEFAULT_NODE_HEIGHT;
-      minX = Math.min(minX, x);
-      maxX = Math.max(maxX, x + width);
-      minY = Math.min(minY, y);
-      maxY = Math.max(maxY, y + height);
+      minX = Math.min(minX, child.x);
+      maxX = Math.max(maxX, child.x + child.width);
+      minY = Math.min(minY, child.y);
+      maxY = Math.max(maxY, child.y + child.height);
     }
 
     for (const child of children) {
@@ -424,8 +450,8 @@ export async function layoutGraph(
       laidOut.push({
         ...node,
         position: {
-          x: offsetX + (child.x ?? 0) - minX,
-          y: (child.y ?? 0) - minY - (maxY - minY) / 2,
+          x: offsetX + child.x - minX,
+          y: child.y - minY - (maxY - minY) / 2,
         },
       });
     }

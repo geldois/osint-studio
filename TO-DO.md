@@ -14,15 +14,17 @@
 
 ## refactor(whiteboard)
 
-- Radial placement fans new nodes around the anchor at a fixed radius; dense groups or
-  repeated expansions can overlap existing nodes. Revisit with a force-directed or
-  collision-aware pass if graphs grow large.
+- Concentric-ring placement can still leave residual overlap inside one ring when card
+  sizes vary a lot; the bounded push-apart pass handles typical cases but a genuinely
+  dense ring could still need a real collision-aware pass.
+- Ring assignment fills each depth level to capacity ring by ring, not per parent — a
+  non-root node with more children than one ring's own capacity can have some overflow
+  into the next, larger ring at a restarted angle, decoupled from its siblings. Give each
+  parent its own angular slice, sized to its own subtree, if a graph with deep branching
+  past the root ever makes this visible in practice.
 
 ## test(studio)
 
-- Radial layout math (`layoutGraph`/`separateOverlaps` in `graph-adapter.ts`) has no
-  coverage — async and ELK-backed, deferred per `docs/architecture/tooling.md`.
-  `extractLabel`, `edgeKey`, `overlayRevisions`, and `useGraphStore` are covered.
 - No test in the commit gate exercises a real osint-engine response. The five contract
   breaks fixed in `mvp-temporal-navigation/0-reconnect-frontend-contract` were all
   invisible to the unit suite, because every mock was written against the same wrong

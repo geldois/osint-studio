@@ -33,11 +33,28 @@ formatted differently. That content identity is what distinguishes two observati
 other, which is a different question from which entity a node is, and it is answered somewhere other than the
 accumulator.
 
-The layout engine's radial algorithm requires a strict tree, and this domain graph is not one: an address shared by
-a company and its owner gives that address two parents. The placement math therefore runs over a spanning tree
-derived from each component, while every relationship is still drawn. Very uneven card sizes can leave the
-algorithm's own radius calculation with residual overlap, repaired afterwards by a bounded local push-apart pass
-rather than by replacing the algorithm.
+Placement runs over each component's own breadth-first spanning tree from its anchor, since the domain graph is not
+itself a tree — an address shared by a company and its owner gives that address two parents, so a plain
+breadth-first walk assigns it to whichever parent reaches it first, while every relationship, tree edge or not, is
+still drawn. Very uneven card sizes can leave residual overlap even within one ring, repaired afterwards by a
+bounded local push-apart pass.
+
+Every child at a given tree depth used to share a single ring, radius fixed by depth alone, computed by a
+general-purpose layout library. Real accounts here are shallow and wide — a company's dozens of direct
+relationships (CNAEs, sanctions, shared contacts, a handful of people) usually sit one level below the root, with no
+deeper hierarchy underneath — so that one ring had to grow large enough to fit every one of them side by side, and a
+component with a hundred-plus direct relationships pushed its radius far past what a component with only a handful
+needed. Two components of very different sizes then packed side by side, as they always had, put the small one's
+whole footprint inside the arc of the giant one — on screen, expanding a second large CNPJ read as its own
+neighborhood tearing itself into a straight line through the first one's center rather than forming its own circle.
+Splitting a wide level across as many same-depth rings as its own node count needs — each ring sized to the node
+count that still fits its own circumference before the next ring starts — keeps a component's total radius
+proportional to the square root of its node count rather than the count itself, which both restores a compact,
+legible circle per component and stops two very differently sized components from ever overlapping again. The
+general-purpose layout library this replaced handled the strict-tree case correctly, but had no notion of capping
+how wide a single ring could grow — a limitation this domain's own shallow, wide account shape stresses far more
+than a typical org chart or dependency graph would, and the replacement is a small, self-contained function with no
+external layout dependency left in this codebase at all.
 
 Edge deduplication uses a composite key built from the edge's own endpoints and its relationship type, rather than
 an identifier the backend happens to assign the edge — this keeps the merge's own idempotency independent of
@@ -87,6 +104,16 @@ panel's own consumption block both run the same estimate-then-confirm flow the t
 now available one entity at a time from the graph, not just from a row selection in the table. A masked CPF
 offers neither path, since the backend can't resolve one to look anything up.
 
+Zoom range extends far past what the rendering library defaults to, so an analyst can pull back enough to see a
+graph's overall shape rather than being capped at a level where a dense expansion still overflows the screen. Below
+a fixed zoom threshold a card renders as a small solid square in its type's own color instead of the full card — at
+that distance the card's icon and label are already too small to read. Keeping the icon a fixed screen size via a
+counter-scale transform was tried first and discarded: it fought the rendering library's own per-node measurement,
+producing a visible jump exactly at the threshold every time a zoom gesture crossed it. A plain color square needs
+no measurement trick and scales with the Whiteboard like every other node, so the transition across the threshold is
+as smooth as the zoom gesture itself. Hovering a square still surfaces the full card — icon, label, type — as a
+floating, translucent tooltip, so identifying one entity by eye never requires zooming back in.
+
 ## Consequences
 
 Coupling the accumulated state's own shape to the graph-rendering library's node/edge types keeps the split clean
@@ -98,3 +125,11 @@ benefit in an app that only ever renders one way.
 Radial placement can still leave nodes overlapping in a dense component; every node
 stays draggable, and tuning the layout algorithm's placement quality further is a deliberately separate concern
 from the accumulator itself (tracked in `TO-DO.md`).
+
+Ring assignment is per depth level, not per parent: a level's nodes fill one ring to capacity before starting the
+next, in the order a breadth-first walk discovers them, which already keeps siblings contiguous but does not
+reserve each parent its own angular slice the way the replaced library's tree-aware wedges did. A non-root node
+branching wide enough to overflow a single ring's own capacity can end up with some children in one ring and the
+rest one ring further out, restarting at angle zero rather than continuing near their siblings — the edge to that
+outlying child can then visually cross other branches. Bounded by how deep and how wide this domain's graphs
+actually branch past the root (tracked in `TO-DO.md`).

@@ -105,7 +105,7 @@ function Flow() {
       if (cancellation.requested) {
         return;
       }
-      const laidOut = await layoutGraph(nodesRef.current, edges);
+      const laidOut = layoutGraph(nodesRef.current, edges);
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (cancellation.requested) {
         return;
@@ -158,6 +158,8 @@ function Flow() {
       onNodesChange={onNodesChange}
       onPaneClick={clearSelection}
       fitView
+      minZoom={0.02}
+      maxZoom={2}
       proOptions={{ hideAttribution: true }}
     >
       <Background />

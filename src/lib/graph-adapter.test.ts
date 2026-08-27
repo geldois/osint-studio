@@ -1,8 +1,11 @@
+import type { Edge } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import {
+  type EntityNode,
   edgeKey,
   extractLabel,
   groupEdgesByPair,
+  layoutGraph,
   nodeToRows,
 } from "@/lib/graph-adapter";
 import type {
@@ -13,6 +16,49 @@ import type {
   PlainEdge,
   Revision,
 } from "@/types/api";
+
+function testNode(id: string, isRoot = false): EntityNode {
+  return {
+    id,
+    position: { x: 0, y: 0 },
+    measured: { width: 208, height: 64 },
+    data: {
+      label: id,
+      nodeType: "company",
+      isRoot,
+      cnpj: null,
+      cpf: null,
+      rows: [],
+      conflictCount: 0,
+      isOverridden: false,
+    },
+    type: "entity",
+  };
+}
+
+function testEdge(source: string, target: string): Edge {
+  return { id: `${source}->${target}`, source, target };
+}
+
+function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function positionOf(nodes: EntityNode[], id: string): { x: number; y: number } {
+  const node = nodes.find((n) => n.id === id);
+  if (node === undefined) {
+    throw new Error(`node ${id} missing from layout output`);
+  }
+  return node.position;
+}
+
+function rightEdgeOf(nodes: EntityNode[], id: string): number {
+  const node = nodes.find((n) => n.id === id);
+  if (node === undefined) {
+    throw new Error(`node ${id} missing from layout output`);
+  }
+  return node.position.x + (node.measured?.width ?? 0);
+}
 
 const revision: Revision = {
   fetched_at: "2026-08-21T14:03:00Z",
@@ -218,5 +264,55 @@ describe("groupEdgesByPair", () => {
       type: "company_has_phone",
     };
     expect(groupEdgesByPair([a, b])).toHaveLength(2);
+  });
+});
+
+describe("layoutGraph", () => {
+  it("spreads a wide star across multiple rings instead of one huge circle", () => {
+    const root = testNode("root", true);
+    const children = Array.from({ length: 111 }, (_, i) => testNode(`c${String(i)}`));
+    const nodes = [root, ...children];
+    const edges = children.map((child) => testEdge("root", child.id));
+
+    const laidOut = layoutGraph(nodes, edges);
+
+    const rootPosition = positionOf(laidOut, "root");
+    const radii = children.map((child) =>
+      distance(rootPosition, positionOf(laidOut, child.id)),
+    );
+    const maxRadius = Math.max(...radii);
+    const uniqueRings = new Set(radii.map((r) => Math.round(r / 10) * 10)).size;
+
+    expect(uniqueRings).toBeGreaterThan(1);
+    expect(maxRadius).toBeLessThan(2000);
+  });
+
+  it("keeps two disconnected components from overlapping", () => {
+    const smallRoot = testNode("small-root", true);
+    const smallChild = testNode("small-child");
+    const bigRoot = testNode("big-root", true);
+    const bigChildren = Array.from({ length: 40 }, (_, i) =>
+      testNode(`big-c${String(i)}`),
+    );
+
+    const nodes = [smallRoot, smallChild, bigRoot, ...bigChildren];
+    const edges = [
+      testEdge("small-root", "small-child"),
+      ...bigChildren.map((child) => testEdge("big-root", child.id)),
+    ];
+
+    const laidOut = layoutGraph(nodes, edges);
+
+    const smallRightEdge = Math.max(
+      rightEdgeOf(laidOut, "small-root"),
+      rightEdgeOf(laidOut, "small-child"),
+    );
+    const bigLeftEdge = Math.min(
+      ...["big-root", ...bigChildren.map((c) => c.id)].map(
+        (id) => positionOf(laidOut, id).x,
+      ),
+    );
+
+    expect(smallRightEdge).toBeLessThanOrEqual(bigLeftEdge);
   });
 });
