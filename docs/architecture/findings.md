@@ -52,6 +52,16 @@ engine, and standing up a third service with no existing contract between them, 
 cost this feature did not need to pay to be useful now. Moving to it later replaces the flat rule list wholesale
 without changing anything the Achados view or the report reads.
 
+The printable report — the same fixed severity tiles and generated-at header — moved from a tab inside the detail
+panel to a permanent header on the Dashboard itself, alongside its charts and the interactive Achados list. It had
+drifted into the panel in an earlier pass; sitting inside one entity's own panel while summarizing the whole graph's
+findings answered a different question than the space it lived in, and its own print stylesheet — written for when
+it briefly lived inside a modal — had gone stale once it moved, silently printing nothing at all. The detail panel's
+own Relatório tab now filters the same finding list to whichever entity or relationship is currently selected: the
+two views ask different questions (everything found so far, versus what this one entity is implicated in) and each
+now lives where its question is actually being asked. A selection-scoped list needed no new rule — every finding
+already names the entities it involves, so filtering by membership in that list was enough.
+
 ## Consequences
 
 A rule can only ever see the same resolved overlay the analyst is currently looking at, never the full stack of

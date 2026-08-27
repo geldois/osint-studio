@@ -3,6 +3,7 @@
 import { AlertTriangle, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EntityIcon } from "@/components/nodes/entity-icon";
+import { SeverityBadge } from "@/components/findings/severity-badge";
 import { GroupedFilterChips } from "@/components/grouped-filter-chips";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,26 +26,7 @@ import type { ApiNode } from "@/types/api";
 
 const SEVERITY_ORDER = ["alto", "medio", "baixo"] as const;
 
-const SEVERITY_BADGE_STYLES: Record<FindingSeverity, string> = {
-  alto: "border-destructive/40 bg-destructive/10 text-destructive",
-  baixo: "border-border bg-surface-2 text-muted",
-  medio: "border-warning/40 bg-warning/15 text-warning",
-};
-
-function SeverityBadge({ severity }: { severity: FindingSeverity }) {
-  return (
-    <span
-      className={cn(
-        "shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
-        SEVERITY_BADGE_STYLES[severity],
-      )}
-    >
-      {severityLabel(severity)}
-    </span>
-  );
-}
-
-function FindingCard({
+export function FindingCard({
   finding,
   nodeById,
   onJumpTo,

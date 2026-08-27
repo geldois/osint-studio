@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EntityIcon } from "@/components/nodes/entity-icon";
-import { ReportContent } from "@/components/findings/report-content";
+import { EntityFindings } from "@/components/findings/entity-findings";
 import { PossibleMatchesPanel } from "@/components/possible-matches/possible-matches-panel";
 import { NodeVersionMenu, EdgeVersionMenu } from "@/components/temporal/version-menu";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -591,21 +591,32 @@ function EmptyDetailsTab() {
 }
 
 export function DetailPanel() {
+  const overlay = useOverlay();
   const selectedNodeId = useSelectionStore((s) => s.selectedNodeId);
   const selectedEdgeId = useSelectionStore((s) => s.selectedEdgeId);
   const clearSelection = useSelectionStore((s) => s.clearSelection);
   const [tab, setTab] = useState<DetailPanelTab>("detalhes");
 
   const hasSelection = selectedNodeId !== null || selectedEdgeId !== null;
+  const selectedEdge =
+    selectedEdgeId !== null
+      ? overlay.edges.find((e) => edgeKey(e) === selectedEdgeId)
+      : undefined;
+  const entityIds =
+    selectedNodeId !== null
+      ? [selectedNodeId]
+      : selectedEdge !== undefined
+        ? [selectedEdge.source_id, selectedEdge.target_id]
+        : [];
 
   return (
     <aside
       className={cn(
-        "fixed inset-x-0 bottom-0 z-20 flex max-h-[70dvh] flex-col overflow-hidden",
+        "fixed inset-x-0 bottom-0 z-20 max-h-[70dvh] flex-col overflow-hidden print:hidden",
         "rounded-t-xl border border-border bg-surface pb-[env(safe-area-inset-bottom)]",
         "md:static md:z-auto md:my-2 md:mr-2 md:h-auto md:max-h-none md:shrink-0",
-        "md:flex md:w-104 md:rounded-xl md:border md:shadow-lg",
-        hasSelection || tab === "relatorio" ? "flex" : "hidden",
+        "md:w-104 md:rounded-xl md:border md:shadow-lg",
+        hasSelection ? "flex" : "hidden",
       )}
     >
       <div className="flex shrink-0 items-center justify-between gap-2 border-border border-b bg-surface-2 p-1.5">
@@ -653,7 +664,7 @@ export function DetailPanel() {
       </div>
       <div className="min-h-0 flex-1">
         {tab === "relatorio" ? (
-          <ReportContent />
+          <EntityFindings entityIds={entityIds} />
         ) : selectedNodeId !== null ? (
           <NodePanel nodeId={selectedNodeId} />
         ) : selectedEdgeId !== null ? (

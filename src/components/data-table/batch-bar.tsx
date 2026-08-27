@@ -38,7 +38,7 @@ export function BatchBar({ nodes }: { nodes: ApiNode[] }) {
   const totalBRL = billableCount * KIPFLOW_CPF_COST_BRL;
 
   return (
-    <div className="space-y-2 border-border border-b bg-surface px-3 py-2 text-[12px]">
+    <div className="space-y-2 border-border border-b bg-surface px-3 py-2 text-[12px] print:hidden">
       <div className="flex flex-wrap items-center gap-3">
         <span>
           {selectedIds.size} selecionado{selectedIds.size === 1 ? "" : "s"}

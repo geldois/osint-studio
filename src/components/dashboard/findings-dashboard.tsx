@@ -2,6 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-deprecated */
 
+import { Printer } from "lucide-react";
 import { useMemo } from "react";
 import {
   Bar,
@@ -13,6 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
@@ -22,6 +24,7 @@ import {
 } from "@/components/ui/chart";
 import { FindingsPanel } from "@/components/findings/findings-panel";
 import { useOverlay } from "@/hooks/use-overlay";
+import { extractLabel } from "@/lib/graph-adapter";
 import {
   categoryLabel,
   countBySeverity,
@@ -30,6 +33,11 @@ import {
   type FindingSeverity,
 } from "@/lib/findings";
 import { topConnectedEntities } from "@/lib/graph-stats";
+
+const GENERATED_AT_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "long",
+  timeStyle: "short",
+});
 
 const SEVERITY_ORDER: FindingSeverity[] = ["alto", "medio", "baixo"];
 
@@ -189,13 +197,50 @@ function CentralityBars({ overlay }: { overlay: ReturnType<typeof useOverlay> })
   );
 }
 
+function DashboardHeader({ overlay }: { overlay: ReturnType<typeof useOverlay> }) {
+  const nodeById = new Map(overlay.nodes.map((node) => [node.id, node]));
+  const roots = [...overlay.roots]
+    .map((id) => nodeById.get(id))
+    .filter((node): node is NonNullable<typeof node> => node !== undefined)
+    .filter((node) => node.type !== "text_source");
+
+  return (
+    <div className="flex items-start justify-between gap-3 border-border border-b p-3">
+      <div>
+        <h1 className="font-medium text-lg">Relatório de Achados</h1>
+        <p className="text-[12px] text-muted">
+          Gerado em {GENERATED_AT_FORMATTER.format(new Date())} · OSINT Studio
+        </p>
+        {roots.length > 0 ? (
+          <p className="mt-1 text-[12px] text-muted">
+            <span className="font-medium text-foreground">Investigado:</span>{" "}
+            {roots.map((node) => extractLabel(node)).join(", ")}
+          </p>
+        ) : null}
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        className="print:hidden"
+        onClick={() => {
+          window.print();
+        }}
+      >
+        <Printer size={13} />
+        Imprimir
+      </Button>
+    </div>
+  );
+}
+
 export function FindingsDashboard() {
   const overlay = useOverlay();
   const findings = useMemo(() => evaluateFindings(overlay), [overlay]);
   const counts = countBySeverity(findings);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
+    <div className="flex h-full flex-col overflow-y-auto print:h-auto print:overflow-visible">
+      <DashboardHeader overlay={overlay} />
       <div className="grid gap-3 p-3 md:grid-cols-3">
         <SeverityDonut counts={counts} />
         <CategoryBars findings={findings} />

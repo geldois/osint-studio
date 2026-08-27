@@ -14,8 +14,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   const overlay = useOverlay();
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center gap-2 border-b border-border bg-surface p-2">
+    <div className="flex h-full flex-col print:h-auto">
+      <header className="flex items-center gap-2 border-b border-border bg-surface p-2 print:hidden">
         <div className="flex shrink-0 items-center gap-2">
           <GraphInfoButton />
           <ViewSwitch />
@@ -31,8 +31,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
 
       <BatchBar nodes={overlay.nodes} />
 
-      <div className="relative flex flex-1 overflow-hidden">
-        <div className="relative min-w-0 flex-1">{children}</div>
+      <div className="relative flex flex-1 overflow-hidden print:block print:h-auto print:overflow-visible">
+        <div className="relative min-w-0 flex-1 print:w-full">{children}</div>
         <DetailPanel />
       </div>
     </div>

@@ -181,7 +181,4 @@ button:not(:disabled) {
     height: auto !important;
     overflow: visible !important;
   }
-  body > *:not(:has([data-slot="dialog-content"])) {
-    display: none !important;
-  }
 }
