@@ -9,7 +9,9 @@ import { IngestFlyout } from "@/components/ingest/ingest-flyout";
 import { Input } from "@/components/ui/input";
 import { useExpand } from "@/hooks/use-expand";
 import { RateLimitError } from "@/lib/api";
+import { documentKind } from "@/lib/document";
 import { translateError, visibleErrorMessages } from "@/lib/errors";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 
 export function WhiteboardSearchBar() {
@@ -20,6 +22,7 @@ export function WhiteboardSearchBar() {
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const { mutate, isPending, error, data } = useExpand();
   const searchPlaceholder = role === "VIEWER" ? "CNPJ" : "CPF ou CNPJ";
+  const recognizedKind = documentKind(query);
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) {
@@ -46,7 +49,7 @@ export function WhiteboardSearchBar() {
     isBlocked || visibleErrors.length > 0 ? "warning" : "error";
 
   function submit(): void {
-    if (isPending || isBlocked || query.trim() === "") {
+    if (isPending || isBlocked || recognizedKind === null) {
       return;
     }
     if (role === "ADMIN") {
@@ -96,11 +99,15 @@ export function WhiteboardSearchBar() {
         type="button"
         variant="ghost"
         size="icon"
-        disabled={isPending || isBlocked || query.trim() === ""}
+        disabled={isPending || isBlocked || recognizedKind === null}
         onClick={submit}
         aria-label="Expandir"
         title={isPending ? "Expandindo..." : "Expandir"}
-        className="size-8 shrink-0"
+        className={cn(
+          "size-8 shrink-0 rounded-lg",
+          recognizedKind !== null &&
+            "bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary",
+        )}
       >
         {isPending ? (
           <Loader2 size={14} className="animate-spin" />

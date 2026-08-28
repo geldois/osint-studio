@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCredentialStatus } from "@/hooks/use-credential-status";
-import { isCpf } from "@/lib/document";
+import { documentKind, documentKindLabel } from "@/lib/document";
 import {
   credentialConfiguredFor,
   type ExpansionRouteKey,
@@ -29,7 +29,8 @@ export function ExpansionMenu({
   onClose,
   onConfirm,
 }: ExpansionMenuProps) {
-  const documentIsCpf = isCpf(document);
+  const kind = documentKind(document);
+  const documentIsCpf = kind === "cpf";
   const routes = expansionRoutesFor(documentIsCpf);
   const { data: credentialStatuses } = useCredentialStatus();
 
@@ -56,7 +57,14 @@ export function ExpansionMenu({
   return (
     <div className="absolute inset-x-0 top-full z-20 mt-1 rounded-lg border border-border bg-surface-2 shadow-lg">
       <div className="flex items-center justify-between border-border border-b p-2">
-        <span className="font-medium text-[12px]">Rotas de expansão</span>
+        <span className="flex items-center gap-1.5">
+          <span className="font-medium text-[12px]">Rotas de expansão</span>
+          {kind !== null ? (
+            <span className="rounded-sm bg-primary/15 px-1 text-[9px] text-primary uppercase">
+              {documentKindLabel(kind)}
+            </span>
+          ) : null}
+        </span>
         <Button
           type="button"
           variant="ghost"

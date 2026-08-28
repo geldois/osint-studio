@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Paperclip } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Flyout } from "@/components/flyout";
@@ -47,7 +47,7 @@ export function IngestFlyout() {
           title="Ingestão de arquivo"
           className="size-8 shrink-0 rounded-lg bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary"
         >
-          <Plus size={15} />
+          <Paperclip size={15} />
         </Button>
       }
     >
