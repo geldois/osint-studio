@@ -15,15 +15,15 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-full flex-col print:h-auto">
-      <header className="flex items-center gap-2 border-b border-border bg-surface p-2 print:hidden">
-        <div className="flex shrink-0 items-center gap-2">
+      <header className="grid grid-cols-3 items-center gap-2 border-b border-border bg-surface p-2 print:hidden">
+        <div className="flex items-center gap-2 justify-self-start">
           <GraphInfoButton />
           <ViewSwitch />
         </div>
-        <div className="flex flex-1 justify-center">
+        <div className="flex justify-center">
           <WhiteboardSearchBar />
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex items-center gap-2 justify-self-end">
           <ThemeToggle />
           <SettingsMenu />
         </div>
