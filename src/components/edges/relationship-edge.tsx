@@ -60,9 +60,9 @@ export function RelationshipEdge({
 
   const diamondClassName = `block h-3 w-3 shrink-0 rotate-45 rounded-[3px] border bg-surface transition-colors ${
     isSelected
-      ? "border-white bg-white"
+      ? "border-foreground bg-foreground"
       : isHighlighted
-        ? "border-white"
+        ? "border-foreground"
         : "border-border"
   }`;
 
@@ -76,7 +76,7 @@ export function RelationshipEdge({
           isPossiblyMatch
             ? "stroke-amber-500!"
             : isSelected || isHighlighted
-              ? "stroke-white!"
+              ? "stroke-foreground!"
               : "stroke-border!"
         }
         style={isPossiblyMatch ? { strokeDasharray: "4 4" } : undefined}

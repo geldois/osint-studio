@@ -31,7 +31,7 @@ const cardVariants = cva(
         text_source: "border-slate-400",
       },
       isSelected: {
-        true: "ring-2 ring-white",
+        true: "ring-2 ring-foreground",
         false: "",
       },
     },
@@ -53,7 +53,7 @@ const markerVariants = cva("size-4 rounded-sm shadow-lg transition-colors", {
       text_source: "bg-slate-400",
     },
     isSelected: {
-      true: "ring-2 ring-white ring-offset-1 ring-offset-background",
+      true: "ring-2 ring-foreground ring-offset-1 ring-offset-background",
       false: "",
     },
   },

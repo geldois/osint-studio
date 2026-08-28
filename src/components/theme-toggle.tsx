@@ -58,7 +58,7 @@ export function ThemeToggle() {
           type="button"
           variant="outline"
           size="icon"
-          className="size-8 rounded-md aria-expanded:bg-primary/15 aria-expanded:text-primary"
+          className="size-8 rounded-md"
           aria-label="Tema"
           title={`Tema: ${active.label}`}
         >

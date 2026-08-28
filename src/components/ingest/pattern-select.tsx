@@ -39,7 +39,7 @@ export function PatternSelect({ catalog, value, onChange }: PatternSelectProps) 
         trigger={
           <button
             type="button"
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 py-1 text-xs font-medium hover:bg-white/10"
+            className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 py-1 text-xs font-medium hover:bg-foreground/5"
           >
             Padrões ({value.length} ativo{value.length === 1 ? "" : "s"})
           </button>

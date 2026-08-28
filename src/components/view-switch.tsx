@@ -27,7 +27,7 @@ export function ViewSwitch() {
         value="/graph"
         aria-label="Visualizar em grafo"
         title="Grafo"
-        className="w-8 self-stretch border-border border-r dark:hover:bg-input/50 aria-pressed:bg-primary/15 aria-pressed:text-primary"
+        className="w-8 self-stretch border-border border-r"
       >
         <Network size={14} />
       </ToggleGroupItem>
@@ -37,7 +37,7 @@ export function ViewSwitch() {
         value="/table"
         aria-label="Visualizar em tabela"
         title="Tabela"
-        className="w-8 self-stretch border-border border-r dark:hover:bg-input/50 aria-pressed:bg-primary/15 aria-pressed:text-primary"
+        className="w-8 self-stretch border-border border-r"
       >
         <Table2 size={14} />
       </ToggleGroupItem>
@@ -47,7 +47,7 @@ export function ViewSwitch() {
         value="/dashboard"
         aria-label="Visualizar o dashboard de achados"
         title="Dashboard"
-        className="relative w-8 self-stretch dark:hover:bg-input/50 aria-pressed:bg-primary/15 aria-pressed:text-primary"
+        className="relative w-8 self-stretch"
       >
         <LayoutDashboard size={14} />
         {findings.length > 0 ? (

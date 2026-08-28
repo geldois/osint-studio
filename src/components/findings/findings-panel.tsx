@@ -58,7 +58,7 @@ export function FindingCard({
               onJumpTo(node.id);
             }}
             className={cn(
-              "flex items-center gap-1.5 rounded-md border-2 bg-surface px-2 py-1 text-[11px] hover:bg-white/5",
+              "flex items-center gap-1.5 rounded-md border-2 bg-surface px-2 py-1 text-[11px] hover:bg-foreground/5",
               nodeTypeAccentBorder(node.type),
             )}
           >

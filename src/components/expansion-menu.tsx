@@ -112,7 +112,7 @@ export function ExpansionMenu({
           return (
             <label
               key={route.key}
-              className="flex cursor-pointer items-center gap-2 rounded-md p-1.5 text-[12px] hover:bg-white/5"
+              className="flex cursor-pointer items-center gap-2 rounded-md p-1.5 text-[12px] hover:bg-foreground/5"
             >
               <Checkbox
                 checked={selected.has(route.key)}

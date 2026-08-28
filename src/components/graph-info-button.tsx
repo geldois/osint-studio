@@ -96,7 +96,7 @@ export function GraphInfoButton() {
           size="icon"
           aria-label="Informações do grafo"
           title={summary}
-          className="size-8 rounded-md aria-expanded:bg-primary/15 aria-expanded:text-primary"
+          className="size-8 rounded-md"
         >
           <Info size={14} />
         </Button>
@@ -214,7 +214,7 @@ export function GraphInfoButton() {
                           "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] transition-colors",
                           isSelected
                             ? "border-primary bg-primary/15 text-primary"
-                            : "border-border bg-surface text-muted hover:bg-white/5",
+                            : "border-border bg-surface text-muted hover:bg-foreground/5",
                         )}
                       >
                         {formatFetchedAt(revision.revision.fetched_at)}

@@ -103,7 +103,7 @@ function RelationshipCard({
           onSelectCounterpart(counterpart.id);
         }}
         className={cn(
-          "flex w-full items-start gap-2 rounded-md border-2 bg-surface px-2.5 py-2 text-left transition-colors hover:bg-white/5",
+          "flex w-full items-start gap-2 rounded-md border-2 bg-surface px-2.5 py-2 text-left transition-colors hover:bg-foreground/5",
           nodeTypeAccentBorder(counterpart.type),
         )}
       >
@@ -687,15 +687,12 @@ export function DetailPanel() {
         >
           <ToggleGroupItem
             value="detalhes"
-            className="h-7 gap-1.5 border-border border-r px-2.5 text-[12px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            className="h-7 gap-1.5 border-border border-r px-2.5 text-[12px]"
           >
             <SquareUser size={13} />
             Detalhes
           </ToggleGroupItem>
-          <ToggleGroupItem
-            value="relatorio"
-            className="h-7 gap-1.5 px-2.5 text-[12px] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-          >
+          <ToggleGroupItem value="relatorio" className="h-7 gap-1.5 px-2.5 text-[12px]">
             <FileText size={13} />
             Relatório
           </ToggleGroupItem>

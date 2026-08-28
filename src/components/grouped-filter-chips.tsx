@@ -32,7 +32,7 @@ export function GroupedFilterChips({ groups }: { groups: FilterGroup<string>[] }
           <button
             type="button"
             aria-label="Filtros"
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 py-1 text-xs font-bold hover:bg-muted/20"
+            className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 py-1 text-xs font-bold hover:bg-foreground/5"
           >
             <Filter size={13} />
             Filtros

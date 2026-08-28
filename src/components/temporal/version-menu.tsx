@@ -36,7 +36,7 @@ function VersionList<
               className={`w-full rounded-sm px-1.5 py-1 text-left text-[11px] ${
                 currentOverrideContentId === candidate.content_id
                   ? "bg-white/10"
-                  : "hover:bg-white/5"
+                  : "hover:bg-foreground/5"
               }`}
             >
               {formatFetchedAt(candidate.revision.fetched_at)} ·{" "}

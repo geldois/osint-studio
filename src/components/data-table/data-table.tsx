@@ -191,7 +191,7 @@ export function DataTable() {
                   onClick={() => {
                     selectNode(row.original.node.id);
                   }}
-                  className={`cursor-pointer border-border transition-colors hover:bg-white/5 ${
+                  className={`cursor-pointer border-border transition-colors hover:bg-foreground/5 ${
                     selectedNodeId === row.original.node.id ? "bg-white/10" : ""
                   }`}
                 >
