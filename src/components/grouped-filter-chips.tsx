@@ -2,6 +2,7 @@
 
 import { Filter, X } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Flyout } from "@/components/flyout";
 
@@ -29,19 +30,21 @@ export function GroupedFilterChips({ groups }: { groups: FilterGroup<string>[] }
         title="Filtros"
         align="start"
         trigger={
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             aria-label="Filtros"
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 py-1 text-xs font-bold hover:bg-foreground/5"
+            title="Filtros"
+            className="relative size-8 shrink-0 rounded-md bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary aria-expanded:bg-primary/25 aria-expanded:text-primary"
           >
-            <Filter size={13} />
-            Filtros
+            <Filter size={14} />
             {totalSelected > 0 ? (
-              <span className="rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">
+              <span className="absolute -top-1 -right-1 rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
                 {totalSelected}
               </span>
             ) : null}
-          </button>
+          </Button>
         }
       >
         <div className="max-h-72 overflow-auto p-1.5">

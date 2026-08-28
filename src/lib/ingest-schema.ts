@@ -21,6 +21,16 @@ export function maxBytesFor(kind: IngestKind): number {
   return kind === "spreadsheet" ? MAX_SPREADSHEET_BYTES : MAX_TEXT_FILE_BYTES;
 }
 
+const PATTERN_NODE_TYPE_LABELS: Record<string, string> = {
+  Address: "Endereço",
+  Company: "Empresa",
+  Person: "Pessoa",
+};
+
+export function patternNodeTypeLabel(nodeType: string): string {
+  return PATTERN_NODE_TYPE_LABELS[nodeType] ?? nodeType;
+}
+
 const DEFAULT_PATTERN_NAMES = ["CPF_LOOSE", "CNPJ_LOOSE"];
 
 export function defaultSelectedPatterns(catalog: TextPatternCatalog): string[] {

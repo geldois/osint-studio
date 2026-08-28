@@ -1,23 +1,32 @@
 "use client";
 
-import { Filter, X } from "lucide-react";
+import { Filter, type LucideIcon, X } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Flyout } from "@/components/flyout";
 
 export interface FilterChipsOption {
   value: string;
   label: string;
-  count: number;
+  count?: number;
 }
 
 export interface FilterChipsProps {
   options: FilterChipsOption[];
   selected: string[];
   onChange: (selected: string[]) => void;
+  label?: string;
+  icon?: LucideIcon;
 }
 
-export function FilterChips({ options, selected, onChange }: FilterChipsProps) {
+export function FilterChips({
+  options,
+  selected,
+  onChange,
+  label = "Filtros",
+  icon: Icon = Filter,
+}: FilterChipsProps) {
   const [open, setOpen] = useState(false);
   const labelByValue = new Map(
     options.map((option) => [option.value, option.label] as const),
@@ -40,17 +49,24 @@ export function FilterChips({ options, selected, onChange }: FilterChipsProps) {
       <Flyout
         open={open}
         onOpenChange={setOpen}
-        title="Filtros"
+        title={label}
         align="start"
         trigger={
-          <button
+          <Button
             type="button"
-            aria-label="Filtros"
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 py-1 text-xs font-bold hover:bg-foreground/5"
+            variant="ghost"
+            size="icon"
+            aria-label={label}
+            title={label}
+            className="relative size-8 shrink-0 rounded-md bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary aria-expanded:bg-primary/25 aria-expanded:text-primary"
           >
-            <Filter size={13} />
-            Filtros
-          </button>
+            <Icon size={14} />
+            {selected.length > 0 ? (
+              <span className="absolute -top-1 -right-1 rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
+                {selected.length}
+              </span>
+            ) : null}
+          </Button>
         }
       >
         <ul className="max-h-72 space-y-1 overflow-auto p-1.5">
@@ -64,7 +80,9 @@ export function FilterChips({ options, selected, onChange }: FilterChipsProps) {
                   }}
                 />
                 <span className="flex-1">{option.label}</span>
-                <span className="text-[11px] text-muted">{option.count}</span>
+                {option.count !== undefined ? (
+                  <span className="text-[11px] text-muted">{option.count}</span>
+                ) : null}
               </label>
             </li>
           ))}

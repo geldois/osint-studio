@@ -1,13 +1,12 @@
 "use client";
 
 import {
-  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   FileText,
+  LayoutDashboard,
   Network,
-  Search,
   SquareUser,
   Table2,
   X,
@@ -23,8 +22,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ExpansionMenu } from "@/components/expansion-menu";
+import { FilterBar } from "@/components/filter-bar";
 import { GroupedFilterChips } from "@/components/grouped-filter-chips";
-import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EntityIcon } from "@/components/nodes/entity-icon";
@@ -201,43 +200,38 @@ function RelationshipList({ relationships }: { relationships: NodeRelationship[]
 
   return (
     <div className="-mx-3 -mb-3">
-      <div className="space-y-2 bg-surface p-2">
-        <div className="relative">
-          <Search
-            size={13}
-            className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
-          />
-          <Input
-            value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Filtrar relacionamentos..."
-            className="pl-7"
-          />
-        </div>
-        <GroupedFilterChips
-          groups={[
-            {
-              title: "Tipo",
-              options: typeOptions,
-              selected: selectedTypes,
-              onChange: (next) => {
-                setSelectedTypes(next as NodeType[]);
-                setPage(1);
-              },
-            },
-            {
-              title: "Direção",
-              options: directionOptions,
-              selected: selectedDirections,
-              onChange: (next) => {
-                setSelectedDirections(next as RelationshipDirection[]);
-                setPage(1);
-              },
-            },
-          ]}
+      <div className="bg-surface p-2">
+        <FilterBar
+          value={filter}
+          onChange={(value) => {
+            setFilter(value);
+            setPage(1);
+          }}
+          placeholder="Filtrar relacionamentos..."
+          leftSlot={
+            <GroupedFilterChips
+              groups={[
+                {
+                  title: "Tipo",
+                  options: typeOptions,
+                  selected: selectedTypes,
+                  onChange: (next) => {
+                    setSelectedTypes(next as NodeType[]);
+                    setPage(1);
+                  },
+                },
+                {
+                  title: "Direção",
+                  options: directionOptions,
+                  selected: selectedDirections,
+                  onChange: (next) => {
+                    setSelectedDirections(next as RelationshipDirection[]);
+                    setPage(1);
+                  },
+                },
+              ]}
+            />
+          }
         />
       </div>
       {visible.length === 0 ? (
@@ -584,7 +578,7 @@ type DetailPanelTab = "detalhes" | "relatorio";
 const JUMP_TO_DESTINATIONS = [
   { href: "/graph", icon: Network, label: "Grafo" },
   { href: "/table", icon: Table2, label: "Tabela" },
-  { href: "/dashboard", icon: AlertTriangle, label: "Dashboard" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
 ] as const;
 
 function JumpToMenu({ nodeId }: { nodeId: string }) {

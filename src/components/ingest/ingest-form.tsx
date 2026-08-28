@@ -8,7 +8,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PatternSelect } from "@/components/ingest/pattern-select";
+import { FilterChips } from "@/components/filter-chips";
 import { useIngest } from "@/hooks/use-ingest";
 import { useTextPatternCatalog } from "@/hooks/use-text-patterns";
 import { RateLimitError } from "@/lib/api";
@@ -16,6 +16,7 @@ import { translateError } from "@/lib/errors";
 import {
   defaultSelectedPatterns,
   ingestSchema,
+  patternNodeTypeLabel,
   type IngestFormValues,
 } from "@/lib/ingest-schema";
 
@@ -149,9 +150,13 @@ export function IngestForm({ onSuccess, compact = false }: IngestFormProps) {
         {isLoadingPatterns ? (
           <p className="text-muted text-sm">Carregando padrões...</p>
         ) : catalog === undefined ? null : (
-          <PatternSelect
-            catalog={catalog}
-            value={patterns}
+          <FilterChips
+            label="Padrões"
+            options={catalog.patterns.map((pattern) => ({
+              value: pattern.name,
+              label: `${pattern.name} · ${patternNodeTypeLabel(pattern.node_type)}`,
+            }))}
+            selected={patterns}
             onChange={(next) => {
               setValue("patterns", next, { shouldValidate: true });
             }}

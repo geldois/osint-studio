@@ -1,13 +1,13 @@
 "use client";
 
 import { useQueries } from "@tanstack/react-query";
-import { Info, Search } from "lucide-react";
+import { Info } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EntityIcon } from "@/components/nodes/entity-icon";
+import { FilterBar } from "@/components/filter-bar";
 import { FilterChips } from "@/components/filter-chips";
-import { Input } from "@/components/ui/input";
 import { Flyout } from "@/components/flyout";
 import { useGraphCatalog } from "@/hooks/use-graph-catalog";
 import { useOverlay } from "@/hooks/use-overlay";
@@ -124,27 +124,20 @@ export function GraphInfoButton() {
         ) : null}
       </div>
 
-      <div className="space-y-2 border-border border-b p-2">
-        <div className="relative">
-          <Search
-            size={13}
-            className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
-          />
-          <Input
-            value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value);
-            }}
-            placeholder="Filtrar grafos..."
-            className="pl-7"
-          />
-        </div>
-        <FilterChips
-          options={typeOptions}
-          selected={selectedTypes}
-          onChange={(next) => {
-            setSelectedTypes(next as NodeType[]);
-          }}
+      <div className="border-border border-b p-2">
+        <FilterBar
+          value={filter}
+          onChange={setFilter}
+          placeholder="Filtrar grafos..."
+          leftSlot={
+            <FilterChips
+              options={typeOptions}
+              selected={selectedTypes}
+              onChange={(next) => {
+                setSelectedTypes(next as NodeType[]);
+              }}
+            />
+          }
         />
       </div>
 
@@ -222,7 +215,7 @@ export function GraphInfoButton() {
                           · {revision.revision.provider}
                         </span>
                         {revision.revision.merged_at !== null ? (
-                          <span className="rounded-sm bg-white/10 px-1 text-[9px] uppercase">
+                          <span className="rounded-sm bg-foreground/5 px-1 text-[9px] uppercase">
                             mesclado
                           </span>
                         ) : null}

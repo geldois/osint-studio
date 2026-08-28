@@ -10,11 +10,11 @@ import {
   type PaginationState,
   type SortingState,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useMemo, useState } from "react";
 import { columnsFor, toTableRow } from "@/components/data-table/columns";
+import { FilterBar } from "@/components/filter-bar";
 import { FilterChips } from "@/components/filter-chips";
-import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -111,34 +111,29 @@ export function DataTable() {
 
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden">
-      <div className="space-y-2 border-border border-b bg-surface p-2">
-        <div className="relative">
-          <Search
-            size={13}
-            className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted"
-          />
-          <Input
-            value={globalFilter}
-            onChange={(e) => {
-              table.setGlobalFilter(e.target.value);
-            }}
-            placeholder="Filtrar por nome ou atributo..."
-            className="w-full pl-7"
-          />
-        </div>
-        <FilterChips
-          options={filterOptions}
-          selected={selectedTypes}
-          onChange={(next) => {
-            setSelectedTypes(next as NodeType[]);
-            setPagination((p) => ({ ...p, pageIndex: 0 }));
+      <div className="border-border border-b bg-surface p-2">
+        <FilterBar
+          value={globalFilter}
+          onChange={(value) => {
+            table.setGlobalFilter(value);
           }}
+          placeholder="Filtrar por nome ou atributo..."
+          leftSlot={
+            <FilterChips
+              options={filterOptions}
+              selected={selectedTypes}
+              onChange={(next) => {
+                setSelectedTypes(next as NodeType[]);
+                setPagination((p) => ({ ...p, pageIndex: 0 }));
+              }}
+            />
+          }
         />
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <Table className="text-sm" containerClassName="overflow-x-auto">
+        <ScrollArea className="h-full" orientation="both">
+          <Table className="text-sm">
             <TableHeader className="sticky top-0 z-10 bg-surface">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="border-border">
@@ -192,7 +187,7 @@ export function DataTable() {
                     selectNode(row.original.node.id);
                   }}
                   className={`cursor-pointer border-border transition-colors hover:bg-foreground/5 ${
-                    selectedNodeId === row.original.node.id ? "bg-white/10" : ""
+                    selectedNodeId === row.original.node.id ? "bg-foreground/5" : ""
                   }`}
                 >
                   {row.getVisibleCells().map((cell) => (
