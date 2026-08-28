@@ -59,7 +59,7 @@ export function GraphInfoButton() {
     [entries],
   );
 
-  if (overlay.roots.size === 0) {
+  if (entries.length === 0) {
     return null;
   }
 
