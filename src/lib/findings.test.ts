@@ -6,9 +6,11 @@ import type {
   ApiEdge,
   ApiNode,
   CompanyNode,
+  LegalProcessNode,
   OwnsCompanyEdge,
   PersonNode,
   PlainEdge,
+  PoliticalExposureNode,
   PossiblyMatchesEdge,
   SanctionNode,
   TextSourceNode,
@@ -93,6 +95,51 @@ function sanction(
     source_id: `s-${id}`,
     start_date: "2025-01-01",
     type: "sanction",
+  };
+}
+
+function politicalExposure(
+  id: string,
+  body = "Prefeitura de Salvador",
+): PoliticalExposureNode {
+  return {
+    content_id: `c-${id}`,
+    cpf: "cpf1",
+    exercise_end_date: null,
+    exercise_start_date: "2021-01-01",
+    function_acronym: "SEC",
+    function_description: "Secretário",
+    function_level: "municipal",
+    government_body_code: null,
+    government_body_name: body,
+    grace_period_end_date: null,
+    id,
+    revision: revision(),
+    type: "political_exposure",
+  };
+}
+
+function legalProcess(
+  id: string,
+  overrides: Partial<LegalProcessNode> = {},
+): LegalProcessNode {
+  return {
+    content_id: `c-${id}`,
+    court: "TJBA",
+    current_status: "Em andamento",
+    distribution_date: "2023-01-01",
+    execution_value: null,
+    id,
+    is_secret_of_justice: null,
+    lawsuit_value: null,
+    lawsuit_value_currency: null,
+    process_class: "Ação de cobrança",
+    process_number: "0001-01.2023.8.05.0001",
+    process_url: null,
+    revision: revision(),
+    state: "BA",
+    type: "legal_process",
+    ...overrides,
   };
 }
 
@@ -267,6 +314,78 @@ describe("evaluateFindings — sharedContactRule", () => {
       overlay([a, addr], [edge("company_located_at", "cnpj1", "addr1")]),
     );
     expect(findings.filter((f) => f.category === "conflito_interesse")).toHaveLength(0);
+  });
+});
+
+describe("evaluateFindings — politicalExposureRule", () => {
+  it("flags a person linked to a political exposure record", () => {
+    const p = person("cpf1", "Fulano");
+    const exposure = politicalExposure("pep1");
+    const findings = evaluateFindings(
+      overlay([p, exposure], [edge("person_has_political_exposure", "cpf1", "pep1")]),
+    );
+    const matches = findings.filter((f) => f.category === "conflito_interesse");
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({ severity: "medio" });
+    expect(matches[0]?.nodeIds).toEqual(["cpf1", "pep1"]);
+    expect(matches[0]?.description).toContain("mandato em curso");
+  });
+
+  it("notes the exercise end date when the mandate already ended", () => {
+    const p = person("cpf1", "Fulano");
+    const exposure = { ...politicalExposure("pep1"), exercise_end_date: "2024-12-31" };
+    const findings = evaluateFindings(
+      overlay([p, exposure], [edge("person_has_political_exposure", "cpf1", "pep1")]),
+    );
+    const matches = findings.filter((f) => f.category === "conflito_interesse");
+    expect(matches[0]?.description).toContain("2024-12-31");
+  });
+
+  it("stays silent when no political exposure edge is present", () => {
+    const p = person("cpf1", "Fulano");
+    expect(evaluateFindings(overlay([p], []))).toHaveLength(0);
+  });
+});
+
+describe("evaluateFindings — legalProcessRule", () => {
+  it("flags a company that is party in a legal process, severity alto", () => {
+    const acme = company("cnpj1", "Acme LTDA");
+    const process = legalProcess("lp1");
+    const findings = evaluateFindings(
+      overlay(
+        [acme, process],
+        [edge("company_is_party_in_legal_process", "cnpj1", "lp1")],
+      ),
+    );
+    const matches = findings.filter((f) => f.category === "processo_judicial");
+    expect(matches).toHaveLength(1);
+    expect(matches[0]).toMatchObject({ severity: "alto" });
+    expect(matches[0]?.nodeIds).toEqual(["cnpj1", "lp1"]);
+  });
+
+  it("mentions secrecy of justice in the description when present", () => {
+    const p = person("cpf1", "Fulano");
+    const process = legalProcess("lp1", { is_secret_of_justice: true });
+    const findings = evaluateFindings(
+      overlay([p, process], [edge("person_is_party_in_legal_process", "cpf1", "lp1")]),
+    );
+    const matches = findings.filter((f) => f.category === "processo_judicial");
+    expect(matches[0]?.description).toContain("segredo de justiça");
+  });
+
+  it("omits secrecy of justice from the description when absent", () => {
+    const p = person("cpf1", "Fulano");
+    const process = legalProcess("lp1", { is_secret_of_justice: null });
+    const findings = evaluateFindings(
+      overlay([p, process], [edge("person_is_party_in_legal_process", "cpf1", "lp1")]),
+    );
+    const matches = findings.filter((f) => f.category === "processo_judicial");
+    expect(matches[0]?.description).not.toContain("segredo de justiça");
+  });
+
+  it("stays silent when no legal process edge is present", () => {
+    const acme = company("cnpj1", "Acme LTDA");
+    expect(evaluateFindings(overlay([acme], []))).toHaveLength(0);
   });
 });
 

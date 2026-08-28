@@ -23,6 +23,7 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-chart-6: var(--chart-6);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -81,6 +82,7 @@
   --chart-3: #60646c;
   --chart-4: #3db9cf;
   --chart-5: #00a2c7;
+  --chart-6: #ab6400;
   --radius: 0.4rem;
   --sidebar: var(--surface);
   --sidebar-foreground: var(--foreground);
@@ -120,6 +122,7 @@
   --chart-3: #b0b4ba;
   --chart-4: #11809c;
   --chart-5: #00a2c7;
+  --chart-6: #ffca16;
   --sidebar: var(--surface);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
@@ -147,6 +150,24 @@ button:not(:disabled) {
 }
 
 @media print {
+  :root,
+  .dark {
+    --background: #fcfcfd;
+    --foreground: #1c2024;
+    --surface: #f9f9fb;
+    --surface-2: #e8e8ec;
+    --border: #cdced6;
+    --muted: #60646c;
+    --popover: #f9f9fb;
+    --popover-foreground: #1c2024;
+    --destructive: #e54d2e;
+    --warning: #ab6400;
+    --warning-foreground: #fefdfb;
+  }
+  body {
+    background: var(--background) !important;
+    color: var(--foreground) !important;
+  }
   [data-slot="dialog-overlay"],
   [data-slot="dialog-close"] {
     display: none !important;

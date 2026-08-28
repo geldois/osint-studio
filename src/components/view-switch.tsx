@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Network, Table2 } from "lucide-react";
+import { LayoutDashboard, Network, Table2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { evaluateFindings } from "@/lib/findings";
@@ -49,7 +49,7 @@ export function ViewSwitch() {
         title="Dashboard"
         className="relative w-8 self-stretch dark:hover:bg-input/50 aria-pressed:bg-primary/15 aria-pressed:text-primary"
       >
-        <AlertTriangle size={14} />
+        <LayoutDashboard size={14} />
         {findings.length > 0 ? (
           <span
             className={cn(

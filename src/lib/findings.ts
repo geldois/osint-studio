@@ -9,6 +9,7 @@ export type FindingCategory =
   | "conflito_interesse"
   | "fraude"
   | "identidade"
+  | "processo_judicial"
   | "qualidade_dado"
   | "risco_associacao";
 
@@ -37,6 +38,7 @@ const CATEGORY_LABELS: Record<FindingCategory, string> = {
   conflito_interesse: "Conflito de interesse",
   fraude: "Fraude e desvio",
   identidade: "Identidade",
+  processo_judicial: "Processo judicial",
   qualidade_dado: "Qualidade do dado",
   risco_associacao: "Risco por associação",
 };
@@ -200,6 +202,76 @@ function sharedContactByDirectOrMentionEdgeRule(
   return findings;
 }
 
+const POLITICAL_EXPOSURE_EDGE_TYPES = new Set<EdgeType>([
+  "person_has_political_exposure",
+]);
+
+function politicalExposureRule(
+  overlay: OverlayResult,
+  nodeById: Map<string, ApiNode>,
+): Finding[] {
+  const findings: Finding[] = [];
+  for (const edge of overlay.edges) {
+    if (!POLITICAL_EXPOSURE_EDGE_TYPES.has(edge.type)) {
+      continue;
+    }
+    const person = nodeById.get(edge.source_id);
+    const exposure = nodeById.get(edge.target_id);
+    if (person === undefined || exposure?.type !== "political_exposure") {
+      continue;
+    }
+    findings.push({
+      category: "conflito_interesse",
+      description:
+        `${exposure.function_description} em ${exposure.government_body_name}` +
+        (exposure.exercise_end_date === null
+          ? ", mandato em curso."
+          : `, até ${exposure.exercise_end_date}.`),
+      id: `pep:${edge.source_id}:${edge.target_id}`,
+      nodeIds: [person.id, exposure.id],
+      severity: "medio",
+      title: `${extractLabel(person)} tem exposição política`,
+    });
+  }
+  return findings;
+}
+
+const LEGAL_PROCESS_EDGE_TYPES = new Set<EdgeType>([
+  "person_is_party_in_legal_process",
+  "company_is_party_in_legal_process",
+]);
+
+function legalProcessRule(
+  overlay: OverlayResult,
+  nodeById: Map<string, ApiNode>,
+): Finding[] {
+  const findings: Finding[] = [];
+  for (const edge of overlay.edges) {
+    if (!LEGAL_PROCESS_EDGE_TYPES.has(edge.type)) {
+      continue;
+    }
+    const party = nodeById.get(edge.source_id);
+    const process = nodeById.get(edge.target_id);
+    if (party === undefined || process?.type !== "legal_process") {
+      continue;
+    }
+    const secrecy =
+      process.is_secret_of_justice === true ? " (segredo de justiça)" : "";
+    findings.push({
+      category: "processo_judicial",
+      description:
+        `${process.process_class ?? "Processo"} · ${process.court ?? "tribunal não informado"}` +
+        (process.state !== null ? `/${process.state}` : "") +
+        `${secrecy}. Status: ${process.current_status ?? "não informado"}.`,
+      id: `legal-process:${edge.source_id}:${edge.target_id}`,
+      nodeIds: [party.id, process.id],
+      severity: "alto",
+      title: `${extractLabel(party)} é parte em processo judicial`,
+    });
+  }
+  return findings;
+}
+
 function possibleMatchRule(
   overlay: OverlayResult,
   nodeById: Map<string, ApiNode>,
@@ -257,6 +329,8 @@ const FINDING_RULES: FindingRule[] = [
   sanctionRule,
   associationRiskRule,
   sharedContactByDirectOrMentionEdgeRule,
+  politicalExposureRule,
+  legalProcessRule,
   possibleMatchRule,
   conflictRule,
 ];
