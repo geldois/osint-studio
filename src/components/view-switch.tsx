@@ -16,7 +16,7 @@ export function ViewSwitch() {
 
   return (
     <ToggleGroup
-      className="flex overflow-hidden rounded-md border border-border bg-surface-2"
+      className="flex h-8 overflow-hidden rounded-md border border-border bg-surface-2"
       orientation="horizontal"
       spacing={0}
       value={[pathname]}
@@ -27,7 +27,7 @@ export function ViewSwitch() {
         value="/graph"
         aria-label="Visualizar em grafo"
         title="Grafo"
-        className="size-8 border-border border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+        className="w-8 self-stretch border-border border-r dark:hover:bg-input/50 aria-pressed:bg-primary/15 aria-pressed:text-primary"
       >
         <Network size={14} />
       </ToggleGroupItem>
@@ -37,7 +37,7 @@ export function ViewSwitch() {
         value="/table"
         aria-label="Visualizar em tabela"
         title="Tabela"
-        className="size-8 border-border border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+        className="w-8 self-stretch border-border border-r dark:hover:bg-input/50 aria-pressed:bg-primary/15 aria-pressed:text-primary"
       >
         <Table2 size={14} />
       </ToggleGroupItem>
@@ -47,7 +47,7 @@ export function ViewSwitch() {
         value="/dashboard"
         aria-label="Visualizar o dashboard de achados"
         title="Dashboard"
-        className="relative size-8 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+        className="relative w-8 self-stretch dark:hover:bg-input/50 aria-pressed:bg-primary/15 aria-pressed:text-primary"
       >
         <AlertTriangle size={14} />
         {findings.length > 0 ? (

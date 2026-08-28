@@ -45,7 +45,7 @@ export function IngestFlyout() {
           size="icon"
           aria-label="Ingestão de arquivo"
           title="Ingestão de arquivo"
-          className="size-8 shrink-0 rounded-lg bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary"
+          className="size-8 shrink-0 rounded-md bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary aria-expanded:bg-primary/25 aria-expanded:text-primary"
         >
           <Paperclip size={15} />
         </Button>

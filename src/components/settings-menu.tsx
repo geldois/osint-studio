@@ -46,7 +46,7 @@ export function SettingsMenu() {
               ? "Uma credencial necessária não está configurada"
               : undefined
           }
-          className="relative size-8 rounded-full"
+          className="relative size-8 rounded-md aria-expanded:bg-primary/15 aria-expanded:text-primary"
         >
           <UserRound size={16} />
           {hasMissingCredential ? (

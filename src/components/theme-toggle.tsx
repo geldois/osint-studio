@@ -35,7 +35,7 @@ export function ThemeToggle() {
         type="button"
         variant="outline"
         size="icon"
-        className="size-8"
+        className="size-8 rounded-md"
         disabled
         aria-label="Tema"
       >
@@ -58,7 +58,7 @@ export function ThemeToggle() {
           type="button"
           variant="outline"
           size="icon"
-          className="size-8"
+          className="size-8 rounded-md aria-expanded:bg-primary/15 aria-expanded:text-primary"
           aria-label="Tema"
           title={`Tema: ${active.label}`}
         >

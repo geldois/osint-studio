@@ -96,7 +96,7 @@ export function GraphInfoButton() {
           size="icon"
           aria-label="Informações do grafo"
           title={summary}
-          className="size-8"
+          className="size-8 rounded-md aria-expanded:bg-primary/15 aria-expanded:text-primary"
         >
           <Info size={14} />
         </Button>
