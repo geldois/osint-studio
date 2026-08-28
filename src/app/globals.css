@@ -5,8 +5,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --font-sans: var(--font-zed-mono);
-  --font-mono: var(--font-zed-mono);
+  --font-sans: var(--font-victor-mono);
+  --font-mono: var(--font-victor-mono);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

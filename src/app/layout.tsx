@@ -1,14 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
+import { Victor_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const zedMono = localFont({
-  src: [
-    { path: "./fonts/ZedMonoNerdFontMono-Regular.ttf", weight: "400", style: "normal" },
-    { path: "./fonts/ZedMonoNerdFontMono-Bold.ttf", weight: "700", style: "normal" },
-  ],
-  variable: "--font-zed-mono",
+const victorMono = Victor_Mono({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-victor-mono",
   display: "swap",
 });
 
@@ -32,7 +30,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${zedMono.variable} h-dvh`} suppressHydrationWarning>
+    <html
+      lang="pt-BR"
+      className={`${victorMono.variable} h-dvh`}
+      suppressHydrationWarning
+    >
       <body className="h-dvh bg-background text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>
