@@ -69,6 +69,7 @@ export function DataTable() {
   const sampleNode = selectedTypes.length === 1 ? (filteredNodes[0] ?? null) : null;
   const columns = useMemo(() => columnsFor(sampleNode), [sampleNode]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
