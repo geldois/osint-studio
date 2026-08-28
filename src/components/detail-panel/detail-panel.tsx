@@ -22,6 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ExpansionMenu } from "@/components/expansion-menu";
 import { GroupedFilterChips } from "@/components/grouped-filter-chips";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/pagination";
@@ -358,6 +359,7 @@ function NodePanel({ nodeId }: { nodeId: string }) {
   const role = useAuthStore((s) => s.role);
   const { mutate, isPending, error, data } = useExpand();
   const backgroundErrors = data ? visibleErrorMessages(data.errors) : [];
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const nodeById = new Map(overlay.nodes.map((n) => [n.id, n] as const));
   const node = nodeById.get(nodeId);
@@ -380,14 +382,6 @@ function NodePanel({ nodeId }: { nodeId: string }) {
     expandableDocument !== null &&
     documentType !== null &&
     canFetchDocumentType(role, documentType);
-
-  function handleDocumentClick(): void {
-    if (documentType === "cnpj" && expandableDocument !== null) {
-      mutate({ document: expandableDocument, routes: ["root"] });
-    } else if (documentType === "cpf") {
-      consumeCpf.consume(false);
-    }
-  }
 
   return (
     <ScrollArea className="h-full">
@@ -425,18 +419,39 @@ function NodePanel({ nodeId }: { nodeId: string }) {
               canExpand && (row.key === "cnpj" || row.key === "cpf");
             const isMaskedDocumentRow = maskedCpf && row.key === "cpf";
             return (
-              <div key={row.key} className="flex justify-between gap-3">
+              <div
+                key={row.key}
+                className={cn(
+                  "flex justify-between gap-3",
+                  isDocumentRow && "relative",
+                )}
+              >
                 <dt className="shrink-0 text-muted">{row.key}</dt>
                 {isDocumentRow ? (
                   <dd className="text-right">
                     <button
                       type="button"
-                      disabled={documentType === "cnpj" && isPending}
-                      onClick={handleDocumentClick}
+                      disabled={isPending}
+                      onClick={() => {
+                        setMenuOpen(true);
+                      }}
                       className="break-all text-primary hover:underline disabled:opacity-50"
                     >
                       {row.value}
                     </button>
+                    {menuOpen ? (
+                      <ExpansionMenu
+                        document={expandableDocument}
+                        isPending={isPending}
+                        onClose={() => {
+                          setMenuOpen(false);
+                        }}
+                        onConfirm={(routes, force) => {
+                          mutate({ document: expandableDocument, routes, force });
+                          setMenuOpen(false);
+                        }}
+                      />
+                    ) : null}
                   </dd>
                 ) : isMaskedDocumentRow ? (
                   <dd
@@ -452,9 +467,9 @@ function NodePanel({ nodeId }: { nodeId: string }) {
             );
           })}
         </dl>
-        {documentType === "cnpj" && error ? (
+        {error ? (
           <p className="mt-2 text-red-500 text-xs">{translateError(error)}</p>
-        ) : documentType === "cnpj" && backgroundErrors.length > 0 ? (
+        ) : backgroundErrors.length > 0 ? (
           <p className="mt-2 text-amber-500 text-xs">{backgroundErrors.join(" ")}</p>
         ) : null}
       </section>

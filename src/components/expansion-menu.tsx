@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCredentialStatus } from "@/hooks/use-credential-status";
@@ -36,6 +36,30 @@ export function ExpansionMenu({
 
   const [selected, setSelected] = useState<Set<ExpansionRouteKey>>(new Set());
   const [force, setForce] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent): void {
+      if (
+        containerRef.current !== null &&
+        event.target instanceof Node &&
+        !containerRef.current.contains(event.target)
+      ) {
+        onClose();
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+    globalThis.document.addEventListener("pointerdown", handlePointerDown);
+    globalThis.document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      globalThis.document.removeEventListener("pointerdown", handlePointerDown);
+      globalThis.document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
 
   const total = totalPriceBRL(routes, selected);
   const showForce = routes.some(
@@ -55,7 +79,10 @@ export function ExpansionMenu({
   }
 
   return (
-    <div className="absolute inset-x-0 top-full z-20 mt-1 rounded-lg border border-border bg-surface-2 shadow-lg">
+    <div
+      ref={containerRef}
+      className="absolute inset-x-0 top-full z-20 mt-1 rounded-lg border border-border bg-surface-2 shadow-lg"
+    >
       <div className="flex items-center justify-between border-border border-b p-2">
         <span className="flex items-center gap-1.5">
           <span className="font-medium text-[12px]">Rotas de expansão</span>
