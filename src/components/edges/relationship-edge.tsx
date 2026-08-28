@@ -75,7 +75,7 @@ export function RelationshipEdge({
         className={
           isPossiblyMatch
             ? "stroke-amber-500!"
-            : isHighlighted
+            : isSelected || isHighlighted
               ? "stroke-white!"
               : "stroke-border!"
         }
