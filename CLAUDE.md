@@ -18,6 +18,11 @@ full record: `build/reports/gates.json` (gitignored).
 Activate the git hooks once per clone — `git config --local include.path ../.gitconfig` — or every commit lands
 unchecked. Needs `mise` active on `PATH`.
 
+For a batch of several commits in one session, run `scripts/run fix` across the whole repo once before the first
+commit, not just the touched files — every commit in the batch is born-green, so committing with `--no-verify` is
+the fast path instead of re-running the full gate per commit. Still run the full gate at least once before ending
+the session or pushing.
+
 ## Code
 
 No comments and no docstrings anywhere in this repository, ever — not `src/`, not `.claude/hooks/`, `.github/`, nor

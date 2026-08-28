@@ -30,12 +30,13 @@ const TARGETED_FILE = /\s\S+\.(?:ts|tsx|js|jsx|mjs)(?:\s|$)/;
 const TARGETED_FLAG = /(?:^|\s)(?:-t|--testNamePattern)\b/;
 
 const REASON =
-  "Don't self-verify — `pre-commit` already runs the full gate " +
-  "(`scripts/run precommit`) on every commit and reports any failure " +
-  "inline. Just commit: if it fails, fix what's reported and commit " +
-  "again. Targeted single-file runs (e.g. `eslint path/to/file.ts`, " +
-  "`vitest run path/to/file.test.ts`, `prettier --check path/to/file.ts`) " +
-  "are still fine for quick iteration while writing code.";
+  "Don't self-verify per commit — before a batch of `--no-verify` commits, " +
+  "run a repo-wide `scripts/run fix` then a repo-wide lint check once, in " +
+  "that order, so the whole batch is born-green; skip re-running either " +
+  "between commits in the same batch. Targeted single-file runs (e.g. " +
+  "`eslint path/to/file.ts`, `vitest run path/to/file.test.ts`, " +
+  "`prettier --check path/to/file.ts`) are still fine for quick iteration " +
+  "while writing code.";
 
 function normalize(statement: string): string {
   let normalized = statement.trim();
