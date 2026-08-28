@@ -76,6 +76,28 @@ class into a canonical property order, and reflowing every multi-class string ac
 reformat nearly every existing `className` in the codebase for a stylistic preference nobody asked for, versus the
 rules kept, which only ever fire on an actual defect or the one drift this was adopted to catch.
 
+Automated fixing runs once at the end of every turn rather than at commit time or after every single edit. Fixing
+at commit time only reformats whatever drifted since the last commit in one lump, landing unrelated formatting
+noise inside whichever commit happens to run un-skipped, invisibly, since the assistant only ever sees that hook's
+pass or fail. Fixing after every single edit was considered and rejected too: the assistant's own in-context copy
+of a file goes stale the moment an external process rewrites it mid-turn, breaking a following edit that expected
+the file exactly as it left it. Once per turn, after that turn's edits are done, nothing is still relying on the
+file's prior exact shape, so every changed file can be reformatted for free and no formatting residue ever survives
+to a commit.
+
+Every safe fixer the repository owns, and every lint/type/build/test check, is reachable through exactly one
+command each, used identically by a human's manual pass, the assistant's automatic one, and the commit gate — so
+the three never drift into three separate sets of formatting rules. The lint gate also fails on a warning, not only
+an error, for the same reason a warning left inside the codebase indefinitely stops being noticed at all.
+
+A direct, manual run of any of those checks or fixers by the assistant is denied outright rather than merely
+discouraged: a per-turn reminder in its own instructions was tried first and did not hold once a session ran long
+enough, since the assistant would rediscover a reason to run one by hand anyway. The one door left open runs both
+steps together and prints a single line either way — a plain confirmation, or the actual failure — precisely
+because that combined command is the only path that still makes sense to reach for once the two automatic passes
+already cover everything else: at the point something is checked by hand, either both steps are wanted, or neither
+automatic pass would have caught it yet regardless of which one is asked for.
+
 ## Consequences
 
 The formatting tool's own house style for emphasis in prose documents is fixed and not configurable, so the

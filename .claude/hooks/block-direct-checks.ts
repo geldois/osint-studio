@@ -1,4 +1,4 @@
-import { context, readEvent, toolInput } from "./_hook-io";
+import { deny, readEvent, toolInput } from "./_hook-io";
 
 const STATEMENT_SPLIT = /&&|[;\n]|\|+|[()]/;
 
@@ -10,8 +10,8 @@ function stripHeredocs(command: string): string {
 
 const LEADING = /^(?:pnpm|npx|mise|exec|run|--?\S+)\s+/;
 
-const FACADE_NAMES = new Set(["gates", "precommit"]);
-const FACADE_SCRIPT = /^scripts\/run\s+(?:check|precommit)\b/;
+const FACADE_NAMES = new Set(["gates"]);
+const FACADE_SCRIPT = /^scripts\/run\s+(?:check|fix)\b/;
 
 const FULL_ONLY_NAMES = new Set(["tsc", "type-check", "build"]);
 const NEXT_BUILD = /^next\s+build\b/;
@@ -30,11 +30,12 @@ const TARGETED_FILE = /\s\S+\.(?:ts|tsx|js|jsx|mjs)(?:\s|$)/;
 const TARGETED_FLAG = /(?:^|\s)(?:-t|--testNamePattern)\b/;
 
 const REASON =
-  "Don't self-verify per commit — before a batch of `--no-verify` commits, " +
-  "run a repo-wide `scripts/run fix` then a repo-wide lint check once, in " +
-  "that order, so the whole batch is born-green; skip re-running either " +
-  "between commits in the same batch. Targeted single-file runs (e.g. " +
-  "`eslint path/to/file.ts`, `vitest run path/to/file.test.ts`, " +
+  "Denied — the only sanctioned way to run checks or fixes yourself is " +
+  "`scripts/run verify [files...]` (fix, then check, on the given files or " +
+  "the whole repo with none given). Fix already runs silently every turn " +
+  "and check already runs at commit/merge; use `verify` only when you need " +
+  "the result before either of those would. Targeted single-file runs " +
+  "(e.g. `eslint path/to/file.ts`, `vitest run path/to/file.test.ts`, " +
   "`prettier --check path/to/file.ts`) are still fine for quick iteration " +
   "while writing code.";
 
@@ -62,12 +63,12 @@ function main(): void {
     const head = normalized.split(/\s+/)[0] ?? "";
 
     if (FACADE_SCRIPT.test(normalized) || FACADE_NAMES.has(head)) {
-      context("PreToolUse", REASON);
+      deny(REASON);
       return;
     }
 
     if (FULL_ONLY_NAMES.has(head) || NEXT_BUILD.test(normalized)) {
-      context("PreToolUse", REASON);
+      deny(REASON);
       return;
     }
 
@@ -78,7 +79,7 @@ function main(): void {
       continue;
     }
 
-    context("PreToolUse", REASON);
+    deny(REASON);
     return;
   }
 }

@@ -6,14 +6,14 @@
     "dev": "NODE_OPTIONS=--max-old-space-size=3072 next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "gates": "scripts/run check",
-    "precommit": "scripts/run precommit"
+    "verify": "scripts/run verify"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

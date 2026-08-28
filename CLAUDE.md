@@ -11,17 +11,25 @@ Only what no other source holds. Everything else is owned elsewhere — go there
 
 ## Gates
 
-`scripts/run check|fix|precommit`. `.claude/hooks/block-direct-checks.ts` nudges away from a direct `check`/
-`precommit` run rather than blocking it — targeted single-file runs and `scripts/run fix` stay allowed. Last run's
-full record: `build/reports/gates.json` (gitignored).
+`scripts/run check|fix|verify [files...]` are the only entry points into every linter, formatter, and check the
+repo owns.
+
+- `scripts/run fix` runs every safe fixer (prettier, eslint --fix, dprint fmt, shfmt -w, markdownlint --fix) on the
+  given files, or the whole repo with none given. `.claude/hooks/after-turn.ts` calls it on every turn's changed
+  files, silently.
+- `scripts/run check` runs every lint/type/build/test gate, `--max-warnings 0` included. `.githooks/pre-commit` and
+  `.githooks/pre-merge-commit` both call it directly, blocking, silent when green. Last run's full record:
+  `build/reports/gates.json` (gitignored).
+- `scripts/run verify [files...]` runs fix then check: one line, `verify: ok`, when green; the full failing output
+  when not. `.claude/hooks/block-direct-checks.ts` denies every other direct `check`/`fix`/`gates`/full-project
+  lint/type/build/test invocation, redirecting here — this is the only way to run either yourself. Targeted
+  single-file runs (e.g. `eslint path/to/file.ts`) stay allowed for quick iteration.
 
 Activate the git hooks once per clone — `git config --local include.path ../.gitconfig` — or every commit lands
 unchecked. Needs `mise` active on `PATH`.
 
-For a batch of several commits in one session, run `scripts/run fix` across the whole repo once before the first
-commit, not just the touched files — every commit in the batch is born-green, so committing with `--no-verify` is
-the fast path instead of re-running the full gate per commit. Still run the full gate at least once before ending
-the session or pushing.
+For a batch of several commits in one session, `--no-verify` each one and run `scripts/run check` once before
+ending the session or pushing.
 
 ## Code
 

@@ -88,45 +88,91 @@ run_check() {
     [ "$failed" = 0 ]
 }
 
+is_shell_file() {
+    local needle="$1" candidate
+    for candidate in "${_SHELL_FILES[@]}"; do
+        [ "$needle" = "$candidate" ] && return 0
+    done
+    return 1
+}
+
 run_fix() {
     local files=("$@")
     if [ "${#files[@]}" -eq 0 ]; then
-        mapfile -t files < <(git ls-files '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.json' '*.md' '*.css')
+        mapfile -t files < <(git ls-files '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.json' '*.md' '*.css' '*.toml' '*.yaml' '*.yml' '*.sh' | sort -u)
+        files+=("${_SHELL_FILES[@]}")
     fi
-    [ "${#files[@]}" -eq 0 ] && return 0
 
-    local lintable=()
+    local prettier_files=() eslint_files=() dprint_files=() markdownlint_files=() shfmt_files=()
     local file
     for file in "${files[@]}"; do
+        [ -f "$file" ] || continue
         case "$file" in
-        *.ts | *.tsx | *.js | *.jsx | *.mjs) lintable+=("$file") ;;
+        *.ts | *.tsx | *.js | *.jsx | *.mjs | *.json | *.md | *.css) prettier_files+=("$file") ;;
         esac
+        case "$file" in
+        *.ts | *.tsx | *.js | *.jsx | *.mjs) eslint_files+=("$file") ;;
+        esac
+        case "$file" in
+        *.toml | *.yaml | *.yml) dprint_files+=("$file") ;;
+        esac
+        case "$file" in
+        *.md) markdownlint_files+=("$file") ;;
+        esac
+        case "$file" in
+        *.sh) shfmt_files+=("$file") ;;
+        esac
+        is_shell_file "$file" && shfmt_files+=("$file")
     done
 
-    local formattable=()
-    for file in "${files[@]}"; do
-        case "$file" in
-        *.ts | *.tsx | *.js | *.jsx | *.mjs | *.json | *.md | *.css) formattable+=("$file") ;;
-        esac
-    done
-    [ "${#formattable[@]}" -gt 0 ] && mise exec -- pnpm exec prettier --write "${formattable[@]}"
-    [ "${#lintable[@]}" -gt 0 ] && mise exec -- pnpm exec eslint --fix "${lintable[@]}"
+    local did_something=0
+    if [ "${#prettier_files[@]}" -gt 0 ]; then
+        mise exec -- pnpm exec prettier --write "${prettier_files[@]}" >/dev/null 2>&1 || true
+        echo "prettier: ${#prettier_files[@]} file(s)"
+        did_something=1
+    fi
+    if [ "${#eslint_files[@]}" -gt 0 ]; then
+        mise exec -- pnpm exec eslint --fix "${eslint_files[@]}" >/dev/null 2>&1 || true
+        echo "eslint --fix: ${#eslint_files[@]} file(s)"
+        did_something=1
+    fi
+    if [ "${#dprint_files[@]}" -gt 0 ]; then
+        mise exec -- dprint fmt "${dprint_files[@]}" >/dev/null 2>&1 || true
+        echo "dprint fmt: ${#dprint_files[@]} file(s)"
+        did_something=1
+    fi
+    if [ "${#shfmt_files[@]}" -gt 0 ]; then
+        mise exec -- shfmt -w "${shfmt_files[@]}" >/dev/null 2>&1 || true
+        echo "shfmt -w: ${#shfmt_files[@]} file(s)"
+        did_something=1
+    fi
+    if [ "${#markdownlint_files[@]}" -gt 0 ]; then
+        mise exec -- pnpm exec markdownlint-cli2 --fix "${markdownlint_files[@]}" >/dev/null 2>&1 || true
+        echo "markdownlint --fix: ${#markdownlint_files[@]} file(s)"
+        did_something=1
+    fi
+    [ "$did_something" = 0 ] && echo "fix: nothing to do"
     return 0
 }
 
-run_precommit() {
-    local staged=()
-    mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACMR)
-    if [ "${#staged[@]}" -gt 0 ]; then
-        local dirty=() fully_staged=()
-        mapfile -t dirty < <(git diff --name-only)
-        mapfile -t fully_staged < <(comm -23 <(printf '%s\n' "${staged[@]}" | sort) <(printf '%s\n' "${dirty[@]}" | sort))
-        if [ "${#fully_staged[@]}" -gt 0 ]; then
-            run_fix "${fully_staged[@]}"
-            git add -- "${fully_staged[@]}"
-        fi
+run_verify() {
+    run_fix "$@" >/dev/null
+
+    local out status=0
+    out="$(run_check 2>&1)" || status=$?
+
+    if [ "$status" = 0 ]; then
+        echo "verify: ok"
+    else
+        printf '%s\n' "$out"
     fi
-    run_check
+
+    echo
+    echo "note: fix already runs automatically every turn and check already runs" \
+        "at commit/merge — use verify only when you need the result before" \
+        "either of those would."
+
+    return "$status"
 }
 
 cmd="${1:-}"
@@ -135,9 +181,9 @@ cmd="${1:-}"
 case "$cmd" in
 check) run_check ;;
 fix) run_fix "$@" ;;
-precommit) run_precommit ;;
+verify) run_verify "$@" ;;
 *)
-    echo "usage: scripts/run <check|fix|precommit>" >&2
+    echo "usage: scripts/run <check|fix|verify> [files...]" >&2
     exit 1
     ;;
 esac

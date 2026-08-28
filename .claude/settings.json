@@ -19,21 +19,6 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pnpm",
-            "args": [
-              "exec",
-              "tsx",
-              "${CLAUDE_PROJECT_DIR}/.claude/hooks/report-lint.ts"
-            ],
-            "timeout": 30
-          }
-        ]
-      },
-      {
         "matcher": "Edit|Write|MultiEdit|Read",
         "hooks": [
           {

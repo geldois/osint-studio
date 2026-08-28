@@ -25,6 +25,8 @@ function main(): void {
     return;
   }
 
+  run(["scripts/run", "fix", ...changed], root);
+
   const tsChanged = changed.filter((path) => TS_SUFFIXES.has(suffixOf(path)));
   if (tsChanged.length === 0) {
     return;
