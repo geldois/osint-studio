@@ -1,6 +1,6 @@
 "use client";
 
-import { CornerDownLeft, Loader2, Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ExpansionMenu } from "@/components/expansion-menu";
@@ -69,13 +69,9 @@ export function WhiteboardSearchBar() {
   }
 
   return (
-    <div className="relative flex w-full max-w-md items-center gap-1 rounded-lg border border-border bg-surface-2 p-1">
+    <div className="relative flex w-full max-w-md items-center gap-1 rounded-md border border-border bg-surface-2 p-1">
       {role === "ADMIN" ? <IngestFlyout /> : null}
       <div className="relative min-w-0 flex-1">
-        <Search
-          size={13}
-          className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-muted"
-        />
         <Input
           value={query}
           onChange={(e) => {
@@ -89,7 +85,7 @@ export function WhiteboardSearchBar() {
           }}
           aria-invalid={warningMessage !== null && warningTone === "error"}
           placeholder={searchPlaceholder}
-          className="border-0 bg-transparent px-7 shadow-none focus-visible:ring-0 dark:bg-transparent"
+          className="border-0 bg-transparent pr-7 pl-3 shadow-none focus-visible:ring-0 dark:bg-transparent"
         />
         {warningMessage !== null ? (
           <FieldWarning tone={warningTone} message={warningMessage} />
@@ -104,7 +100,7 @@ export function WhiteboardSearchBar() {
         aria-label="Expandir"
         title={isPending ? "Expandindo..." : "Expandir"}
         className={cn(
-          "size-8 shrink-0 rounded-lg",
+          "size-8 shrink-0 rounded-md",
           recognizedKind !== null &&
             "bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary",
         )}
@@ -112,7 +108,7 @@ export function WhiteboardSearchBar() {
         {isPending ? (
           <Loader2 size={14} className="animate-spin" />
         ) : (
-          <CornerDownLeft size={14} />
+          <Search size={14} />
         )}
       </Button>
       {menuOpen ? (
