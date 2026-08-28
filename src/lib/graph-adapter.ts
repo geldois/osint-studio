@@ -52,6 +52,10 @@ export function extractLabel(node: ApiNode): string {
       return node.number;
     case "cnae":
       return `${node.code} · ${node.description}`;
+    case "legal_process":
+      return node.process_number;
+    case "political_exposure":
+      return `${node.function_description} · ${node.government_body_name}`;
     case "sanction":
       return node.organ;
     case "text_source":
@@ -117,6 +121,43 @@ export function nodeToRows(node: ApiNode): CardRow[] {
       return [{ key: "e-mail", value: node.address }];
     case "phone":
       return [{ key: "telefone", value: node.number }];
+    case "legal_process":
+      return [
+        { key: "processo", value: node.process_number },
+        { key: "tribunal", value: node.court ?? EMPTY },
+        { key: "uf", value: node.state ?? EMPTY },
+        { key: "classe", value: node.process_class ?? EMPTY },
+        { key: "status atual", value: node.current_status ?? EMPTY },
+        { key: "distribuição", value: node.distribution_date ?? EMPTY },
+        { key: "valor da causa", value: node.lawsuit_value ?? EMPTY },
+        { key: "moeda", value: node.lawsuit_value_currency ?? EMPTY },
+        { key: "valor em execução", value: node.execution_value ?? EMPTY },
+        {
+          key: "segredo de justiça",
+          value:
+            node.is_secret_of_justice === null
+              ? EMPTY
+              : node.is_secret_of_justice
+                ? "sim"
+                : "não",
+        },
+        { key: "link do processo", value: node.process_url ?? EMPTY },
+      ];
+    case "political_exposure":
+      return [
+        { key: "cpf", value: node.cpf },
+        { key: "função", value: node.function_description },
+        { key: "sigla", value: node.function_acronym ?? EMPTY },
+        { key: "nível", value: node.function_level ?? EMPTY },
+        { key: "órgão", value: node.government_body_name },
+        { key: "código do órgão", value: node.government_body_code ?? EMPTY },
+        { key: "início do exercício", value: node.exercise_start_date ?? EMPTY },
+        { key: "fim do exercício", value: node.exercise_end_date ?? EMPTY },
+        {
+          key: "fim do período de quarentena",
+          value: node.grace_period_end_date ?? EMPTY,
+        },
+      ];
     case "sanction":
       return [
         { key: "órgão", value: node.organ },

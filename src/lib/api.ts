@@ -199,6 +199,38 @@ export function fetchCEPIM(cnpj: string, token: string): Promise<GraphSchema | n
   return fetchSanctions("cepim", cnpj, token);
 }
 
+export async function fetchPEP(
+  cpf: string,
+  token: string,
+): Promise<GraphSchema | null> {
+  const res = await fetch(`${API_URL}/peps/${cpf}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 204) {
+    return null;
+  }
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return parseJson(GraphSchemaSchema, res);
+}
+
+export async function fetchLegalProcess(
+  cpfOrCnpj: string,
+  token: string,
+): Promise<GraphSchema | null> {
+  const res = await fetch(`${API_URL}/legal-process/${cpfOrCnpj}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 204) {
+    return null;
+  }
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  return parseJson(GraphSchemaSchema, res);
+}
+
 export async function fetchGraphCatalog(token: string): Promise<GraphCatalog> {
   const res = await fetch(`${API_URL}/graphs`, {
     headers: { Authorization: `Bearer ${token}` },

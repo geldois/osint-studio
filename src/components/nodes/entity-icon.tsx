@@ -5,8 +5,10 @@ import {
   Mail,
   MapPin,
   Phone,
+  Scale,
   ShieldAlert,
   User,
+  Vote,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { NodeType } from "@/types/api";
@@ -16,8 +18,10 @@ const ICON_BY_NODE_TYPE: Record<NodeType, LucideIcon> = {
   cnae: Landmark,
   company: Building2,
   email: Mail,
+  legal_process: Scale,
   person: User,
   phone: Phone,
+  political_exposure: Vote,
   sanction: ShieldAlert,
   text_source: FileText,
 };

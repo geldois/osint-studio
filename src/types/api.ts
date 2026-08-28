@@ -16,12 +16,14 @@ import type {
   GraphCatalogEntrySchema,
   GraphCatalogSchema,
   GraphSchemaSchema,
+  LegalProcessNodeSchema,
   MentionedInTextEdgeSchema,
   NodeTypeSchema,
   OwnsCompanyEdgeSchema,
   PersonNodeSchema,
   PhoneNodeSchema,
   PlainEdgeSchema,
+  PoliticalExposureNodeSchema,
   PossiblyMatchesEdgeSchema,
   ProviderSchema,
   RevisionSchema,
@@ -44,9 +46,11 @@ export type AddressNode = z.infer<typeof AddressNodeSchema>;
 export type CnaeNode = z.infer<typeof CnaeNodeSchema>;
 export type CompanyNode = z.infer<typeof CompanyNodeSchema>;
 export type EmailNode = z.infer<typeof EmailNodeSchema>;
+export type LegalProcessNode = z.infer<typeof LegalProcessNodeSchema>;
 export type PersonNode = z.infer<typeof PersonNodeSchema>;
 export type TextSourceNode = z.infer<typeof TextSourceNodeSchema>;
 export type PhoneNode = z.infer<typeof PhoneNodeSchema>;
+export type PoliticalExposureNode = z.infer<typeof PoliticalExposureNodeSchema>;
 export type SanctionNode = z.infer<typeof SanctionNodeSchema>;
 export type ApiNode = z.infer<typeof ApiNodeSchema>;
 

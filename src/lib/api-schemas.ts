@@ -17,8 +17,10 @@ export const NodeTypeSchema = z.enum([
   "cnae",
   "company",
   "email",
+  "legal_process",
   "person",
   "phone",
+  "political_exposure",
   "sanction",
   "text_source",
 ]);
@@ -29,12 +31,15 @@ export const EdgeTypeSchema = z.enum([
   "company_has_email",
   "company_has_member",
   "company_has_phone",
+  "company_is_party_in_legal_process",
   "company_located_at",
   "company_mentioned_in_text",
   "company_owns_company",
   "company_received_sanction",
   "person_has_email",
   "person_has_phone",
+  "person_has_political_exposure",
+  "person_is_party_in_legal_process",
   "person_mentioned_in_text",
   "person_owns_company",
   "person_received_sanction",
@@ -91,6 +96,21 @@ export const EmailNodeSchema = EntityBaseSchema.extend({
   address: z.string(),
 });
 
+export const LegalProcessNodeSchema = EntityBaseSchema.extend({
+  type: z.literal("legal_process"),
+  court: z.string().nullable(),
+  current_status: z.string().nullable(),
+  distribution_date: z.string().nullable(),
+  execution_value: z.string().nullable(),
+  is_secret_of_justice: z.boolean().nullable(),
+  lawsuit_value: z.string().nullable(),
+  lawsuit_value_currency: z.string().nullable(),
+  process_class: z.string().nullable(),
+  process_number: z.string(),
+  process_url: z.string().nullable(),
+  state: z.string().nullable(),
+});
+
 export const PersonNodeSchema = EntityBaseSchema.extend({
   type: z.literal("person"),
   age_range: z.string().nullable(),
@@ -109,6 +129,19 @@ export const TextSourceNodeSchema = EntityBaseSchema.extend({
 export const PhoneNodeSchema = EntityBaseSchema.extend({
   type: z.literal("phone"),
   number: z.string(),
+});
+
+export const PoliticalExposureNodeSchema = EntityBaseSchema.extend({
+  type: z.literal("political_exposure"),
+  cpf: z.string(),
+  exercise_end_date: z.string().nullable(),
+  exercise_start_date: z.string().nullable(),
+  function_acronym: z.string().nullable(),
+  function_description: z.string(),
+  function_level: z.string().nullable(),
+  government_body_code: z.string().nullable(),
+  government_body_name: z.string(),
+  grace_period_end_date: z.string().nullable(),
 });
 
 export const SanctionNodeSchema = EntityBaseSchema.extend({
@@ -131,8 +164,10 @@ export const ApiNodeSchema = z.discriminatedUnion("type", [
   CnaeNodeSchema,
   CompanyNodeSchema,
   EmailNodeSchema,
+  LegalProcessNodeSchema,
   PersonNodeSchema,
   PhoneNodeSchema,
+  PoliticalExposureNodeSchema,
   SanctionNodeSchema,
   TextSourceNodeSchema,
 ]);
@@ -169,10 +204,13 @@ export const PlainEdgeSchema = EdgeBaseSchema.extend({
     "company_has_email",
     "company_has_member",
     "company_has_phone",
+    "company_is_party_in_legal_process",
     "company_located_at",
     "company_received_sanction",
     "person_has_email",
     "person_has_phone",
+    "person_has_political_exposure",
+    "person_is_party_in_legal_process",
     "person_received_sanction",
     "person_reside_at",
   ]),
