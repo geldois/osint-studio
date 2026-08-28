@@ -7,7 +7,11 @@ import {
   EdgeLabelRenderer,
   getStraightPath,
 } from "@xyflow/react";
-import type { EdgeRelationship, RelationshipEdgeData } from "@/lib/graph-adapter";
+import {
+  isEdgeHighlighted,
+  type EdgeRelationship,
+  type RelationshipEdgeData,
+} from "@/lib/graph-adapter";
 import { edgeTypeLabel } from "@/lib/relationships";
 import { useHoverStore } from "@/store/hover";
 import { useSelectionStore } from "@/store/selection";
@@ -30,6 +34,7 @@ export function RelationshipEdge({
   targetY,
 }: EdgeProps<Edge<RelationshipEdgeData>>) {
   const selectedEdgeId = useSelectionStore((s) => s.selectedEdgeId);
+  const selectedNodeId = useSelectionStore((s) => s.selectedNodeId);
   const selectEdge = useSelectionStore((s) => s.selectEdge);
   const hoveredNodeId = useHoverStore((s) => s.hoveredNodeId);
   const hoveredEdgeGroupId = useHoverStore((s) => s.hoveredEdgeGroupId);
@@ -44,8 +49,14 @@ export function RelationshipEdge({
   const relationships = [...(data?.relationships ?? [])].sort(byDirection);
   const isSelected = relationships.some((r) => r.edgeId === selectedEdgeId);
   const isPossiblyMatch = relationships.every((r) => r.edgeType === "possibly_matches");
-  const isHighlighted =
-    hoveredEdgeGroupId === id || hoveredNodeId === source || hoveredNodeId === target;
+  const isHighlighted = isEdgeHighlighted({
+    edgeGroupId: id,
+    hoveredEdgeGroupId,
+    hoveredNodeId,
+    selectedNodeId,
+    source,
+    target,
+  });
 
   const diamondClassName = `block h-3 w-3 shrink-0 rotate-45 rounded-[3px] border bg-surface transition-colors ${
     isSelected

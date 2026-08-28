@@ -5,8 +5,11 @@ import {
   edgeKey,
   extractLabel,
   groupEdgesByPair,
+  isEdgeHighlighted,
+  isNodeHighlighted,
   layoutGraph,
   nodeToRows,
+  projectGraph,
 } from "@/lib/graph-adapter";
 import type {
   AddressNode,
@@ -33,6 +36,7 @@ function testNode(id: string, isRoot = false): EntityNode {
       isOverridden: false,
       edgeGroupIds: [],
       neighborNodeIds: [],
+      relationshipEdgeIds: [],
     },
     type: "entity",
   };
@@ -266,6 +270,113 @@ describe("groupEdgesByPair", () => {
       type: "company_has_phone",
     };
     expect(groupEdgesByPair([a, b])).toHaveLength(2);
+  });
+});
+
+describe("isNodeHighlighted", () => {
+  const base = {
+    edgeGroupIds: ["group-1"],
+    hoveredEdgeGroupId: null,
+    hoveredNodeId: null,
+    neighborNodeIds: ["neighbor-1"],
+    nodeId: "self",
+    relationshipEdgeIds: ["edge-1"],
+    selectedEdgeId: null,
+    selectedNodeId: null,
+  };
+
+  it("stays highlighted when a neighbor is selected, with no hover involved", () => {
+    expect(isNodeHighlighted({ ...base, selectedNodeId: "neighbor-1" })).toBe(true);
+  });
+
+  it("is not highlighted when a non-neighbor is selected", () => {
+    expect(isNodeHighlighted({ ...base, selectedNodeId: "someone-else" })).toBe(false);
+  });
+
+  it("highlights both endpoints when the relationship touching them is selected", () => {
+    expect(isNodeHighlighted({ ...base, selectedEdgeId: "edge-1" })).toBe(true);
+  });
+
+  it("stays highlighted while hovering, independent of selection", () => {
+    expect(isNodeHighlighted({ ...base, hoveredNodeId: "neighbor-1" })).toBe(true);
+  });
+
+  it("is not highlighted with no hover and no relevant selection", () => {
+    expect(isNodeHighlighted(base)).toBe(false);
+  });
+});
+
+describe("isEdgeHighlighted", () => {
+  const base = {
+    edgeGroupId: "group-1",
+    hoveredEdgeGroupId: null,
+    hoveredNodeId: null,
+    selectedNodeId: null,
+    source: "n1",
+    target: "n2",
+  };
+
+  it("stays highlighted when either endpoint is selected, with no hover involved", () => {
+    expect(isEdgeHighlighted({ ...base, selectedNodeId: "n1" })).toBe(true);
+    expect(isEdgeHighlighted({ ...base, selectedNodeId: "n2" })).toBe(true);
+  });
+
+  it("is not highlighted when a node outside the pair is selected", () => {
+    expect(isEdgeHighlighted({ ...base, selectedNodeId: "n3" })).toBe(false);
+  });
+
+  it("stays highlighted while hovering an endpoint, independent of selection", () => {
+    expect(isEdgeHighlighted({ ...base, hoveredNodeId: "n1" })).toBe(true);
+  });
+});
+
+describe("projectGraph — relationshipEdgeIds", () => {
+  it("lets a node resolve which of its own relationships a selected raw edge belongs to", () => {
+    const owns: OwnsCompanyEdge = {
+      content_id: "e1",
+      id: "e1",
+      revision,
+      source_id: "person-1",
+      target_id: "company-1",
+      type: "person_owns_company",
+      entry_date: "2020-01-01",
+      role: "sócio",
+    };
+    const person: PersonNode = {
+      age_range: null,
+      birthdate: null,
+      content_id: "cp1",
+      cpf: "person-1",
+      id: "person-1",
+      name: "Fulano",
+      registration_date: null,
+      registration_status: null,
+      revision,
+      type: "person",
+    };
+    const company: CompanyNode = {
+      activity_start_date: null,
+      cnpj: "company-1",
+      content_id: "cc1",
+      id: "company-1",
+      is_headquarters: null,
+      legal_name: "Acme LTDA",
+      legal_nature: null,
+      registration_status: null,
+      registration_status_date: null,
+      registration_status_reason: null,
+      revision,
+      share_capital: null,
+      size_category: null,
+      trade_name: null,
+      type: "company",
+    };
+
+    const { nodes } = projectGraph([person, company], [owns], new Set(), {}, new Set());
+    const selectedEdgeId = edgeKey(owns);
+    for (const node of nodes) {
+      expect(node.data.relationshipEdgeIds).toContain(selectedEdgeId);
+    }
   });
 });
 

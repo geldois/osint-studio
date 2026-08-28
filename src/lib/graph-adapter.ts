@@ -26,6 +26,7 @@ export type CardData = {
   isOverridden: boolean;
   edgeGroupIds: string[];
   neighborNodeIds: string[];
+  relationshipEdgeIds: string[];
 };
 
 export type EntityNode = Node<CardData, "entity">;
@@ -220,29 +221,94 @@ export function groupEdgesByPair(edges: ApiEdge[]): Edge<RelationshipEdgeData>[]
 interface NodeAdjacency {
   edgeGroupIds: string[];
   neighborNodeIds: string[];
+  relationshipEdgeIds: string[];
 }
 
 function buildAdjacency(
   groupedEdges: Edge<RelationshipEdgeData>[],
 ): Map<string, NodeAdjacency> {
   const adjacency = new Map<string, NodeAdjacency>();
-  const addTo = (nodeId: string, edgeGroupId: string, neighborId: string): void => {
+  const addTo = (
+    nodeId: string,
+    edgeGroupId: string,
+    neighborId: string,
+    relationshipEdgeIds: string[],
+  ): void => {
     const existing = adjacency.get(nodeId);
     if (existing === undefined) {
       adjacency.set(nodeId, {
         edgeGroupIds: [edgeGroupId],
         neighborNodeIds: [neighborId],
+        relationshipEdgeIds: [...relationshipEdgeIds],
       });
     } else {
       existing.edgeGroupIds.push(edgeGroupId);
       existing.neighborNodeIds.push(neighborId);
+      existing.relationshipEdgeIds.push(...relationshipEdgeIds);
     }
   };
   for (const edge of groupedEdges) {
-    addTo(edge.source, edge.id, edge.target);
-    addTo(edge.target, edge.id, edge.source);
+    const relationshipEdgeIds = (edge.data?.relationships ?? []).map((r) => r.edgeId);
+    addTo(edge.source, edge.id, edge.target, relationshipEdgeIds);
+    addTo(edge.target, edge.id, edge.source, relationshipEdgeIds);
   }
   return adjacency;
+}
+
+export interface NodeHighlightParams {
+  edgeGroupIds: string[];
+  hoveredEdgeGroupId: string | null;
+  hoveredNodeId: string | null;
+  neighborNodeIds: string[];
+  nodeId: string;
+  relationshipEdgeIds: string[];
+  selectedEdgeId: string | null;
+  selectedNodeId: string | null;
+}
+
+export function isNodeHighlighted({
+  edgeGroupIds,
+  hoveredEdgeGroupId,
+  hoveredNodeId,
+  neighborNodeIds,
+  nodeId,
+  relationshipEdgeIds,
+  selectedEdgeId,
+  selectedNodeId,
+}: NodeHighlightParams): boolean {
+  return (
+    hoveredNodeId === nodeId ||
+    (hoveredNodeId !== null && neighborNodeIds.includes(hoveredNodeId)) ||
+    (hoveredEdgeGroupId !== null && edgeGroupIds.includes(hoveredEdgeGroupId)) ||
+    (selectedNodeId !== null && neighborNodeIds.includes(selectedNodeId)) ||
+    (selectedEdgeId !== null && relationshipEdgeIds.includes(selectedEdgeId))
+  );
+}
+
+export interface EdgeHighlightParams {
+  edgeGroupId: string;
+  hoveredEdgeGroupId: string | null;
+  hoveredNodeId: string | null;
+  selectedNodeId: string | null;
+  source: string;
+  target: string;
+}
+
+export function isEdgeHighlighted({
+  edgeGroupId,
+  hoveredEdgeGroupId,
+  hoveredNodeId,
+  selectedNodeId,
+  source,
+  target,
+}: EdgeHighlightParams): boolean {
+  return (
+    hoveredEdgeGroupId === edgeGroupId ||
+    hoveredNodeId === source ||
+    hoveredNodeId === target ||
+    selectedNodeId === source ||
+    selectedNodeId === target
+  );
 }
 
 export function projectGraph(
@@ -267,6 +333,7 @@ export function projectGraph(
       rows: nodeToRows(node),
       edgeGroupIds: adjacency.get(node.id)?.edgeGroupIds ?? [],
       neighborNodeIds: adjacency.get(node.id)?.neighborNodeIds ?? [],
+      relationshipEdgeIds: adjacency.get(node.id)?.relationshipEdgeIds ?? [],
       conflictCount: nodeConflicts[node.id]?.length ?? 0,
       isOverridden: overriddenNodeIds.has(node.id),
     },

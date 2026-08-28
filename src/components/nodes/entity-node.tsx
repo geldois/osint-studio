@@ -4,7 +4,10 @@ import { Handle, type NodeProps, Position, useStore } from "@xyflow/react";
 import { cva } from "class-variance-authority";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { EntityNode as EntityNodeType } from "@/lib/graph-adapter";
+import {
+  isNodeHighlighted,
+  type EntityNode as EntityNodeType,
+} from "@/lib/graph-adapter";
 import { nodeTypeLabel } from "@/lib/relationships";
 import { useHoverStore } from "@/store/hover";
 import { useSelectionStore } from "@/store/selection";
@@ -77,15 +80,22 @@ function NodeHandles() {
 
 export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
   const selectedNodeId = useSelectionStore((s) => s.selectedNodeId);
+  const selectedEdgeId = useSelectionStore((s) => s.selectedEdgeId);
   const selectNode = useSelectionStore((s) => s.selectNode);
   const hoveredNodeId = useHoverStore((s) => s.hoveredNodeId);
   const hoveredEdgeGroupId = useHoverStore((s) => s.hoveredEdgeGroupId);
   const setHoveredNode = useHoverStore((s) => s.setHoveredNode);
   const isSelected = selectedNodeId === id;
-  const isHighlighted =
-    hoveredNodeId === id ||
-    (hoveredNodeId !== null && data.neighborNodeIds.includes(hoveredNodeId)) ||
-    (hoveredEdgeGroupId !== null && data.edgeGroupIds.includes(hoveredEdgeGroupId));
+  const isHighlighted = isNodeHighlighted({
+    edgeGroupIds: data.edgeGroupIds,
+    hoveredEdgeGroupId,
+    hoveredNodeId,
+    neighborNodeIds: data.neighborNodeIds,
+    nodeId: id,
+    relationshipEdgeIds: data.relationshipEdgeIds,
+    selectedEdgeId,
+    selectedNodeId,
+  });
   const showRing = isSelected || isHighlighted;
   const isMarker = useStore((s) => s.transform[2] < MARKER_ZOOM_THRESHOLD);
   const { isOverridden, conflictCount } = data;
