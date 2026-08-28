@@ -6,6 +6,18 @@
   exists yet. When it does, the production value and the backend's `CORS_ORIGINS` need to be configured together —
   neither works without the other.
 
+## feat(design-system)
+
+- Adendo 4 of `~/+ME/brain/notes/specs/osint-studio/reforma-visual-compacta.md` covers a design-system
+  centralization pass. Done: `ui/toggle.tsx`/`ui/button.tsx` own the active-state token, every caller override
+  removed; every hardcoded `white` ring/border/stroke/hover across nodes, edges, chips, and menus reads
+  `foreground`/`foreground/5` instead, correct in both themes. Not started: `FilterBar` shared shell (D) to
+  replace the three divergent filter-input-plus-chips layouts in `/table`, `RelationshipList`, `GraphInfoButton`;
+  `FilterChips`'s trigger reshaped into the header's attach-button slot with a corner count badge, `PatternSelect`
+  migrated onto it (E); `/table`'s horizontal scrollbar styled like the vertical one (F); `/settings`'s spacing
+  scale and the API-key mask-with-reveal-on-demand flow, which needs a new `GET /credentials/{provider}/reveal` on
+  the backend too (G); the same eye-toggle on `/login`'s password field (H).
+
 ## fix(api)
 
 - Error path assumes JSON: on a non-ok response the body is parsed as `{ detail }`,
