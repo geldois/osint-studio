@@ -20,10 +20,11 @@ repo owns.
 - `scripts/run check` runs every lint/type/build/test gate, `--max-warnings 0` included. `.githooks/pre-commit` and
   `.githooks/pre-merge-commit` both call it directly, blocking, silent when green. Last run's full record:
   `build/reports/gates.json` (gitignored).
-- `scripts/run verify [files...]` runs fix then check: one line, `verify: ok`, when green; the full failing output
-  when not. `.claude/hooks/block-direct-checks.ts` denies every other direct `check`/`fix`/`gates`/full-project
-  lint/type/build/test invocation, redirecting here — this is the only way to run either yourself. Targeted
-  single-file runs (e.g. `eslint path/to/file.ts`) stay allowed for quick iteration.
+- `scripts/run verify [files...]` runs fix then check, for a human's own manual use: one line, `verify: ok`, when
+  green; the full failing output when not. `.claude/hooks/block-direct-checks.ts` denies the assistant from ever
+  running `check`/`fix`/`verify`/`gates` itself, even to pre-check before a commit — it attempts the commit or
+  merge directly and reacts to the gate's own failure output if it blocks. Targeted single-file runs (e.g.
+  `eslint path/to/file.ts`) stay allowed for quick iteration while writing code.
 
 Activate the git hooks once per clone — `git config --local include.path ../.gitconfig` — or every commit lands
 unchecked. Needs `mise` active on `PATH`.

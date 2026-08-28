@@ -92,11 +92,14 @@ an error, for the same reason a warning left inside the codebase indefinitely st
 
 A direct, manual run of any of those checks or fixers by the assistant is denied outright rather than merely
 discouraged: a per-turn reminder in its own instructions was tried first and did not hold once a session ran long
-enough, since the assistant would rediscover a reason to run one by hand anyway. The one door left open runs both
-steps together and prints a single line either way — a plain confirmation, or the actual failure — precisely
-because that combined command is the only path that still makes sense to reach for once the two automatic passes
-already cover everything else: at the point something is checked by hand, either both steps are wanted, or neither
-automatic pass would have caught it yet regardless of which one is asked for.
+enough, since the assistant would rediscover a reason to run one by hand anyway. A single combined fix-then-check
+command was tried next as the one door left open, on the theory that once both automatic passes already cover
+everything else, a manual run only ever makes sense right before a commit. That theory failed in practice: the
+assistant used exactly that door as a pre-commit confidence check, running it defensively before every attempt
+instead of committing outright and reacting to a real failure — the same duplicated work the automatic passes exist
+to remove. The command still exists for a human's own convenience; the assistant is now denied it unconditionally,
+with no exception, and attempts the commit or merge it was already going to make, reading the gate's own failure
+output if it blocks.
 
 ## Consequences
 

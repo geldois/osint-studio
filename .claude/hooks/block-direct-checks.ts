@@ -10,8 +10,8 @@ function stripHeredocs(command: string): string {
 
 const LEADING = /^(?:pnpm|npx|mise|exec|run|--?\S+)\s+/;
 
-const FACADE_NAMES = new Set(["gates"]);
-const FACADE_SCRIPT = /^scripts\/run\s+(?:check|fix)\b/;
+const FACADE_NAMES = new Set(["gates", "verify"]);
+const FACADE_SCRIPT = /^scripts\/run\s+(?:check|fix|verify)\b/;
 
 const FULL_ONLY_NAMES = new Set(["tsc", "type-check", "build"]);
 const NEXT_BUILD = /^next\s+build\b/;
@@ -26,16 +26,17 @@ const TARGETABLE_NAMES = new Set([
   "test",
   "test:watch",
 ]);
-const TARGETED_FILE = /\s\S+\.(?:ts|tsx|js|jsx|mjs)(?:\s|$)/;
+const TARGETED_FILE =
+  /\s\S+\.(?:ts|tsx|js|jsx|mjs|json|md|css|toml|yaml|yml|sh)(?:\s|$)/;
 const TARGETED_FLAG = /(?:^|\s)(?:-t|--testNamePattern)\b/;
 
 const REASON =
-  "Denied — the only sanctioned way to run checks or fixes yourself is " +
-  "`scripts/run verify [files...]` (fix, then check, on the given files or " +
-  "the whole repo with none given). Fix already runs silently every turn " +
-  "and check already runs at commit/merge; use `verify` only when you need " +
-  "the result before either of those would. Targeted single-file runs " +
-  "(e.g. `eslint path/to/file.ts`, `vitest run path/to/file.test.ts`, " +
+  "Denied — checks and fixes never run by hand, not even through " +
+  "`scripts/run verify`. Fix already runs silently every turn and check " +
+  "already runs at commit/merge, blocking. Just attempt the commit or " +
+  "merge: on failure the real check output prints inline — fix the actual " +
+  "code from that, then re-attempt. Targeted single-file runs (e.g. " +
+  "`eslint path/to/file.ts`, `vitest run path/to/file.test.ts`, " +
   "`prettier --check path/to/file.ts`) are still fine for quick iteration " +
   "while writing code.";
 
