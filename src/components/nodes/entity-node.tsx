@@ -6,6 +6,7 @@ import { EntityIcon } from "@/components/nodes/entity-icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { EntityNode as EntityNodeType } from "@/lib/graph-adapter";
 import { nodeTypeLabel } from "@/lib/relationships";
+import { useHoverStore } from "@/store/hover";
 import { useSelectionStore } from "@/store/selection";
 
 const MARKER_ZOOM_THRESHOLD = 0.6;
@@ -77,9 +78,26 @@ function NodeHandles() {
 export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
   const selectedNodeId = useSelectionStore((s) => s.selectedNodeId);
   const selectNode = useSelectionStore((s) => s.selectNode);
+  const hoveredNodeId = useHoverStore((s) => s.hoveredNodeId);
+  const hoveredEdgeGroupId = useHoverStore((s) => s.hoveredEdgeGroupId);
+  const setHoveredNode = useHoverStore((s) => s.setHoveredNode);
   const isSelected = selectedNodeId === id;
+  const isHighlighted =
+    hoveredNodeId === id ||
+    (hoveredNodeId !== null && data.neighborNodeIds.includes(hoveredNodeId)) ||
+    (hoveredEdgeGroupId !== null && data.edgeGroupIds.includes(hoveredEdgeGroupId));
+  const showRing = isSelected || isHighlighted;
   const isMarker = useStore((s) => s.transform[2] < MARKER_ZOOM_THRESHOLD);
   const { isOverridden, conflictCount } = data;
+
+  const hoverHandlers = {
+    onMouseEnter: () => {
+      setHoveredNode(id);
+    },
+    onMouseLeave: () => {
+      setHoveredNode(null);
+    },
+  };
 
   if (isMarker) {
     return (
@@ -91,7 +109,11 @@ export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
               onClick={() => {
                 selectNode(id);
               }}
-              className={markerVariants({ nodeType: data.nodeType, isSelected })}
+              {...hoverHandlers}
+              className={markerVariants({
+                nodeType: data.nodeType,
+                isSelected: showRing,
+              })}
             >
               <NodeHandles />
             </button>
@@ -122,7 +144,8 @@ export function EntityNode({ id, data }: NodeProps<EntityNodeType>) {
       onClick={() => {
         selectNode(id);
       }}
-      className={cardVariants({ nodeType: data.nodeType, isSelected })}
+      {...hoverHandlers}
+      className={cardVariants({ nodeType: data.nodeType, isSelected: showRing })}
     >
       <NodeHandles />
       <span className="mt-0.5 shrink-0 opacity-70">

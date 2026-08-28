@@ -31,6 +31,8 @@ function testNode(id: string, isRoot = false): EntityNode {
       rows: [],
       conflictCount: 0,
       isOverridden: false,
+      edgeGroupIds: [],
+      neighborNodeIds: [],
     },
     type: "entity",
   };

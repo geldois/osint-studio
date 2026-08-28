@@ -7,9 +7,9 @@ import {
   EdgeLabelRenderer,
   getStraightPath,
 } from "@xyflow/react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { EdgeRelationship, RelationshipEdgeData } from "@/lib/graph-adapter";
 import { edgeTypeLabel } from "@/lib/relationships";
+import { useHoverStore } from "@/store/hover";
 import { useSelectionStore } from "@/store/selection";
 
 function byDirection(a: EdgeRelationship, b: EdgeRelationship): number {
@@ -21,6 +21,8 @@ function byDirection(a: EdgeRelationship, b: EdgeRelationship): number {
 
 export function RelationshipEdge({
   id,
+  source,
+  target,
   data,
   sourceX,
   sourceY,
@@ -29,6 +31,9 @@ export function RelationshipEdge({
 }: EdgeProps<Edge<RelationshipEdgeData>>) {
   const selectedEdgeId = useSelectionStore((s) => s.selectedEdgeId);
   const selectEdge = useSelectionStore((s) => s.selectEdge);
+  const hoveredNodeId = useHoverStore((s) => s.hoveredNodeId);
+  const hoveredEdgeGroupId = useHoverStore((s) => s.hoveredEdgeGroupId);
+  const setHoveredEdgeGroup = useHoverStore((s) => s.setHoveredEdgeGroup);
 
   const [edgePath, labelX, labelY] = getStraightPath({
     sourceX,
@@ -39,9 +44,15 @@ export function RelationshipEdge({
   const relationships = [...(data?.relationships ?? [])].sort(byDirection);
   const isSelected = relationships.some((r) => r.edgeId === selectedEdgeId);
   const isPossiblyMatch = relationships.every((r) => r.edgeType === "possibly_matches");
+  const isHighlighted =
+    hoveredEdgeGroupId === id || hoveredNodeId === source || hoveredNodeId === target;
 
   const diamondClassName = `block h-3 w-3 shrink-0 rotate-45 rounded-[3px] border bg-surface transition-colors ${
-    isSelected ? "border-white bg-white" : "border-border"
+    isSelected
+      ? "border-white bg-white"
+      : isHighlighted
+        ? "border-white"
+        : "border-border"
   }`;
 
   return (
@@ -50,7 +61,13 @@ export function RelationshipEdge({
         id={id}
         path={edgePath}
         interactionWidth={0}
-        className={isPossiblyMatch ? "stroke-amber-500!" : "stroke-border!"}
+        className={
+          isPossiblyMatch
+            ? "stroke-amber-500!"
+            : isHighlighted
+              ? "stroke-white!"
+              : "stroke-border!"
+        }
         style={isPossiblyMatch ? { strokeDasharray: "4 4" } : undefined}
       />
       <EdgeLabelRenderer>
@@ -61,37 +78,29 @@ export function RelationshipEdge({
           }}
         >
           {relationships.length > 0 ? (
-            <Popover>
-              <PopoverTrigger
-                aria-label="Ver relações desta aresta"
-                render={
-                  <button
-                    type="button"
-                    className={`p-0 pointer-events-auto cursor-pointer ${diamondClassName}`}
-                  />
+            <button
+              type="button"
+              onClick={() => {
+                const first = relationships[0];
+                if (first !== undefined) {
+                  selectEdge(first.edgeId);
                 }
-              />
-              <PopoverContent className="nodrag nopan w-auto min-w-0 gap-0.5 p-1.5">
-                {relationships.map((relationship) => (
-                  <button
-                    key={relationship.edgeId}
-                    type="button"
-                    onClick={() => {
-                      selectEdge(relationship.edgeId);
-                    }}
-                    aria-label="Ver atributos da relação"
-                    className={`whitespace-nowrap text-left text-[9px] transition-colors hover:text-foreground ${
-                      selectedEdgeId === relationship.edgeId
-                        ? "font-medium text-foreground"
-                        : "text-muted"
-                    }`}
-                  >
-                    {relationship.direction === "backward" ? "← " : "→ "}
-                    {edgeTypeLabel(relationship.edgeType)}
-                  </button>
-                ))}
-              </PopoverContent>
-            </Popover>
+              }}
+              onMouseEnter={() => {
+                setHoveredEdgeGroup(id);
+              }}
+              onMouseLeave={() => {
+                setHoveredEdgeGroup(null);
+              }}
+              aria-label="Ver relação nesta aresta"
+              title={relationships
+                .map(
+                  (relationship) =>
+                    `${relationship.direction === "backward" ? "← " : "→ "}${edgeTypeLabel(relationship.edgeType)}`,
+                )
+                .join("\n")}
+              className={`p-0 pointer-events-auto cursor-pointer ${diamondClassName}`}
+            />
           ) : (
             <span className={diamondClassName} />
           )}

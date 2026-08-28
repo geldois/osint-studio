@@ -24,6 +24,8 @@ export type CardData = {
   rows: CardRow[];
   conflictCount: number;
   isOverridden: boolean;
+  edgeGroupIds: string[];
+  neighborNodeIds: string[];
 };
 
 export type EntityNode = Node<CardData, "entity">;
@@ -215,6 +217,34 @@ export function groupEdgesByPair(edges: ApiEdge[]): Edge<RelationshipEdgeData>[]
   }));
 }
 
+interface NodeAdjacency {
+  edgeGroupIds: string[];
+  neighborNodeIds: string[];
+}
+
+function buildAdjacency(
+  groupedEdges: Edge<RelationshipEdgeData>[],
+): Map<string, NodeAdjacency> {
+  const adjacency = new Map<string, NodeAdjacency>();
+  const addTo = (nodeId: string, edgeGroupId: string, neighborId: string): void => {
+    const existing = adjacency.get(nodeId);
+    if (existing === undefined) {
+      adjacency.set(nodeId, {
+        edgeGroupIds: [edgeGroupId],
+        neighborNodeIds: [neighborId],
+      });
+    } else {
+      existing.edgeGroupIds.push(edgeGroupId);
+      existing.neighborNodeIds.push(neighborId);
+    }
+  };
+  for (const edge of groupedEdges) {
+    addTo(edge.source, edge.id, edge.target);
+    addTo(edge.target, edge.id, edge.source);
+  }
+  return adjacency;
+}
+
 export function projectGraph(
   rawNodes: ApiNode[],
   rawEdges: ApiEdge[],
@@ -222,6 +252,8 @@ export function projectGraph(
   nodeConflicts: Record<string, ApiNode[]>,
   overriddenNodeIds: Set<string>,
 ): { nodes: EntityNode[]; edges: Edge[] } {
+  const groupedEdges = groupEdgesByPair(rawEdges);
+  const adjacency = buildAdjacency(groupedEdges);
   const nodes = rawNodes.map((node): EntityNode => ({
     id: node.id,
     type: "entity",
@@ -233,11 +265,13 @@ export function projectGraph(
       cnpj: node.type === "company" ? node.cnpj : null,
       cpf: node.type === "person" ? node.cpf : null,
       rows: nodeToRows(node),
+      edgeGroupIds: adjacency.get(node.id)?.edgeGroupIds ?? [],
+      neighborNodeIds: adjacency.get(node.id)?.neighborNodeIds ?? [],
       conflictCount: nodeConflicts[node.id]?.length ?? 0,
       isOverridden: overriddenNodeIds.has(node.id),
     },
   }));
-  return { nodes, edges: groupEdgesByPair(rawEdges) };
+  return { nodes, edges: groupedEdges };
 }
 
 function findConnectedComponents(nodeIds: string[], edges: Edge[]): string[][] {
