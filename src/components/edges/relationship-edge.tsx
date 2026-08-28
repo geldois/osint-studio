@@ -58,12 +58,12 @@ export function RelationshipEdge({
     target,
   });
 
-  const diamondClassName = `block h-3 w-3 shrink-0 rotate-45 rounded-[3px] border bg-surface transition-colors ${
+  const diamondClassName = `block h-3 w-3 shrink-0 rotate-45 rounded-[3px] border transition-colors ${
     isSelected
       ? "border-foreground bg-foreground"
       : isHighlighted
-        ? "border-foreground"
-        : "border-border"
+        ? "border-foreground bg-surface"
+        : "border-border bg-surface"
   }`;
 
   return (
