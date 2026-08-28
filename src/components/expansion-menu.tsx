@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 interface ExpansionMenuProps {
   document: string;
   isPending: boolean;
+  existsInGraph?: boolean;
   onClose: () => void;
   onConfirm: (routes: ExpansionRouteKey[], force: boolean) => void;
 }
@@ -26,6 +27,7 @@ interface ExpansionMenuProps {
 export function ExpansionMenu({
   document,
   isPending,
+  existsInGraph = true,
   onClose,
   onConfirm,
 }: ExpansionMenuProps) {
@@ -62,9 +64,9 @@ export function ExpansionMenu({
   }, [onClose]);
 
   const total = totalPriceBRL(routes, selected);
-  const showForce = routes.some(
-    (route) => route.supportsForce && selected.has(route.key),
-  );
+  const showForce =
+    existsInGraph &&
+    routes.some((route) => route.supportsForce && selected.has(route.key));
 
   function toggle(key: ExpansionRouteKey, checked: boolean): void {
     setSelected((current) => {

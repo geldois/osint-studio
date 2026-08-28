@@ -1,5 +1,6 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { ApiEdge, ApiNode, NodeType } from "@/types/api";
+import { isMaskedCpf, onlyDigits } from "@/lib/document";
+import type { ApiEdge, ApiNode, GraphCatalogEntry, NodeType } from "@/types/api";
 
 const DEFAULT_NODE_WIDTH = 208;
 const DEFAULT_NODE_HEIGHT = 64;
@@ -66,6 +67,24 @@ export function extractLabel(node: ApiNode): string {
         ? `${node.text.slice(0, TEXT_PREVIEW_LENGTH)}…`
         : node.text;
   }
+}
+
+function rootMatchesDocument(root: ApiNode, document: string): boolean {
+  const digits = onlyDigits(document);
+  if (root.type === "company") {
+    return onlyDigits(root.cnpj) === digits;
+  }
+  if (root.type === "person" && !isMaskedCpf(root.cpf)) {
+    return onlyDigits(root.cpf) === digits;
+  }
+  return false;
+}
+
+export function documentExistsInCatalog(
+  document: string,
+  entries: GraphCatalogEntry[],
+): boolean {
+  return entries.some((entry) => rootMatchesDocument(entry.root, document));
 }
 
 const EMPTY = "—";

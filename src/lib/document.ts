@@ -1,14 +1,18 @@
 const CPF_DIGIT_COUNT = 11;
 const CNPJ_DIGIT_COUNT = 14;
 
+export function onlyDigits(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
 export function isCpf(value: string): boolean {
-  return value.replace(/\D/g, "").length === CPF_DIGIT_COUNT;
+  return onlyDigits(value).length === CPF_DIGIT_COUNT;
 }
 
 export type DocumentKind = "cnpj" | "cpf";
 
 export function documentKind(value: string): DocumentKind | null {
-  switch (value.replace(/\D/g, "").length) {
+  switch (onlyDigits(value).length) {
     case CPF_DIGIT_COUNT:
       return "cpf";
     case CNPJ_DIGIT_COUNT:

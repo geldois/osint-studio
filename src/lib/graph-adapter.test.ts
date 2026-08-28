@@ -1,6 +1,7 @@
 import type { Edge } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import {
+  documentExistsInCatalog,
   type EntityNode,
   edgeKey,
   extractLabel,
@@ -14,6 +15,7 @@ import {
 import type {
   AddressNode,
   CompanyNode,
+  GraphCatalogEntry,
   OwnsCompanyEdge,
   PersonNode,
   PlainEdge,
@@ -163,6 +165,70 @@ describe("extractLabel", () => {
       text: "short",
     });
     expect(label).toBe("short");
+  });
+});
+
+describe("documentExistsInCatalog", () => {
+  function catalogEntry(root: CompanyNode | PersonNode): GraphCatalogEntry {
+    return {
+      first_fetched_at: "2026-08-21T14:03:00Z",
+      last_fetched_at: "2026-08-21T14:03:00Z",
+      providers: ["brasilapi"],
+      revision_count: 1,
+      root,
+    };
+  }
+
+  const company: CompanyNode = {
+    content_id: "c1",
+    id: "c1",
+    revision,
+    type: "company",
+    cnpj: "00000000000191",
+    legal_name: "Acme Ltda",
+    trade_name: "Acme",
+    registration_status: null,
+    registration_status_date: null,
+    registration_status_reason: null,
+    size_category: null,
+    legal_nature: null,
+    share_capital: null,
+    activity_start_date: null,
+    is_headquarters: null,
+  };
+
+  const person: PersonNode = {
+    content_id: "p1",
+    id: "p1",
+    revision,
+    type: "person",
+    age_range: null,
+    birthdate: null,
+    cpf: "11144477735",
+    name: "Fulano",
+    registration_date: null,
+    registration_status: null,
+  };
+
+  it("matches a CNPJ against a company root regardless of mask characters", () => {
+    const entries = [catalogEntry(company)];
+    expect(documentExistsInCatalog("00.000.000/0001-91", entries)).toBe(true);
+    expect(documentExistsInCatalog("00000000000192", entries)).toBe(false);
+  });
+
+  it("matches a CPF against an unmasked person root", () => {
+    const entries = [catalogEntry(person)];
+    expect(documentExistsInCatalog("111.444.777-35", entries)).toBe(true);
+    expect(documentExistsInCatalog("11144477736", entries)).toBe(false);
+  });
+
+  it("never matches a masked person root, since the real CPF is unknown", () => {
+    const entries = [catalogEntry({ ...person, cpf: "***444777**" })];
+    expect(documentExistsInCatalog("11144477735", entries)).toBe(false);
+  });
+
+  it("is false for an empty catalog", () => {
+    expect(documentExistsInCatalog("00000000000191", [])).toBe(false);
   });
 });
 

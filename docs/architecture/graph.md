@@ -104,6 +104,14 @@ panel's own consumption block both run the same estimate-then-confirm flow the t
 now available one entity at a time from the graph, not just from a row selection in the table. A masked CPF
 offers neither path, since the backend can't resolve one to look anything up.
 
+The option to force a fresh lookup instead of reusing what's already on file only appears once the document being
+expanded already exists in some previously fetched graph — checked against the CNPJ or, when not masked, the CPF of
+every graph's own root. A brand-new document has nothing on file yet to force a refresh of, so offering the option
+before the first successful expansion would just be a confusing no-op. A masked CPF is never treated as a match
+even when that individual's data was in fact already fetched, since the real digits behind the mask aren't
+available to compare — a false negative here (hiding the option when it would have been valid) is preferred over a false
+positive that implies a refresh is possible when it isn't.
+
 Zoom range extends far past what the rendering library defaults to, so an analyst can pull back enough to see a
 graph's overall shape rather than being capped at a level where a dense expansion still overflows the screen. Below
 a fixed zoom threshold a card renders as a small solid square in its type's own color instead of the full card — at
