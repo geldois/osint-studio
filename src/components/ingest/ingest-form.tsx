@@ -8,7 +8,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FilterChips } from "@/components/filter-chips";
+import { FilterChips, FilterChipsTags } from "@/components/filter-chips";
 import { useIngest } from "@/hooks/use-ingest";
 import { useTextPatternCatalog } from "@/hooks/use-text-patterns";
 import { RateLimitError } from "@/lib/api";
@@ -37,6 +37,11 @@ export function IngestForm({ onSuccess, compact = false }: IngestFormProps) {
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
 
   const { data: catalog, isLoading: isLoadingPatterns } = useTextPatternCatalog();
+  const patternOptions =
+    catalog?.patterns.map((pattern) => ({
+      value: pattern.name,
+      label: `${pattern.name} · ${patternNodeTypeLabel(pattern.node_type)}`,
+    })) ?? [];
   const { mutate, isPending, error, data, reset: resetMutation } = useIngest();
 
   const {
@@ -146,21 +151,27 @@ export function IngestForm({ onSuccess, compact = false }: IngestFormProps) {
         </div>
       ) : null}
 
-      <div className="mt-2.5">
+      <div className="mt-2.5 flex flex-col gap-1.5">
         {isLoadingPatterns ? (
           <p className="text-muted text-sm">Carregando padrões...</p>
         ) : catalog === undefined ? null : (
-          <FilterChips
-            label="Padrões"
-            options={catalog.patterns.map((pattern) => ({
-              value: pattern.name,
-              label: `${pattern.name} · ${patternNodeTypeLabel(pattern.node_type)}`,
-            }))}
-            selected={patterns}
-            onChange={(next) => {
-              setValue("patterns", next, { shouldValidate: true });
-            }}
-          />
+          <>
+            <FilterChips
+              label="Padrões"
+              options={patternOptions}
+              selected={patterns}
+              onChange={(next) => {
+                setValue("patterns", next, { shouldValidate: true });
+              }}
+            />
+            <FilterChipsTags
+              options={patternOptions}
+              selected={patterns}
+              onChange={(next) => {
+                setValue("patterns", next, { shouldValidate: true });
+              }}
+            />
+          </>
         )}
       </div>
 

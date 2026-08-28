@@ -86,7 +86,7 @@ the field it sits on is already the thing failing validation, so a user retrying
 
 Filtering the table, a node's relationship list, or the graph info button's list of expanded documents by type
 is no longer exclusive-choice tabs, one type visible at a time. A filter button opens a checklist of every type
-present, and every checked type becomes its own removable chip next to the button — so an analyst can see
+present, and every checked type becomes its own removable chip on a row below the free-text filter — so an analyst can see
 people and companies together while addresses and phone numbers stay hidden, a combination tabs could never
 express. No chip checked, or every type's chip checked, both mean the same thing as no filter at all, so
 there's no separate "all" state to keep in sync with the individual ones. The table uses the same thin, themed

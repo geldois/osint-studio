@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import { FilterBar } from "@/components/filter-bar";
-import { FilterChips } from "@/components/filter-chips";
+import { FilterChips, FilterChipsTags } from "@/components/filter-chips";
 import { Flyout } from "@/components/flyout";
 import { useGraphCatalog } from "@/hooks/use-graph-catalog";
 import { useOverlay } from "@/hooks/use-overlay";
@@ -124,7 +124,7 @@ export function GraphInfoButton() {
         ) : null}
       </div>
 
-      <div className="border-border border-b p-2">
+      <div className="flex flex-col gap-1.5 border-border border-b p-2">
         <FilterBar
           value={filter}
           onChange={setFilter}
@@ -138,6 +138,13 @@ export function GraphInfoButton() {
               }}
             />
           }
+        />
+        <FilterChipsTags
+          options={typeOptions}
+          selected={selectedTypes}
+          onChange={(next) => {
+            setSelectedTypes(next as NodeType[]);
+          }}
         />
       </div>
 

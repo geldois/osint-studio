@@ -23,61 +23,72 @@ export function GroupedFilterChips({ groups }: { groups: FilterGroup<string>[] }
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <Flyout
-        open={open}
-        onOpenChange={setOpen}
-        title="Filtros"
-        align="start"
-        trigger={
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Filtros"
-            title="Filtros"
-            className="relative size-8 shrink-0 rounded-md bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary aria-expanded:bg-primary/25 aria-expanded:text-primary"
-          >
-            <Filter size={14} />
-            {totalSelected > 0 ? (
-              <span className="absolute -top-1 -right-1 rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
-                {totalSelected}
-              </span>
-            ) : null}
-          </Button>
-        }
-      >
-        <div className="max-h-72 overflow-auto p-1.5">
-          {visibleGroups.map((group) => (
-            <div key={group.title} className="mb-2 last:mb-0">
-              <p className="px-1.5 py-1 font-bold text-[10px] text-muted uppercase tracking-wide">
-                {group.title}
-              </p>
-              <ul className="space-y-1">
-                {group.options.map((option) => (
-                  <li key={option.value}>
-                    <label className="flex items-center gap-2 rounded-md p-1.5 text-[12px] hover:bg-surface-2">
-                      <Checkbox
-                        checked={group.selected.includes(option.value)}
-                        onCheckedChange={(checked) => {
-                          group.onChange(
-                            checked
-                              ? [...group.selected, option.value]
-                              : group.selected.filter((v) => v !== option.value),
-                          );
-                        }}
-                      />
-                      <span className="flex-1">{option.label}</span>
-                      <span className="text-[11px] text-muted">{option.count}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </Flyout>
+    <Flyout
+      open={open}
+      onOpenChange={setOpen}
+      title="Filtros"
+      align="start"
+      trigger={
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Filtros"
+          title="Filtros"
+          className="relative size-8 shrink-0 rounded-md bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary aria-expanded:bg-primary/25 aria-expanded:text-primary"
+        >
+          <Filter size={14} />
+          {totalSelected > 0 ? (
+            <span className="absolute -top-1 -right-1 rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
+              {totalSelected}
+            </span>
+          ) : null}
+        </Button>
+      }
+    >
+      <div className="max-h-72 overflow-auto p-1.5">
+        {visibleGroups.map((group) => (
+          <div key={group.title} className="mb-2 last:mb-0">
+            <p className="px-1.5 py-1 font-bold text-[10px] text-muted uppercase tracking-wide">
+              {group.title}
+            </p>
+            <ul className="space-y-1">
+              {group.options.map((option) => (
+                <li key={option.value}>
+                  <label className="flex items-center gap-2 rounded-md p-1.5 text-[12px] hover:bg-surface-2">
+                    <Checkbox
+                      checked={group.selected.includes(option.value)}
+                      onCheckedChange={(checked) => {
+                        group.onChange(
+                          checked
+                            ? [...group.selected, option.value]
+                            : group.selected.filter((v) => v !== option.value),
+                        );
+                      }}
+                    />
+                    <span className="flex-1">{option.label}</span>
+                    <span className="text-[11px] text-muted">{option.count}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </Flyout>
+  );
+}
 
+export function GroupedFilterChipsTags({ groups }: { groups: FilterGroup<string>[] }) {
+  const visibleGroups = groups.filter((group) => group.options.length > 0);
+  const hasSelection = visibleGroups.some((group) => group.selected.length > 0);
+
+  if (!hasSelection) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
       {visibleGroups.flatMap((group) =>
         group.selected.map((value) => (
           <span

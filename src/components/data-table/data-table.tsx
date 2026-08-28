@@ -14,7 +14,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { useMemo, useState } from "react";
 import { columnsFor, toTableRow } from "@/components/data-table/columns";
 import { FilterBar } from "@/components/filter-bar";
-import { FilterChips } from "@/components/filter-chips";
+import { FilterChips, FilterChipsTags } from "@/components/filter-chips";
 import { Pagination } from "@/components/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -112,7 +112,7 @@ export function DataTable() {
 
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden">
-      <div className="border-border border-b bg-surface p-2">
+      <div className="flex flex-col gap-1.5 border-border border-b bg-surface p-2">
         <FilterBar
           value={globalFilter}
           onChange={(value) => {
@@ -129,6 +129,14 @@ export function DataTable() {
               }}
             />
           }
+        />
+        <FilterChipsTags
+          options={filterOptions}
+          selected={selectedTypes}
+          onChange={(next) => {
+            setSelectedTypes(next as NodeType[]);
+            setPagination((p) => ({ ...p, pageIndex: 0 }));
+          }}
         />
       </div>
 

@@ -4,7 +4,10 @@ import { AlertTriangle, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import { SeverityBadge } from "@/components/findings/severity-badge";
-import { GroupedFilterChips } from "@/components/grouped-filter-chips";
+import {
+  GroupedFilterChips,
+  GroupedFilterChipsTags,
+} from "@/components/grouped-filter-chips";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useOverlay } from "@/hooks/use-overlay";
@@ -142,6 +145,25 @@ export function FindingsPanel() {
     );
   }
 
+  const findingFilterGroups = [
+    {
+      title: "Severidade",
+      options: severityOptions,
+      selected: selectedSeverities,
+      onChange: (next: string[]) => {
+        setSelectedSeverities(next as FindingSeverity[]);
+      },
+    },
+    {
+      title: "Categoria",
+      options: categoryOptions,
+      selected: selectedCategories,
+      onChange: (next: string[]) => {
+        setSelectedCategories(next as FindingCategory[]);
+      },
+    },
+  ];
+
   return (
     <ScrollArea className="h-full">
       <div className="space-y-3 p-3">
@@ -159,26 +181,8 @@ export function FindingsPanel() {
             className="pl-7"
           />
         </div>
-        <GroupedFilterChips
-          groups={[
-            {
-              title: "Severidade",
-              options: severityOptions,
-              selected: selectedSeverities,
-              onChange: (next) => {
-                setSelectedSeverities(next as FindingSeverity[]);
-              },
-            },
-            {
-              title: "Categoria",
-              options: categoryOptions,
-              selected: selectedCategories,
-              onChange: (next) => {
-                setSelectedCategories(next as FindingCategory[]);
-              },
-            },
-          ]}
-        />
+        <GroupedFilterChips groups={findingFilterGroups} />
+        <GroupedFilterChipsTags groups={findingFilterGroups} />
         {visible.length === 0 ? (
           <p className="p-3 text-[12px] text-muted">
             Nenhum achado corresponde ao filtro.

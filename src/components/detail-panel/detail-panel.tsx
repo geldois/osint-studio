@@ -23,7 +23,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ExpansionMenu } from "@/components/expansion-menu";
 import { FilterBar } from "@/components/filter-bar";
-import { GroupedFilterChips } from "@/components/grouped-filter-chips";
+import {
+  GroupedFilterChips,
+  GroupedFilterChipsTags,
+} from "@/components/grouped-filter-chips";
 import { Pagination } from "@/components/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EntityIcon } from "@/components/nodes/entity-icon";
@@ -198,9 +201,30 @@ function RelationshipList({ relationships }: { relationships: NodeRelationship[]
     );
   }
 
+  const filterGroups = [
+    {
+      title: "Tipo",
+      options: typeOptions,
+      selected: selectedTypes,
+      onChange: (next: string[]) => {
+        setSelectedTypes(next as NodeType[]);
+        setPage(1);
+      },
+    },
+    {
+      title: "Direção",
+      options: directionOptions,
+      selected: selectedDirections,
+      onChange: (next: string[]) => {
+        setSelectedDirections(next as RelationshipDirection[]);
+        setPage(1);
+      },
+    },
+  ];
+
   return (
     <div className="-mx-3 -mb-3">
-      <div className="bg-surface p-2">
+      <div className="flex flex-col gap-1.5 bg-surface p-2">
         <FilterBar
           value={filter}
           onChange={(value) => {
@@ -208,31 +232,9 @@ function RelationshipList({ relationships }: { relationships: NodeRelationship[]
             setPage(1);
           }}
           placeholder="Filtrar relacionamentos..."
-          leftSlot={
-            <GroupedFilterChips
-              groups={[
-                {
-                  title: "Tipo",
-                  options: typeOptions,
-                  selected: selectedTypes,
-                  onChange: (next) => {
-                    setSelectedTypes(next as NodeType[]);
-                    setPage(1);
-                  },
-                },
-                {
-                  title: "Direção",
-                  options: directionOptions,
-                  selected: selectedDirections,
-                  onChange: (next) => {
-                    setSelectedDirections(next as RelationshipDirection[]);
-                    setPage(1);
-                  },
-                },
-              ]}
-            />
-          }
+          leftSlot={<GroupedFilterChips groups={filterGroups} />}
         />
+        <GroupedFilterChipsTags groups={filterGroups} />
       </div>
       {visible.length === 0 ? (
         <p className="p-3 text-[12px] text-muted">
