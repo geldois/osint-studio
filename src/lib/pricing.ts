@@ -1,6 +1,8 @@
 import type { BatchCPFEstimate, BatchCPFOutcome } from "@/types/api";
 
 export const KIPFLOW_CPF_COST_BRL = 0.19;
+export const KIPFLOW_LEGAL_PROCESS_CPF_COST_BRL = 3.5;
+export const KIPFLOW_LEGAL_PROCESS_CNPJ_COST_BRL = 5;
 
 export const BATCH_CPF_OUTCOME_LABELS: Record<BatchCPFOutcome["status"], string> = {
   already_fetched: "já buscado",

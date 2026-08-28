@@ -1,3 +1,9 @@
+import {
+  formatCostBRL,
+  KIPFLOW_CPF_COST_BRL,
+  KIPFLOW_LEGAL_PROCESS_CNPJ_COST_BRL,
+  KIPFLOW_LEGAL_PROCESS_CPF_COST_BRL,
+} from "@/lib/pricing";
 import type { CredentialStatus } from "@/types/api";
 
 export type ExpansionRouteKey =
@@ -27,7 +33,7 @@ const CPF_ROUTES: ExpansionRoute[] = [
   {
     key: "root",
     label: "Pessoa (dados básicos)",
-    priceBRL: 0.19,
+    priceBRL: KIPFLOW_CPF_COST_BRL,
     provider: "KIPFLOW",
     supportsForce: true,
   },
@@ -62,7 +68,7 @@ const CPF_ROUTES: ExpansionRoute[] = [
   {
     key: "legal_process",
     label: "Processo jurídico",
-    priceBRL: 3.5,
+    priceBRL: KIPFLOW_LEGAL_PROCESS_CPF_COST_BRL,
     provider: "KIPFLOW",
     supportsForce: false,
   },
@@ -100,7 +106,7 @@ const CNPJ_ROUTES: ExpansionRoute[] = [
   {
     key: "legal_process",
     label: "Processo jurídico",
-    priceBRL: 5,
+    priceBRL: KIPFLOW_LEGAL_PROCESS_CNPJ_COST_BRL,
     provider: "KIPFLOW",
     supportsForce: false,
   },
@@ -111,7 +117,7 @@ export function expansionRoutesFor(documentIsCpf: boolean): ExpansionRoute[] {
 }
 
 export function formatPriceBRL(priceBRL: number): string {
-  return priceBRL === 0 ? "Grátis" : `R$${priceBRL.toFixed(2).replace(".", ",")}`;
+  return priceBRL === 0 ? "Grátis" : formatCostBRL(priceBRL);
 }
 
 export function totalPriceBRL(
