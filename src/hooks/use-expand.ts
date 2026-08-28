@@ -6,8 +6,11 @@ import {
   fetchCNEP,
   fetchGraph,
   fetchGraphByCpf,
+  fetchLegalProcess,
+  fetchPEP,
 } from "@/lib/api";
 import { isCpf } from "@/lib/document";
+import type { ExpansionRouteKey } from "@/lib/expansion-routes";
 import { canFetchDocumentType } from "@/lib/permissions";
 import { useAuthStore } from "@/store/auth";
 import { useGraphStore } from "@/store/graph";
@@ -15,6 +18,7 @@ import type { GraphSchema } from "@/types/api";
 
 interface ExpandVars {
   document: string;
+  routes: ExpansionRouteKey[];
   force?: boolean;
 }
 
@@ -22,6 +26,33 @@ interface ExpandResult {
   errors: unknown[];
   focusNodeId: string | null;
   schemas: GraphSchema[];
+}
+
+function fetchForRoute(
+  route: ExpansionRouteKey,
+  document: string,
+  documentIsCpf: boolean,
+  token: string,
+  force: boolean,
+): Promise<GraphSchema | null> {
+  switch (route) {
+    case "root":
+      return documentIsCpf
+        ? fetchGraphByCpf(document, token, force)
+        : fetchGraph(document, token);
+    case "cnep":
+      return fetchCNEP(document, token);
+    case "ceis":
+      return fetchCEIS(document, token);
+    case "ceaf":
+      return fetchCEAF(document, token);
+    case "cepim":
+      return fetchCEPIM(document, token);
+    case "pep":
+      return fetchPEP(document, token);
+    case "legal_process":
+      return fetchLegalProcess(document, token);
+  }
 }
 
 export function useExpand() {
@@ -34,6 +65,7 @@ export function useExpand() {
   return useMutation({
     mutationFn: async ({
       document,
+      routes,
       force = false,
     }: ExpandVars): Promise<ExpandResult> => {
       if (token === null) {
@@ -45,21 +77,11 @@ export function useExpand() {
         throw new Error("Sua conta não tem permissão para esta ação.");
       }
 
-      const fetchRootGraph = documentIsCpf
-        ? fetchGraphByCpf(document, token, force)
-        : fetchGraph(document, token);
-
-      const fetches =
-        role === "ADMIN"
-          ? [
-              fetchRootGraph,
-              fetchCNEP(document, token),
-              fetchCEIS(document, token),
-              documentIsCpf ? fetchCEAF(document, token) : fetchCEPIM(document, token),
-            ]
-          : [fetchRootGraph];
-
-      const results = await Promise.allSettled(fetches);
+      const results = await Promise.allSettled(
+        routes.map((route) =>
+          fetchForRoute(route, document, documentIsCpf, token, force),
+        ),
+      );
 
       const schemas = results
         .filter((result) => result.status === "fulfilled")
@@ -72,11 +94,7 @@ export function useExpand() {
         )
         .map((result): unknown => result.reason as unknown);
 
-      const rootGraphResult = results[0];
-      const focusNodeId =
-        rootGraphResult?.status === "fulfilled" && rootGraphResult.value !== null
-          ? rootGraphResult.value.root_id
-          : null;
+      const focusNodeId = schemas[0]?.root_id ?? null;
 
       return { errors, focusNodeId, schemas };
     },

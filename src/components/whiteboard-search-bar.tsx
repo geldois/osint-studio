@@ -1,23 +1,22 @@
 "use client";
 
-import { CornerDownLeft, Loader2, RotateCcw, Search } from "lucide-react";
+import { CornerDownLeft, Loader2, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ExpansionMenu } from "@/components/expansion-menu";
 import { FieldWarning } from "@/components/field-warning";
 import { IngestFlyout } from "@/components/ingest/ingest-flyout";
 import { Input } from "@/components/ui/input";
 import { useExpand } from "@/hooks/use-expand";
 import { RateLimitError } from "@/lib/api";
-import {
-  isAlreadyFetchedError,
-  translateError,
-  visibleErrorMessages,
-} from "@/lib/errors";
+import { translateError, visibleErrorMessages } from "@/lib/errors";
 import { useAuthStore } from "@/store/auth";
 
 export function WhiteboardSearchBar() {
   const role = useAuthStore((s) => s.role);
   const [query, setQuery] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuGeneration, setMenuGeneration] = useState(0);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const { mutate, isPending, error, data } = useExpand();
   const searchPlaceholder = role === "VIEWER" ? "CNPJ" : "CPF ou CNPJ";
@@ -36,7 +35,6 @@ export function WhiteboardSearchBar() {
 
   const isBlocked = retryAfterSeconds > 0;
   const visibleErrors = data ? visibleErrorMessages(data.errors) : [];
-  const canForceRetry = error !== null && isAlreadyFetchedError(error);
   const warningMessage = isBlocked
     ? `Limite atingido. Tente novamente em ${String(retryAfterSeconds)}s.`
     : error
@@ -47,12 +45,16 @@ export function WhiteboardSearchBar() {
   const warningTone: "error" | "warning" =
     isBlocked || visibleErrors.length > 0 ? "warning" : "error";
 
-  function submit(force = false): void {
+  function submit(): void {
     if (isPending || isBlocked || query.trim() === "") {
       return;
     }
+    if (role === "ADMIN") {
+      setMenuOpen(true);
+      return;
+    }
     mutate(
-      { document: query.trim(), force },
+      { document: query.trim(), routes: ["root"] },
       {
         onError: (mutationError) => {
           if (mutationError instanceof RateLimitError) {
@@ -64,7 +66,7 @@ export function WhiteboardSearchBar() {
   }
 
   return (
-    <div className="flex w-full max-w-md items-center gap-1 rounded-lg border border-border bg-surface-2 p-1">
+    <div className="relative flex w-full max-w-md items-center gap-1 rounded-lg border border-border bg-surface-2 p-1">
       {role === "ADMIN" ? <IngestFlyout /> : null}
       <div className="relative min-w-0 flex-1">
         <Search
@@ -75,6 +77,7 @@ export function WhiteboardSearchBar() {
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
+            setMenuOpen(false);
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -94,27 +97,40 @@ export function WhiteboardSearchBar() {
         variant="ghost"
         size="icon"
         disabled={isPending || isBlocked || query.trim() === ""}
-        onClick={() => {
-          submit(canForceRetry);
-        }}
-        aria-label={canForceRetry ? "Buscar novamente" : "Expandir"}
-        title={
-          isPending
-            ? "Expandindo..."
-            : canForceRetry
-              ? "Este documento já foi consultado antes. Buscar novamente consome um novo crédito."
-              : "Expandir"
-        }
-        className={canForceRetry ? "size-8 shrink-0 text-amber-500" : "size-8 shrink-0"}
+        onClick={submit}
+        aria-label="Expandir"
+        title={isPending ? "Expandindo..." : "Expandir"}
+        className="size-8 shrink-0"
       >
         {isPending ? (
           <Loader2 size={14} className="animate-spin" />
-        ) : canForceRetry ? (
-          <RotateCcw size={14} />
         ) : (
           <CornerDownLeft size={14} />
         )}
       </Button>
+      {menuOpen ? (
+        <ExpansionMenu
+          key={`${query.trim()}-${String(menuGeneration)}`}
+          document={query.trim()}
+          isPending={isPending}
+          onClose={() => {
+            setMenuOpen(false);
+          }}
+          onConfirm={(routes, force) => {
+            mutate(
+              { document: query.trim(), routes, force },
+              {
+                onError: (mutationError) => {
+                  if (mutationError instanceof RateLimitError) {
+                    setRetryAfterSeconds(Math.ceil(mutationError.retryAfterSeconds));
+                  }
+                },
+              },
+            );
+            setMenuGeneration((generation) => generation + 1);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

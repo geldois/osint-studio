@@ -383,7 +383,7 @@ function NodePanel({ nodeId }: { nodeId: string }) {
 
   function handleDocumentClick(): void {
     if (documentType === "cnpj" && expandableDocument !== null) {
-      mutate({ document: expandableDocument });
+      mutate({ document: expandableDocument, routes: ["root"] });
     } else if (documentType === "cpf") {
       consumeCpf.consume(false);
     }
