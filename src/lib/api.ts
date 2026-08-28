@@ -4,6 +4,7 @@ import {
   ApiNodeSchema,
   BatchCPFEstimateSchema,
   BatchCPFResultSchema,
+  CredentialRevealSchema,
   CredentialStatusSchema,
   EntityRecordSchema,
   GraphCatalogSchema,
@@ -420,4 +421,18 @@ export async function saveCredential(
   if (!res.ok) {
     return throwForAuthenticatedEndpointError(res);
   }
+}
+
+export async function revealCredential(
+  provider: Provider,
+  token: string,
+): Promise<string> {
+  const res = await fetch(`${API_URL}/credentials/${provider}/reveal`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    return throwForAuthenticatedEndpointError(res);
+  }
+  const parsed = await parseJson(CredentialRevealSchema, res);
+  return parsed.api_key;
 }

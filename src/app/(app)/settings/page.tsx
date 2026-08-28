@@ -11,9 +11,9 @@ import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/password-input";
 import { useCredentialStatus } from "@/hooks/use-credential-status";
-import { saveCredential } from "@/lib/api";
+import { revealCredential, saveCredential } from "@/lib/api";
 import { translateError } from "@/lib/errors";
 import { useAuthStore } from "@/store/auth";
 import type { Provider } from "@/types/api";
@@ -22,6 +22,8 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   KIPFLOW: "KipFlow",
   PORTAL_TRANSPARENCIA: "Portal da Transparência",
 };
+
+const MASKED_SENTINEL = "•".repeat(24);
 
 const credentialSchema = z.object({
   apiKey: z.string().min(1, "Informe a chave da API."),
@@ -42,20 +44,42 @@ function CredentialRow({
     register,
     handleSubmit,
     reset,
-    formState: { errors },
-  } = useForm<CredentialFormValues>({ resolver: zodResolver(credentialSchema) });
+    setValue,
+    formState: { errors, dirtyFields },
+  } = useForm<CredentialFormValues>({
+    resolver: zodResolver(credentialSchema),
+    defaultValues: { apiKey: configured ? MASKED_SENTINEL : "" },
+  });
+
+  useEffect(() => {
+    reset({ apiKey: configured ? MASKED_SENTINEL : "" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configured]);
+
+  const revealMutation = useMutation({
+    mutationFn: () => revealCredential(provider, token),
+    onSuccess: (apiKey) => {
+      setValue("apiKey", apiKey);
+    },
+  });
 
   const mutation = useMutation({
     mutationFn: (values: CredentialFormValues) =>
       saveCredential(provider, values.apiKey, token),
     onSuccess: () => {
-      reset();
       void queryClient.invalidateQueries({ queryKey: ["credential-status"] });
     },
   });
 
+  function onSubmit(values: CredentialFormValues): void {
+    if (!dirtyFields.apiKey) {
+      return;
+    }
+    mutation.mutate(values);
+  }
+
   return (
-    <div className="flex flex-col gap-2 py-4">
+    <div className="flex flex-col gap-2 py-3">
       <div className="flex items-center justify-between">
         <span className="font-medium text-sm">{PROVIDER_LABELS[provider]}</span>
         <Badge variant={configured ? "default" : "destructive"}>
@@ -64,13 +88,19 @@ function CredentialRow({
       </div>
       <form
         onSubmit={(e) => {
-          void handleSubmit((values) => {
-            mutation.mutate(values);
-          })(e);
+          void handleSubmit(onSubmit)(e);
         }}
         className="flex items-center gap-2"
       >
-        <Input type="password" placeholder="Chave da API" {...register("apiKey")} />
+        <PasswordInput
+          placeholder="Chave da API"
+          onReveal={() => {
+            if (configured && !revealMutation.isSuccess && !revealMutation.isPending) {
+              revealMutation.mutate();
+            }
+          }}
+          {...register("apiKey")}
+        />
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? "Salvando..." : "Salvar"}
         </Button>
@@ -79,6 +109,10 @@ function CredentialRow({
         <span className="text-red-500 text-sm">{errors.apiKey.message}</span>
       ) : mutation.error ? (
         <span className="text-red-500 text-sm">{translateError(mutation.error)}</span>
+      ) : revealMutation.error ? (
+        <span className="text-red-500 text-sm">
+          {translateError(revealMutation.error)}
+        </span>
       ) : null}
     </div>
   );
@@ -106,7 +140,7 @@ function SettingsForm({ token }: { token: string }) {
   const { data, error, isLoading } = useCredentialStatus();
 
   return (
-    <div className="mx-auto max-w-lg p-6">
+    <div className="mx-auto max-w-lg p-3">
       <Link
         href="/graph"
         className="mb-4 inline-flex items-center gap-1.5 text-muted text-sm hover:text-foreground"

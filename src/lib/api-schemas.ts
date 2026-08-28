@@ -12,6 +12,10 @@ export const CredentialStatusSchema = z.object({
   provider: ProviderSchema,
 });
 
+export const CredentialRevealSchema = z.object({
+  api_key: z.string(),
+});
+
 export const NodeTypeSchema = z.enum([
   "address",
   "cnae",

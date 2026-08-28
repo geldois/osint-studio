@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FieldWarning } from "@/components/field-warning";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/password-input";
 import { API_URL, login, loginAsVisitor, RateLimitError } from "@/lib/api";
 import { translateError } from "@/lib/errors";
 import { cn } from "@/lib/utils";
@@ -121,22 +122,28 @@ export default function LoginPage() {
                 Senha
               </Label>
               <div className="relative">
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   placeholder="Senha"
                   autoComplete="current-password"
                   data-1p-ignore
                   data-lpignore="true"
                   data-bwignore="true"
                   aria-invalid={errors.password !== undefined || hasCredentialsError}
-                  className={hasCredentialsError ? "pr-8" : undefined}
                   {...register("password")}
                 />
                 {errors.password ? (
-                  <FieldWarning tone="error" message={errors.password.message ?? ""} />
+                  <FieldWarning
+                    tone="error"
+                    message={errors.password.message ?? ""}
+                    className="right-9"
+                  />
                 ) : hasCredentialsError ? (
-                  <FieldWarning tone="error" message={translateError(error)} />
+                  <FieldWarning
+                    tone="error"
+                    message={translateError(error)}
+                    className="right-9"
+                  />
                 ) : null}
               </div>
             </div>
