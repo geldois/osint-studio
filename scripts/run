@@ -138,10 +138,13 @@ run_fix() {
         files+=("${_SHELL_FILES[@]}")
     fi
 
-    local -A staged=()
+    local -A staged=() pre_hash=() pre_blob=()
     local staged_file
     while IFS= read -r staged_file; do
-        [ -n "$staged_file" ] && staged["$staged_file"]=1
+        [ -n "$staged_file" ] || continue
+        staged["$staged_file"]=1
+        pre_hash["$staged_file"]="$(git hash-object -- "$staged_file" 2>/dev/null)"
+        pre_blob["$staged_file"]="$(git rev-parse :"$staged_file" 2>/dev/null)"
     done < <(git diff --name-only --cached)
 
     local prettier_files=() eslint_files=() dprint_files=() markdownlint_files=() shfmt_files=() staged_files=()
@@ -195,8 +198,16 @@ run_fix() {
     fi
     if [ "${#staged_files[@]}" -gt 0 ]; then
         git add -- "${staged_files[@]}"
-        mkdir -p build
-        printf '%s\n' "${staged_files[@]}" >build/.gate-fixed-paths
+        local rewritten=() f
+        for f in "${staged_files[@]}"; do
+            if [ "${pre_hash["$f"]}" != "$(git hash-object -- "$f" 2>/dev/null)" ]; then
+                rewritten+=("$f	${pre_blob["$f"]}")
+            fi
+        done
+        if [ "${#rewritten[@]}" -gt 0 ]; then
+            mkdir -p build
+            printf '%s\n' "${rewritten[@]}" >build/.gate-fixed-paths
+        fi
     fi
 
     [ "$did_something" = 0 ] && echo "fix: nothing to do"
