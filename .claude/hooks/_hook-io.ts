@@ -3,13 +3,19 @@ import { readFileSync } from "node:fs";
 
 export type JsonRecord = Record<string, unknown>;
 
+let eventCache: JsonRecord | null = null;
+
 export function readEvent(): JsonRecord {
+  if (eventCache !== null) {
+    return eventCache;
+  }
   try {
     const raw: unknown = JSON.parse(readFileSync(0, "utf-8"));
-    return typeof raw === "object" && raw !== null ? (raw as JsonRecord) : {};
+    eventCache = typeof raw === "object" && raw !== null ? (raw as JsonRecord) : {};
   } catch {
-    return {};
+    eventCache = {};
   }
+  return eventCache;
 }
 
 export function toolInput(event: JsonRecord, key: string): string {
@@ -84,7 +90,18 @@ export function addContext(text: string): void {
   });
 }
 
-export function context(hookEventName: string, text: string): void {
+export function context(
+  hookEventName: string,
+  text: string,
+  oncePerChain = true,
+): void {
+  if (
+    oncePerChain &&
+    (hookEventName === "Stop" || hookEventName === "SubagentStop") &&
+    readEvent()["stop_hook_active"] === true
+  ) {
+    return;
+  }
   emit({
     hookSpecificOutput: {
       hookEventName,
