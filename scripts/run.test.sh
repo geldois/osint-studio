@@ -60,6 +60,23 @@ test_staged_file_survives_fix_fully_staged() {
   assert_eq "" "$(git diff -- a.sh)" "no unstaged diff after fix"
 }
 
+test_failed_check_unstages_a_rewritten_staged_file() {
+  new_repo
+  printf 'echo hi\n' >a.sh
+  git add a.sh
+
+  # shellcheck disable=SC1090
+  source "$run_script"
+  fake_shfmt_mise
+  # shellcheck disable=SC2329
+  run_check() { return 1; }
+
+  run_precommit >/dev/null || true
+
+  assert_eq "" "$(git diff --cached --name-only)" "nothing staged after a failed gate"
+  assert_eq 'echo "fixed"' "$(cat a.sh)" "the fix output stays in the worktree"
+}
+
 test_unstaged_rewrite_stays_unstaged() {
   new_repo
 
@@ -96,6 +113,7 @@ test_precommit_skips_check_when_tree_unchanged() {
 }
 
 test_staged_file_survives_fix_fully_staged
+test_failed_check_unstages_a_rewritten_staged_file
 test_unstaged_rewrite_stays_unstaged
 test_precommit_skips_check_when_tree_unchanged
 
