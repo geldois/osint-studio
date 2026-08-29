@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-_SHELL_FILES=(.githooks/pre-commit .githooks/pre-merge-commit scripts/run)
+_SHELL_FILES=(.githooks/pre-commit .githooks/pre-merge-commit scripts/run scripts/run.test.sh)
 _WORKFLOW_FILES=(.github/workflows/release.yml)
 _REPORT_PATH="build/reports/gates.json"
 _TREE_HASH_FILE="build/.gate-tree-hash"
@@ -62,6 +62,7 @@ write_report() {
 run_check() {
     gate shellcheck mise exec -- shellcheck "${_SHELL_FILES[@]}"
     gate shfmt mise exec -- shfmt -d "${_SHELL_FILES[@]}"
+    gate run-tests bash scripts/run.test.sh
     gate actionlint mise exec -- actionlint "${_WORKFLOW_FILES[@]}"
     gate dprint mise exec -- dprint check
     gate lock-check mise exec -- pnpm install --frozen-lockfile
@@ -205,16 +206,22 @@ run_verify() {
     return "$status"
 }
 
-cmd="${1:-}"
-[ "$#" -gt 0 ] && shift
+main() {
+    cmd="${1:-}"
+    [ "$#" -gt 0 ] && shift
 
-case "$cmd" in
-check) run_check ;;
-fix) run_fix "$@" ;;
-verify) run_verify "$@" ;;
-precommit) run_precommit ;;
-*)
-    echo "usage: scripts/run <check|fix|verify|precommit> [files...]" >&2
-    exit 1
-    ;;
-esac
+    case "$cmd" in
+    check) run_check ;;
+    fix) run_fix "$@" ;;
+    verify) run_verify "$@" ;;
+    precommit) run_precommit ;;
+    *)
+        echo "usage: scripts/run <check|fix|verify|precommit> [files...]" >&2
+        exit 1
+        ;;
+    esac
+}
+
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+    main "$@"
+fi
