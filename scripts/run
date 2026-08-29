@@ -86,6 +86,11 @@ tree_hash() {
 }
 
 run_precommit() {
+    local staged_files=() f
+    while IFS= read -r f; do
+        [ -n "$f" ] && staged_files+=("$f")
+    done < <(git diff --name-only --cached)
+
     run_fix >/dev/null
 
     local hash
@@ -93,12 +98,21 @@ run_precommit() {
 
     if [ -f "$_TREE_HASH_FILE" ] && [ "$(cat "$_TREE_HASH_FILE")" = "$hash" ] &&
         [ -f "$_TREE_REPORT_FILE" ] && [ -f "$_TREE_EXIT_FILE" ]; then
+        local cached_status
+        cached_status="$(cat "$_TREE_EXIT_FILE")"
+        if [ "$cached_status" -ne 0 ] && [ "${#staged_files[@]}" -gt 0 ]; then
+            git reset -q -- "${staged_files[@]}"
+        fi
         cat "$_TREE_REPORT_FILE"
-        return "$(cat "$_TREE_EXIT_FILE")"
+        return "$cached_status"
     fi
 
     local out status=0
     out="$(run_check 2>&1)" || status=$?
+
+    if [ "$status" -ne 0 ] && [ "${#staged_files[@]}" -gt 0 ]; then
+        git reset -q -- "${staged_files[@]}"
+    fi
 
     mkdir -p "$(dirname "$_TREE_HASH_FILE")"
     printf '%s' "$hash" >"$_TREE_HASH_FILE"
