@@ -153,11 +153,6 @@ run_fix() {
     done
 
     local did_something=0
-    if [ "${#prettier_files[@]}" -gt 0 ]; then
-        mise exec -- pnpm exec prettier --write "${prettier_files[@]}" >/dev/null 2>&1 || true
-        echo "prettier: ${#prettier_files[@]} file(s)"
-        did_something=1
-    fi
     if [ "${#eslint_files[@]}" -gt 0 ]; then
         mise exec -- pnpm exec eslint --fix "${eslint_files[@]}" >/dev/null 2>&1 || true
         echo "eslint --fix: ${#eslint_files[@]} file(s)"
@@ -176,6 +171,11 @@ run_fix() {
     if [ "${#markdownlint_files[@]}" -gt 0 ]; then
         mise exec -- pnpm exec markdownlint-cli2 --fix "${markdownlint_files[@]}" >/dev/null 2>&1 || true
         echo "markdownlint --fix: ${#markdownlint_files[@]} file(s)"
+        did_something=1
+    fi
+    if [ "${#prettier_files[@]}" -gt 0 ]; then
+        mise exec -- pnpm exec prettier --write "${prettier_files[@]}" >/dev/null 2>&1 || true
+        echo "prettier: ${#prettier_files[@]} file(s)"
         did_something=1
     fi
     if [ "${#staged_files[@]}" -gt 0 ]; then
