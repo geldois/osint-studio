@@ -76,7 +76,10 @@ pnpm dev
 
 ```http
 NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_PORTFOLIO=false
 ```
+
+`NEXT_PUBLIC_PORTFOLIO=true` shows the GitHub/LinkedIn links on `/login`; `false` or unset hides them.
 
 ## Quality gates
 
