@@ -103,10 +103,17 @@ run_fix() {
         files+=("${_SHELL_FILES[@]}")
     fi
 
-    local prettier_files=() eslint_files=() dprint_files=() markdownlint_files=() shfmt_files=()
+    local -A staged=()
+    local staged_file
+    while IFS= read -r staged_file; do
+        [ -n "$staged_file" ] && staged["$staged_file"]=1
+    done < <(git diff --name-only --cached)
+
+    local prettier_files=() eslint_files=() dprint_files=() markdownlint_files=() shfmt_files=() staged_files=()
     local file
     for file in "${files[@]}"; do
         [ -f "$file" ] || continue
+        [ -n "${staged[$file]:-}" ] && staged_files+=("$file")
         case "$file" in
         *.ts | *.tsx | *.js | *.jsx | *.mjs | *.json | *.md | *.css) prettier_files+=("$file") ;;
         esac
@@ -151,6 +158,10 @@ run_fix() {
         echo "markdownlint --fix: ${#markdownlint_files[@]} file(s)"
         did_something=1
     fi
+    if [ "${#staged_files[@]}" -gt 0 ]; then
+        git add -- "${staged_files[@]}"
+    fi
+
     [ "$did_something" = 0 ] && echo "fix: nothing to do"
     return 0
 }
