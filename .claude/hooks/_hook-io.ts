@@ -90,16 +90,20 @@ export function addContext(text: string): void {
   });
 }
 
+export function stopReinvoked(event: JsonRecord): boolean {
+  return (
+    (event["hook_event_name"] === "Stop" ||
+      event["hook_event_name"] === "SubagentStop") &&
+    event["stop_hook_active"] === true
+  );
+}
+
 export function context(
   hookEventName: string,
   text: string,
   oncePerChain = true,
 ): void {
-  if (
-    oncePerChain &&
-    (hookEventName === "Stop" || hookEventName === "SubagentStop") &&
-    readEvent()["stop_hook_active"] === true
-  ) {
+  if (oncePerChain && stopReinvoked(readEvent())) {
     return;
   }
   emit({

@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import { context, gitRoot, readEvent, run } from "./_hook-io";
+import { context, gitRoot, readEvent, run, stopReinvoked } from "./_hook-io";
 
 const TS_SUFFIXES = new Set([".ts", ".tsx"]);
 const PATH_START = 3;
@@ -9,7 +9,7 @@ const ADR_DIR = "docs/adr";
 
 function main(): void {
   const event = readEvent();
-  if (event["stop_hook_active"] === true) {
+  if (stopReinvoked(event)) {
     return;
   }
 
