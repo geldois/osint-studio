@@ -2,8 +2,6 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { context, gitRoot, readEvent, run } from "./_hook-io";
 
-const TSC = ["pnpm", "exec", "tsc", "--noEmit"];
-const MAX_OUTPUT_LINES = 40;
 const TS_SUFFIXES = new Set([".ts", ".tsx"]);
 const PATH_START = 3;
 const ARCHITECTURE_DIR = "docs/architecture";
@@ -21,22 +19,14 @@ function main(): void {
   }
 
   const changed = changedFiles(root);
-  if (changed.length === 0) {
-    return;
-  }
-
-  run(["scripts/run", "fix", ...changed], root);
-
   const tsChanged = changed.filter((path) => TS_SUFFIXES.has(suffixOf(path)));
   if (tsChanged.length === 0) {
     return;
   }
 
-  const sections = [typeErrors(root), docsNudge(root)].filter(
-    (section) => section !== "",
-  );
-  if (sections.length > 0) {
-    context("Stop", sections.join("\n\n"));
+  const nudge = docsNudge(root);
+  if (nudge !== "") {
+    context("Stop", nudge);
   }
 }
 
@@ -92,16 +82,6 @@ function changedFiles(root: string): string[] {
     }
   }
   return paths;
-}
-
-function typeErrors(root: string): string {
-  const result = run(TSC, root);
-  if (result === null || result.status === 0) {
-    return "";
-  }
-  const output = result.stdout || result.stderr;
-  const lines = output.split("\n").slice(0, MAX_OUTPUT_LINES);
-  return `── tsc ──\n${lines.join("\n")}`;
 }
 
 main();

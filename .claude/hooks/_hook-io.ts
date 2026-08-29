@@ -26,6 +26,11 @@ export function toolName(event: JsonRecord): string {
   return typeof value === "string" ? value : "";
 }
 
+export function toolResponse(event: JsonRecord): JsonRecord {
+  const raw = event["tool_response"];
+  return typeof raw === "object" && raw !== null ? (raw as JsonRecord) : {};
+}
+
 export interface RunResult {
   status: number;
   stdout: string;

@@ -4,6 +4,9 @@ set -euo pipefail
 _SHELL_FILES=(.githooks/pre-commit .githooks/pre-merge-commit scripts/run)
 _WORKFLOW_FILES=(.github/workflows/release.yml)
 _REPORT_PATH="build/reports/gates.json"
+_TREE_HASH_FILE="build/.gate-tree-hash"
+_TREE_REPORT_FILE="build/.gate-tree-report"
+_TREE_EXIT_FILE="build/.gate-tree-exit"
 
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
@@ -57,16 +60,6 @@ write_report() {
 }
 
 run_check() {
-    local tree
-    tree="$(git write-tree)"
-    snapshot="$(mktemp -d -t osint-studio-gates-XXXXXX)"
-    trap 'rm -rf "$snapshot"' EXIT
-
-    git archive --format=tar "$tree" | tar -x -C "$snapshot"
-
-    cd "$snapshot"
-    unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
-
     gate shellcheck mise exec -- shellcheck "${_SHELL_FILES[@]}"
     gate shfmt mise exec -- shfmt -d "${_SHELL_FILES[@]}"
     gate actionlint mise exec -- actionlint "${_WORKFLOW_FILES[@]}"
@@ -82,10 +75,37 @@ run_check() {
         gate markdownlint mise exec -- pnpm exec markdownlint-cli2 "**/*.md"
     fi
 
-    cd "$root"
     write_report
     printf '%s\n' "$report"
     [ "$failed" = 0 ]
+}
+
+tree_hash() {
+    git ls-files -z | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1
+}
+
+run_precommit() {
+    run_fix >/dev/null
+
+    local hash
+    hash="$(tree_hash)"
+
+    if [ -f "$_TREE_HASH_FILE" ] && [ "$(cat "$_TREE_HASH_FILE")" = "$hash" ] &&
+        [ -f "$_TREE_REPORT_FILE" ] && [ -f "$_TREE_EXIT_FILE" ]; then
+        cat "$_TREE_REPORT_FILE"
+        return "$(cat "$_TREE_EXIT_FILE")"
+    fi
+
+    local out status=0
+    out="$(run_check 2>&1)" || status=$?
+
+    mkdir -p "$(dirname "$_TREE_HASH_FILE")"
+    printf '%s' "$hash" >"$_TREE_HASH_FILE"
+    printf '%s' "$status" >"$_TREE_EXIT_FILE"
+    printf '%s' "$out" >"$_TREE_REPORT_FILE"
+
+    printf '%s\n' "$out"
+    return "$status"
 }
 
 is_shell_file() {
@@ -179,9 +199,8 @@ run_verify() {
     fi
 
     echo
-    echo "note: fix already runs automatically every turn and check already runs" \
-        "at commit/merge — use verify only when you need the result before" \
-        "either of those would."
+    echo "note: this is the same fix + check the git hook runs on every commit" \
+        "and merge attempt — use verify only for a quick manual pass."
 
     return "$status"
 }
@@ -193,8 +212,9 @@ case "$cmd" in
 check) run_check ;;
 fix) run_fix "$@" ;;
 verify) run_verify "$@" ;;
+precommit) run_precommit ;;
 *)
-    echo "usage: scripts/run <check|fix|verify> [files...]" >&2
+    echo "usage: scripts/run <check|fix|verify|precommit> [files...]" >&2
     exit 1
     ;;
 esac

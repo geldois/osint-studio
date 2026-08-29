@@ -1,11 +1,10 @@
 # Tooling — what it does
 
-The project's own developer-facing quality gate — linting, formatting, type-checking, and automated tests — runs
-identically for every contributor from committed git hooks, materialized fresh against exactly what is staged on
-every commit, never against whatever else happens to be sitting unstaged in the working copy. A release is
-triggered manually and fully automated from there: commit messages following a fixed convention determine the next
-version, the changelog, and the published release, mirroring the sibling backend project's own release behavior and
-trigger.
+The project's own developer-facing quality gate — formatting, linting, type-checking, building, and automated
+tests — runs identically for every contributor from committed git hooks, against the real working tree exactly as
+it sits at commit or merge time, whole repo, not a staged-only slice of it. A release is triggered manually and
+fully automated from there: commit messages following a fixed convention determine the next version, the
+changelog, and the published release, mirroring the sibling backend project's own release behavior and trigger.
 
 ## Decisions
 
@@ -76,30 +75,51 @@ class into a canonical property order, and reflowing every multi-class string ac
 reformat nearly every existing `className` in the codebase for a stylistic preference nobody asked for, versus the
 rules kept, which only ever fire on an actual defect or the one drift this was adopted to catch.
 
-Automated fixing runs once at the end of every turn rather than at commit time or after every single edit. Fixing
-at commit time only reformats whatever drifted since the last commit in one lump, landing unrelated formatting
-noise inside whichever commit happens to run un-skipped, invisibly, since the assistant only ever sees that hook's
-pass or fail. Fixing after every single edit was considered and rejected too: the assistant's own in-context copy
-of a file goes stale the moment an external process rewrites it mid-turn, breaking a following edit that expected
-the file exactly as it left it. Once per turn, after that turn's edits are done, nothing is still relying on the
-file's prior exact shape, so every changed file can be reformatted for free and no formatting residue ever survives
-to a commit.
+Fixing and checking both run inside the git hook itself, on the whole repository, on every commit and merge
+attempt — never per edit, never at any other point in the assistant's turn. An earlier design ran fixing once per
+turn instead, on the reasoning that a hook mid-turn would invalidate the assistant's own in-context copy of a file
+it had just edited. That reasoning still holds for editing, but fixing no longer needs to run mid-turn at all:
+since the assistant never runs a check or fixer itself and gets no automated lint feedback of any kind, nothing is
+waiting on an intermediate result, so fixing only needs to have happened once, right before the check that gates
+the commit — so it happens there.
+
+Fixing a file that was already staged rewrites its content on disk without touching the index, which would
+otherwise leave the index holding the pre-fix version while the working tree moves on to the fixed one — an
+invisible partial-stage split. The fixer re-adds any file it rewrites that had a staged diff before it ran, so the
+index always ends up holding exactly what the fixer produced. A file that gets reformatted without having been
+staged is left alone; it surfaces in `git status` like any other drift and gets its own commit whenever that's
+convenient, never folded silently into whichever commit happens to run next.
+
+The check gate validates the real, current working tree, not an isolated snapshot of only what's staged. An
+earlier design snapshotted the exact staged tree into a scratch directory before checking it, specifically so an
+unrelated, half-finished file sitting unstaged elsewhere could never block an unrelated commit — but building that
+snapshot meant reinstalling dependencies and rebuilding from a cold cache on every single attempt, since the
+scratch directory started empty every time. Real-working-tree cost is paid instead now: an unrelated broken file
+elsewhere in the tree can block a commit until it's fixed too, in exchange for every gate run reusing the same
+installed dependencies, build cache, and test cache the previous run already warmed.
+
+A content hash of every tracked file is taken right after fixing, right before checking. If it matches the hash
+from the previous time this ran, the check is skipped entirely and that previous run's exact output and exit
+status are replayed instead — the working tree provably hasn't changed since that result was produced, so
+re-running would only reproduce it. This is what makes a long run of small, split commits cheap: the first commit
+in a batch pays for the real run, and every later one that leaves the tree exactly as it was replays for free.
 
 Every safe fixer the repository owns, and every lint/type/build/test check, is reachable through exactly one
-command each, used identically by a human's manual pass, the assistant's automatic one, and the commit gate — so
-the three never drift into three separate sets of formatting rules. The lint gate also fails on a warning, not only
-an error, for the same reason a warning left inside the codebase indefinitely stops being noticed at all.
+command each, used identically by a human's manual pass and the commit gate — so the two never drift into two
+separate sets of formatting rules. The lint gate also fails on a warning, not only an error, for the same reason a
+warning left inside the codebase indefinitely stops being noticed at all.
 
-A direct, manual run of any of those checks or fixers by the assistant is denied outright rather than merely
-discouraged: a per-turn reminder in its own instructions was tried first and did not hold once a session ran long
-enough, since the assistant would rediscover a reason to run one by hand anyway. A single combined fix-then-check
-command was tried next as the one door left open, on the theory that once both automatic passes already cover
-everything else, a manual run only ever makes sense right before a commit. That theory failed in practice: the
-assistant used exactly that door as a pre-commit confidence check, running it defensively before every attempt
-instead of committing outright and reacting to a real failure — the same duplicated work the automatic passes exist
-to remove. The command still exists for a human's own convenience; the assistant is now denied it unconditionally,
-with no exception, and attempts the commit or merge it was already going to make, reading the gate's own failure
-output if it blocks.
+A direct, manual run of any of those checks or fixers by the assistant is nudged against rather than denied
+outright: with fixing and checking both fully owned by the git hook and nothing left for a manual run to learn
+early that the hook wouldn't already say, there's no remaining reason for the assistant to reach for one, so a
+hard deny no longer earns its own cost over a plain reminder. The assistant edits code and attempts the commit or
+merge it was already going to make, reading the gate's own failure output if it blocks.
+
+A successful commit or merge doesn't guarantee the working tree is now clean — the fixer may have reformatted a
+file the assistant never staged, or unrelated work may simply still be in progress. A nudge fires after every
+commit or merge the assistant makes and checks `git status` itself: if anything is left, it asks the assistant to
+judge whether that's leftover fix output that deserves its own commit now, or a deliberate work-in-progress being
+set aside for later — never deciding that automatically.
 
 ## Consequences
 

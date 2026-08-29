@@ -10,7 +10,7 @@
             "args": [
               "exec",
               "tsx",
-              "${CLAUDE_PROJECT_DIR}/.claude/hooks/block-direct-checks.ts"
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/nudge-manual-checks.ts"
             ],
             "timeout": 10
           }
@@ -30,6 +30,21 @@
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/report-comments.ts"
             ],
             "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm",
+            "args": [
+              "exec",
+              "tsx",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/report-uncommitted.ts"
+            ],
+            "timeout": 10
           }
         ]
       }

@@ -11,26 +11,13 @@ Only what no other source holds. Everything else is owned elsewhere — go there
 
 ## Gates
 
-`scripts/run check|fix|verify [files...]` are the only entry points into every linter, formatter, and check the
-repo owns.
-
-- `scripts/run fix` runs every safe fixer (prettier, eslint --fix, dprint fmt, shfmt -w, markdownlint --fix) on the
-  given files, or the whole repo with none given. `.claude/hooks/after-turn.ts` calls it on every turn's changed
-  files, silently.
-- `scripts/run check` runs every lint/type/build/test gate, `--max-warnings 0` included. `.githooks/pre-commit` and
-  `.githooks/pre-merge-commit` both call it directly, blocking, silent when green. Last run's full record:
-  `build/reports/gates.json` (gitignored).
-- `scripts/run verify [files...]` runs fix then check, for a human's own manual use: one line, `verify: ok`, when
-  green; the full failing output when not. `.claude/hooks/block-direct-checks.ts` denies the assistant from ever
-  running `check`/`fix`/`verify`/`gates` itself, even to pre-check before a commit — it attempts the commit or
-  merge directly and reacts to the gate's own failure output if it blocks. Targeted single-file runs (e.g.
-  `eslint path/to/file.ts`) stay allowed for quick iteration while writing code.
+Never run a linter, formatter, type-checker, build, or test yourself — not on one file, not on the whole repo.
+Edit what needs editing and attempt the commit or merge directly; the git hook runs everything on the whole repo
+automatically and blocks it if something's wrong. Iterate from the gate's own failure output, never from a manual
+run. See README.md's Quality gates section for what the git hook actually runs and how a human runs it manually.
 
 Activate the git hooks once per clone — `git config --local include.path ../.gitconfig` — or every commit lands
 unchecked. Needs `mise` active on `PATH`.
-
-For a batch of several commits in one session, `--no-verify` each one and run `scripts/run check` once before
-ending the session or pushing.
 
 ## Code
 

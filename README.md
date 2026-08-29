@@ -78,6 +78,22 @@ pnpm dev
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
+## Quality gates
+
+`scripts/run check|fix|verify|precommit [files...]` is the single entry point into every linter, formatter,
+type-checker, build, and test the project owns.
+
+- `fix` runs every safe fixer (Prettier, ESLint `--fix`, dprint, shfmt, markdownlint-cli2 `--fix`) on the given
+  files, or the whole repo with none given, and re-stages any file it rewrites that was already staged.
+- `check` runs every lint/type/build/test gate against the current working tree, `--max-warnings 0` included.
+- `precommit` runs `fix` then `check` on the whole repo — what `.githooks/pre-commit` and
+  `.githooks/pre-merge-commit` both call. If the working tree hasn't changed a single byte since the last time
+  this ran, it skips straight to replaying that run's result instead of doing the work again.
+- `verify [files...]` runs `fix` then `check` on the given files, or the whole repo with none given, for a quick
+  manual pass.
+
+Run any of these yourself at any time — they're exactly what the git hooks run.
+
 ## Release
 
 Releases are triggered manually from the **Release** workflow (`Actions → Release → Run workflow` on `main`).
