@@ -58,7 +58,7 @@ test_staged_file_survives_fix_fully_staged() {
 
   assert_eq 'echo "fixed"' "$(git show :a.sh)" "staged content after fix"
   assert_eq "" "$(git diff -- a.sh)" "no unstaged diff after fix"
-  assert_eq "a.sh" "$(cat build/.gate-fixed-paths)" "marker records re-added paths"
+  assert_eq "a.sh" "$(cut -f1 build/.gate-fixed-paths)" "marker records the rewritten path with its sha"
 }
 
 test_post_commit_syncs_the_index_only_for_a_stale_rewrite() {
@@ -68,9 +68,9 @@ test_post_commit_syncs_the_index_only_for_a_stale_rewrite() {
   git commit -qm fixed
   printf 'echo stale\n' >a.sh
   git add a.sh
-  git checkout HEAD -- a.sh
+  git restore --source=HEAD -- a.sh
   mkdir -p build
-  printf 'a.sh\n' >build/.gate-fixed-paths
+  printf 'a.sh\t0000\n' >build/.gate-fixed-paths
 
   sh "$script_dir/../.githooks/post-commit"
 
@@ -90,6 +90,39 @@ test_post_commit_leaves_a_staged_next_version_alone() {
   sh "$script_dir/../.githooks/post-commit"
 
   assert_eq "a.sh" "$(git diff --cached --name-only)" "staged next version untouched"
+}
+
+test_post_commit_does_not_touch_a_staged_then_reverted_file() {
+  new_repo
+  printf 'echo "fixed"\n' >a.sh
+  git add a.sh
+  git commit -qm fixed
+  printf 'echo stale\n' >a.sh
+  git add a.sh
+  git restore --source=HEAD -- a.sh
+  mkdir -p build
+  printf 'b.sh\t0000\n' >build/.gate-fixed-paths
+
+  sh "$script_dir/../.githooks/post-commit"
+
+  assert_eq "a.sh" "$(git diff --cached --name-only)" "staged-then-reverted copy untouched"
+}
+
+test_fix_writes_no_marker_when_nothing_was_rewritten() {
+  new_repo
+  printf '# seed\n' >readme.md
+  git add readme.md
+
+  # shellcheck disable=SC1090
+  source "$run_script"
+  fake_shfmt_mise
+  # shellcheck disable=SC2329
+  run_check() { return 0; }
+
+  run_precommit >/dev/null
+
+  assert_eq "0" "$([ -e build/.gate-fixed-paths ] && echo 1 || echo 0)" \
+    "no marker when nothing was rewritten"
 }
 
 test_failed_check_unstages_a_rewritten_staged_file() {
@@ -147,6 +180,8 @@ test_precommit_skips_check_when_tree_unchanged() {
 test_staged_file_survives_fix_fully_staged
 test_post_commit_syncs_the_index_only_for_a_stale_rewrite
 test_post_commit_leaves_a_staged_next_version_alone
+test_post_commit_does_not_touch_a_staged_then_reverted_file
+test_fix_writes_no_marker_when_nothing_was_rewritten
 test_failed_check_unstages_a_rewritten_staged_file
 test_unstaged_rewrite_stays_unstaged
 test_precommit_skips_check_when_tree_unchanged
