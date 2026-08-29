@@ -58,6 +58,38 @@ test_staged_file_survives_fix_fully_staged() {
 
   assert_eq 'echo "fixed"' "$(git show :a.sh)" "staged content after fix"
   assert_eq "" "$(git diff -- a.sh)" "no unstaged diff after fix"
+  assert_eq "a.sh" "$(cat build/.gate-fixed-paths)" "marker records re-added paths"
+}
+
+test_post_commit_syncs_the_index_only_for_a_stale_rewrite() {
+  new_repo
+  printf 'echo "fixed"\n' >a.sh
+  git add a.sh
+  git commit -qm fixed
+  printf 'echo stale\n' >a.sh
+  git add a.sh
+  git checkout HEAD -- a.sh
+  mkdir -p build
+  printf 'a.sh\n' >build/.gate-fixed-paths
+
+  sh "$script_dir/../.githooks/post-commit"
+
+  assert_eq "" "$(git diff --cached --name-only)" "stale index synced after post-commit"
+}
+
+test_post_commit_leaves_a_staged_next_version_alone() {
+  new_repo
+  printf 'echo "fixed"\n' >a.sh
+  git add a.sh
+  git commit -qm fixed
+  printf 'echo next\n' >a.sh
+  git add a.sh
+  mkdir -p build
+  printf 'a.sh\n' >build/.gate-fixed-paths
+
+  sh "$script_dir/../.githooks/post-commit"
+
+  assert_eq "a.sh" "$(git diff --cached --name-only)" "staged next version untouched"
 }
 
 test_failed_check_unstages_a_rewritten_staged_file() {
@@ -113,6 +145,8 @@ test_precommit_skips_check_when_tree_unchanged() {
 }
 
 test_staged_file_survives_fix_fully_staged
+test_post_commit_syncs_the_index_only_for_a_stale_rewrite
+test_post_commit_leaves_a_staged_next_version_alone
 test_failed_check_unstages_a_rewritten_staged_file
 test_unstaged_rewrite_stays_unstaged
 test_precommit_skips_check_when_tree_unchanged
