@@ -61,7 +61,8 @@ pnpm dev
 > `.gitconfig` points `core.hooksPath` at the versioned `.githooks/`, so the hooks are whatever is committed —
 > nothing is generated into `.git/`. The commit-time gate (lint, format, type-check, build, unit tests) runs
 > entirely from these git hooks, identically for every contributor — no editor or Claude Code required, and there
-> is no `pre-push`, so pushing is never blocked.
+> is no `pre-push`, so pushing is never blocked. The same gate also runs in CI on every push and pull request, as a
+> backstop for a clone with hooks not activated or a commit made with `--no-verify`.
 
 ## Routes
 
