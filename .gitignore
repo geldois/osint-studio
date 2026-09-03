@@ -10,7 +10,6 @@
 package-lock.json
 yarn.lock
 
-/coverage
 .cache
 
 /.next/
@@ -27,6 +26,8 @@ yarn-error.log*
 .pnpm-debug.log*
 
 .env*
+
+.claude/settings.local.json
 
 .vercel
 
