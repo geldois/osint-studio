@@ -43,14 +43,16 @@ const REASON =
   "commit and merge attempt. Edit what needs editing and try to commit; " +
   "iterate on the gate's own failure output if it blocks.";
 
-function normalize(statement: string): string {
+function normalize(statement: string): { normalized: string; stripped: boolean } {
   let normalized = statement.trim();
+  let stripped = false;
   let match = LEADING.exec(normalized);
   while (match !== null) {
     normalized = normalized.slice(match[0].length);
+    stripped = true;
     match = LEADING.exec(normalized);
   }
-  return normalized;
+  return { normalized, stripped };
 }
 
 function main(): void {
@@ -60,11 +62,18 @@ function main(): void {
   }
 
   for (const statement of stripHeredocs(command).split(STATEMENT_SPLIT)) {
-    const normalized = normalize(statement);
+    const { normalized, stripped } = normalize(statement);
     if (!normalized) {
       continue;
     }
     const head = normalized.split(/\s+/)[0] ?? "";
+
+    // "test" alone, with no package-manager prefix stripped, is the POSIX
+    // test(1) builtin (`test -f x`), not the pnpm test script — only flag it
+    // once a prefix (pnpm/npx/mise/exec/run) proves it was invoked as one.
+    if (head === "test" && !stripped) {
+      continue;
+    }
 
     if (
       FACADE_SCRIPT.test(normalized) ||
