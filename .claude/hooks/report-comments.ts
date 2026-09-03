@@ -15,6 +15,8 @@ const HASH_FILENAMES = new Set([
   "run",
 ]);
 const HUNK_HEADER = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
+const EXCLUDED_PREFIXES = ["node_modules/", ".next/", ".cache/", "build/", "coverage/"];
+const MAX_REPORTED_LINES = 20;
 
 function main(): void {
   const event = readEvent();
@@ -60,6 +62,10 @@ function resolveTarget(file: string): Target | null {
   }
 
   const rel = relative(root, path).split(sep).join("/");
+  if (EXCLUDED_PREFIXES.some((prefix) => rel.startsWith(prefix))) {
+    return null;
+  }
+
   const suffix = rel.slice(rel.lastIndexOf("."));
   if (
     !HASH_FILENAMES.has(basename(rel)) &&
@@ -86,9 +92,13 @@ function scan(
 
 function report(rel: string, hits: number[], preexisting: boolean): void {
   const lead = preexisting ? "Pre-existing comment(s) in" : "New comment on";
+  const shown = hits.slice(0, MAX_REPORTED_LINES);
+  const overflow = hits.length - shown.length;
+  const lines =
+    overflow > 0 ? `${shown.join(", ")} (+${String(overflow)} more)` : shown.join(", ");
   addContext(
     `${lead} ${rel} (this repo allows none, anywhere, except a linter-ignore pragma — ` +
-      `CLAUDE.md). Lines: ${hits.join(", ")}. Remove it, make the name say what it says, ` +
+      `CLAUDE.md). Lines: ${lines}. Remove it, make the name say what it says, ` +
       "or move the decision into README/TO-DO/docs/architecture/CLAUDE/CONTEXT.",
   );
 }
