@@ -3,6 +3,15 @@ set -euo pipefail
 
 failures=0
 start_dir="$(pwd)"
+tmp_dirs=()
+
+cleanup() {
+  local d
+  for d in "${tmp_dirs[@]}"; do
+    rm -rf "$d"
+  done
+}
+trap cleanup EXIT
 
 assert_eq() {
   local expected="$1" actual="$2" label="$3"
@@ -20,6 +29,7 @@ new_repo() {
     GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_CEILING_DIRECTORIES
   local dir
   dir="$(mktemp -d -t osint-studio-run-test-XXXXXX)"
+  tmp_dirs+=("$dir")
   cd "$dir"
   git init -q
   git config user.email t@t.com

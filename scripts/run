@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-_SHELL_FILES=(.githooks/pre-commit .githooks/pre-merge-commit scripts/run scripts/run.test.sh)
-_WORKFLOW_FILES=(.github/workflows/release.yml)
+_SHELL_FILES=(.githooks/pre-commit .githooks/pre-merge-commit .githooks/post-commit scripts/run scripts/run.test.sh)
+_WORKFLOW_FILES=(.github/workflows/release.yml .github/workflows/test.yml)
 _REPORT_PATH="build/reports/gates.json"
 _TREE_HASH_FILE="build/.gate-tree-hash"
 _TREE_REPORT_FILE="build/.gate-tree-report"
@@ -13,6 +13,7 @@ cd "$root"
 
 report=""
 failed=0
+last_gate_status=""
 gate_names=()
 gate_statuses=()
 gate_durations=()
@@ -38,6 +39,7 @@ gate() {
     gate_statuses+=("$status")
     gate_durations+=("$elapsed")
     gate_outputs+=("$out")
+    last_gate_status="$status"
 }
 
 write_report() {
@@ -60,14 +62,19 @@ write_report() {
 }
 
 run_check() {
+    unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
+        GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_CEILING_DIRECTORIES \
+        GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_AUTHOR_DATE \
+        GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL GIT_COMMITTER_DATE
+
     gate shellcheck mise exec -- shellcheck "${_SHELL_FILES[@]}"
     gate shfmt mise exec -- shfmt -d "${_SHELL_FILES[@]}"
     gate run-tests bash scripts/run.test.sh
     gate actionlint mise exec -- actionlint "${_WORKFLOW_FILES[@]}"
     gate dprint mise exec -- dprint check
-    gate lock-check mise exec -- pnpm install --frozen-lockfile
+    gate env-sync mise exec -- pnpm install --frozen-lockfile
 
-    if [ "$failed" = 0 ]; then
+    if [ "$last_gate_status" = "pass" ]; then
         gate eslint mise exec -- pnpm run lint
         gate prettier mise exec -- pnpm exec prettier --check .
         gate type-check mise exec -- pnpm run type-check
@@ -82,7 +89,11 @@ run_check() {
 }
 
 tree_hash() {
-    git ls-files -z | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1
+    local hash
+    set +o pipefail
+    hash="$(git ls-files -z | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)"
+    set -o pipefail
+    printf '%s' "$hash"
 }
 
 run_precommit() {
@@ -115,9 +126,9 @@ run_precommit() {
     fi
 
     mkdir -p "$(dirname "$_TREE_HASH_FILE")"
-    printf '%s' "$hash" >"$_TREE_HASH_FILE"
     printf '%s' "$status" >"$_TREE_EXIT_FILE"
     printf '%s' "$out" >"$_TREE_REPORT_FILE"
+    printf '%s' "$hash" >"$_TREE_HASH_FILE"
 
     printf '%s\n' "$out"
     return "$status"
@@ -132,9 +143,16 @@ is_shell_file() {
 }
 
 run_fix() {
+    rm -f build/.gate-fixed-paths
+    local exts=('*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.json' '*.md' '*.css' '*.toml' '*.yaml' '*.yml' '*.sh')
     local files=("$@")
     if [ "${#files[@]}" -eq 0 ]; then
-        mapfile -t files < <(git ls-files '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.json' '*.md' '*.css' '*.toml' '*.yaml' '*.yml' '*.sh' | sort -u)
+        mapfile -t files < <(
+            {
+                git ls-files "${exts[@]}"
+                git ls-files --others --exclude-standard "${exts[@]}"
+            } | sort -u
+        )
         files+=("${_SHELL_FILES[@]}")
     fi
 

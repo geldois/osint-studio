@@ -1,9 +1,11 @@
 #!/bin/sh
 marker="build/.gate-fixed-paths"
 [ -f "$marker" ] || exit 0
+# shellcheck disable=SC2034
 while IFS="$(printf '\t')" read -r path sha; do
     [ -n "$path" ] || continue
     git diff --cached --quiet -- "$path" && continue
     git diff HEAD --quiet -- "$path" || continue
     git reset -q -- "$path"
 done <"$marker"
+rm -f "$marker"
