@@ -38,22 +38,6 @@ and parses that file with this project's own response schemas. It needs no serve
 request, and it fails on exactly the drift the mocked suites are blind to; the trade is that it exercises
 serialization and not routing, so a route or guard regression still needs the live path.
 
-A newly-introduced comment is never auto-removed, at commit time or otherwise — the real TypeScript-parser rewrite
-this used to run carried edge cases (a JSX expression container holding only a comment, trivia trailing a node's own
-end) that could silently corrupt a file nobody reviews before it lands. A per-edit hook instead nudges the assistant
-to remove it or make the name say what it said, leaving the actual judgment call to whoever wrote the comment. That
-check is widened beyond the shipped source alone to every tracked, non-generated file in the repository — root
-configuration, CI workflow, and this project's own tooling included — since every comment that used to live in one
-of those had a real decision behind it, and that decision now lives in one of this project's own documentation
-surfaces instead. A written change is checked against its own diff; a plain file read has nothing to diff against,
-so it is checked whole, surfacing a pre-existing comment as a pattern not to imitate rather than as something newly
-introduced.
-
-A check running before every shell command nudges — it does not block — away from re-running the gate façade or a
-bare full-project lint/format/type/build/test tool directly, redirecting to just committing instead: `pre-commit`
-already runs the full gate on every commit and reports any failure inline, so a direct run duplicates a guarantee
-already given. A targeted single-file run is left alone for fast local iteration.
-
 One test file builds a pragma-shaped string via concatenation rather than as a literal comment: the test framework's
 own environment detector greps the raw file's text for that exact string, and a literal occurrence anywhere in the
 file — including inside a test asserting how the detector's pragma is recognized — would flip that whole file's own
@@ -74,14 +58,6 @@ instead of sitting unseen. Two of the plugin's own recommended rules were delibe
 class into a canonical property order, and reflowing every multi-class string across several lines — since both
 reformat nearly every existing `className` in the codebase for a stylistic preference nobody asked for, versus the
 rules kept, which only ever fire on an actual defect or the one drift this was adopted to catch.
-
-Fixing and checking both run inside the git hook itself, on the whole repository, on every commit and merge
-attempt — never per edit, never at any other point in the assistant's turn. An earlier design ran fixing once per
-turn instead, on the reasoning that a hook mid-turn would invalidate the assistant's own in-context copy of a file
-it had just edited. That reasoning still holds for editing, but fixing no longer needs to run mid-turn at all:
-since the assistant never runs a check or fixer itself and gets no automated lint feedback of any kind, nothing is
-waiting on an intermediate result, so fixing only needs to have happened once, right before the check that gates
-the commit — so it happens there.
 
 Fixing a file that was already staged rewrites its content on disk without touching the index, which would
 otherwise leave the index holding the pre-fix version while the working tree moves on to the fixed one — an
@@ -117,18 +93,6 @@ Every safe fixer the repository owns, and every lint/type/build/test check, is r
 command each, used identically by a human's manual pass and the commit gate — so the two never drift into two
 separate sets of formatting rules. The lint gate also fails on a warning, not only an error, for the same reason a
 warning left inside the codebase indefinitely stops being noticed at all.
-
-A direct, manual run of any of those checks or fixers by the assistant is nudged against rather than denied
-outright: with fixing and checking both fully owned by the git hook and nothing left for a manual run to learn
-early that the hook wouldn't already say, there's no remaining reason for the assistant to reach for one, so a
-hard deny no longer earns its own cost over a plain reminder. The assistant edits code and attempts the commit or
-merge it was already going to make, reading the gate's own failure output if it blocks.
-
-A successful commit or merge doesn't guarantee the working tree is now clean — the fixer may have reformatted a
-file the assistant never staged, or unrelated work may simply still be in progress. A nudge fires after every
-commit or merge the assistant makes and checks `git status` itself: if anything is left, it asks the assistant to
-judge whether that's leftover fix output that deserves its own commit now, or a deliberate work-in-progress being
-set aside for later — never deciding that automatically.
 
 ## Consequences
 
