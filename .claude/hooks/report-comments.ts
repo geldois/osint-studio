@@ -1,7 +1,16 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { basename, isAbsolute, relative, resolve, sep } from "node:path";
+import { basename } from "node:path";
 import { newCommentLines, newCommentLinesHash } from "./_comment-scan";
-import { addContext, gitRoot, readEvent, run, toolInput, toolName } from "./_hook-io";
+import {
+  addContext,
+  GENERATED_PREFIXES,
+  readEvent,
+  repoRelative,
+  run,
+  toolInput,
+  toolName,
+  type RepoRelative,
+} from "./_hook-io";
 
 const TS_SUFFIXES = new Set([".ts", ".tsx"]);
 const HASH_SUFFIXES = new Set([".sh", ".yml", ".yaml", ".toml"]);
@@ -11,11 +20,9 @@ const HASH_FILENAMES = new Set([
   ".gitignore",
   ".dockerignore",
   ".editorconfig",
-  ".nvmrc",
   "run",
 ]);
 const HUNK_HEADER = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
-const EXCLUDED_PREFIXES = ["node_modules/", ".next/", ".cache/", "build/", "coverage/"];
 const MAX_REPORTED_LINES = 20;
 
 function main(): void {
@@ -44,38 +51,26 @@ function main(): void {
   }
 }
 
-interface Target {
-  path: string;
-  root: string;
-  rel: string;
-}
-
-function resolveTarget(file: string): Target | null {
-  const path = isAbsolute(file) ? file : resolve(process.cwd(), file);
-  if (!existsSync(path) || !statSync(path).isFile()) {
+function resolveTarget(file: string): RepoRelative | null {
+  const target = repoRelative(file);
+  if (target === null || !existsSync(target.path) || !statSync(target.path).isFile()) {
     return null;
   }
 
-  const root = gitRoot(path);
-  if (root === null || !path.startsWith(root + sep)) {
+  if (GENERATED_PREFIXES.some((prefix) => target.rel.startsWith(prefix))) {
     return null;
   }
 
-  const rel = relative(root, path).split(sep).join("/");
-  if (EXCLUDED_PREFIXES.some((prefix) => rel.startsWith(prefix))) {
-    return null;
-  }
-
-  const suffix = rel.slice(rel.lastIndexOf("."));
+  const suffix = target.rel.slice(target.rel.lastIndexOf("."));
   if (
-    !HASH_FILENAMES.has(basename(rel)) &&
+    !HASH_FILENAMES.has(basename(target.rel)) &&
     !TS_SUFFIXES.has(suffix) &&
     !HASH_SUFFIXES.has(suffix)
   ) {
     return null;
   }
 
-  return { path, root, rel };
+  return target;
 }
 
 function scan(
@@ -98,8 +93,10 @@ function report(rel: string, hits: number[], preexisting: boolean): void {
     overflow > 0 ? `${shown.join(", ")} (+${String(overflow)} more)` : shown.join(", ");
   addContext(
     `${lead} ${rel} (this repo allows none, anywhere, except a linter-ignore pragma — ` +
-      `CLAUDE.md). Lines: ${lines}. Remove it, make the name say what it says, ` +
-      "or move the decision into README/TO-DO/docs/architecture/CLAUDE/CONTEXT.",
+      `CLAUDE.md). Lines: ${lines}. Remove it, make the name say what it says, or move the ` +
+      "decision into README/TO-DO/docs/architecture/CLAUDE/CONTEXT — now, in this turn. " +
+      "Pre-existing is not a reason to leave it, and this holds the same whether it surfaced " +
+      "via Read, Edit, MultiEdit, or Write.",
   );
 }
 

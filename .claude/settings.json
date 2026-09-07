@@ -13,6 +13,16 @@
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/nudge-manual-checks.ts"
             ],
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "pnpm",
+            "args": [
+              "exec",
+              "tsx",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/mark-docs-nudge-bash-pre.ts"
+            ],
+            "timeout": 10
           }
         ]
       }
@@ -43,6 +53,31 @@
               "exec",
               "tsx",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/report-uncommitted.ts"
+            ],
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "pnpm",
+            "args": [
+              "exec",
+              "tsx",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/mark-docs-nudge-bash.ts"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm",
+            "args": [
+              "exec",
+              "tsx",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/mark-docs-nudge.ts"
             ],
             "timeout": 10
           }
