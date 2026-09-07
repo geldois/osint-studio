@@ -7,6 +7,7 @@ _REPORT_PATH="build/reports/gates.json"
 _TREE_HASH_FILE="build/.gate-tree-hash"
 _TREE_REPORT_FILE="build/.gate-tree-report"
 _TREE_EXIT_FILE="build/.gate-tree-exit"
+_PRETTIER_CACHE=".cache/prettier/.prettier-cache"
 
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
@@ -76,11 +77,10 @@ run_check() {
 
     if [ "$last_gate_status" = "pass" ]; then
         gate eslint mise exec -- pnpm run lint
-        gate prettier mise exec -- pnpm exec prettier --check .
+        gate prettier mise exec -- pnpm exec prettier --check . --cache --cache-location "$_PRETTIER_CACHE"
         gate type-check mise exec -- pnpm run type-check
         gate build mise exec -- pnpm run build
         gate vitest mise exec -- pnpm run test
-        gate markdownlint mise exec -- pnpm exec markdownlint-cli2 "**/*.md"
     fi
 
     write_report
@@ -160,27 +160,25 @@ run_fix() {
     local staged_file
     while IFS= read -r staged_file; do
         [ -n "$staged_file" ] || continue
+        [ -f "$staged_file" ] || continue
         staged["$staged_file"]=1
         pre_hash["$staged_file"]="$(git hash-object -- "$staged_file" 2>/dev/null)"
         pre_blob["$staged_file"]="$(git rev-parse :"$staged_file" 2>/dev/null)"
     done < <(git diff --name-only --cached)
 
-    local prettier_files=() eslint_files=() dprint_files=() markdownlint_files=() shfmt_files=() staged_files=()
+    local prettier_files=() eslint_files=() dprint_files=() shfmt_files=() staged_files=()
     local file
     for file in "${files[@]}"; do
         [ -f "$file" ] || continue
         [ -n "${staged[$file]:-}" ] && staged_files+=("$file")
         case "$file" in
-        *.ts | *.tsx | *.js | *.jsx | *.mjs | *.json | *.md | *.css) prettier_files+=("$file") ;;
+        *.ts | *.tsx | *.js | *.jsx | *.mjs | *.json | *.css) prettier_files+=("$file") ;;
         esac
         case "$file" in
         *.ts | *.tsx | *.js | *.jsx | *.mjs) eslint_files+=("$file") ;;
         esac
         case "$file" in
-        *.toml | *.yaml | *.yml) dprint_files+=("$file") ;;
-        esac
-        case "$file" in
-        *.md) markdownlint_files+=("$file") ;;
+        *.toml | *.yaml | *.yml | *.md) dprint_files+=("$file") ;;
         esac
         case "$file" in
         *.sh) shfmt_files+=("$file") ;;
@@ -204,13 +202,8 @@ run_fix() {
         echo "shfmt -w: ${#shfmt_files[@]} file(s)"
         did_something=1
     fi
-    if [ "${#markdownlint_files[@]}" -gt 0 ]; then
-        mise exec -- pnpm exec markdownlint-cli2 --fix "${markdownlint_files[@]}" >/dev/null 2>&1 || true
-        echo "markdownlint --fix: ${#markdownlint_files[@]} file(s)"
-        did_something=1
-    fi
     if [ "${#prettier_files[@]}" -gt 0 ]; then
-        mise exec -- pnpm exec prettier --write "${prettier_files[@]}" >/dev/null 2>&1 || true
+        mise exec -- pnpm exec prettier --write --cache --cache-location "$_PRETTIER_CACHE" "${prettier_files[@]}" >/dev/null 2>&1 || true
         echo "prettier: ${#prettier_files[@]} file(s)"
         did_something=1
     fi

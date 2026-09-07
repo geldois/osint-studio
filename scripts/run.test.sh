@@ -167,6 +167,26 @@ test_unstaged_rewrite_stays_unstaged() {
   assert_eq 'echo "fixed"' "$(cat seed.sh)" "the untracked-stage file was still rewritten on disk"
 }
 
+test_precommit_survives_a_staged_deletion() {
+  new_repo
+  printf 'echo hi\n' >a.sh
+  git add a.sh
+  git commit -qm a
+  git rm -q a.sh
+  printf 'echo hi\n' >b.sh
+  git add b.sh
+
+  # shellcheck disable=SC1090
+  source "$run_script"
+  fake_shfmt_mise
+  # shellcheck disable=SC2329
+  run_check() { return 0; }
+
+  run_precommit >/dev/null
+
+  assert_eq "$(printf 'a.sh\nb.sh')" "$(git diff --cached --name-only)" "the deletion itself stays staged"
+}
+
 test_precommit_skips_check_when_tree_unchanged() {
   new_repo
 
@@ -194,6 +214,7 @@ test_post_commit_does_not_touch_a_staged_then_reverted_file
 test_fix_writes_no_marker_when_nothing_was_rewritten
 test_failed_check_unstages_a_rewritten_staged_file
 test_unstaged_rewrite_stays_unstaged
+test_precommit_survives_a_staged_deletion
 test_precommit_skips_check_when_tree_unchanged
 
 cd "$start_dir"
