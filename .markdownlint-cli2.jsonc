@@ -1,3 +1,0 @@
-{
-  "ignores": ["node_modules/**", ".next/**", "CHANGELOG.md", "src/app/fonts/**"],
-}

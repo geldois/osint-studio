@@ -33,7 +33,6 @@ const FLAGGED_NAMES = new Set([
   "shfmt",
   "shellcheck",
   "actionlint",
-  "markdownlint-cli2",
 ]);
 
 const REASON =
@@ -68,9 +67,6 @@ function main(): void {
     }
     const head = normalized.split(/\s+/)[0] ?? "";
 
-    // "test" alone, with no package-manager prefix stripped, is the POSIX
-    // test(1) builtin (`test -f x`), not the pnpm test script — only flag it
-    // once a prefix (pnpm/npx/mise/exec/run) proves it was invoked as one.
     if (head === "test" && !stripped) {
       continue;
     }

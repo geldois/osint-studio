@@ -6,7 +6,6 @@ node_modules
 *.md
 .prettierignore
 .prettierrc
-.markdownlint.jsonc
 .releaserc.json
 .env
 .env.*

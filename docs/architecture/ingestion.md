@@ -7,26 +7,25 @@ the application.
 ## Decisions
 
 The rules to apply are selected individually rather than by the backend's own named shortcut. The shortcut exists and
-would have been one value to send instead of a list, but the only one the backend seeds today groups a single rule —
-the loose CPF one — so an upload full of company registration numbers would have matched nothing at all, silently and
-with no way for the analyst to tell the difference between "this document has nothing" and "nothing here was being
-looked for". Listing every rule the backend advertises, all switched on to start, makes what a run covers visible and
+would have been one value to send instead of a list, but the only one the backend seeds today groups a single rule — the
+loose CPF one — so an upload full of company registration numbers would have matched nothing at all, silently and with
+no way for the analyst to tell the difference between "this document has nothing" and "nothing here was being looked
+for". Listing every rule the backend advertises, all switched on to start, makes what a run covers visible and
 adjustable at the moment it matters, and costs one request that was already being made to populate the screen.
 
 Only the loose CPF and loose CNPJ rules start switched on; every other rule the backend advertises starts off and is
-turned on by hand behind the pattern picker. Every rule used to start switched on, including the one with no checksum
-to confirm its matches, on the reasoning that a spurious match is obvious on the graph and ignorable, while a run that
-quietly matched less than the analyst assumed looks identical to a clean one. That reasoning still holds for why
-turning a rule on is one click away rather than buried in a settings screen — it just no longer decides the starting
-state. The two Brazilian document identifiers are what nearly every upload is actually about, and defaulting the rest
-off keeps a first run's result legible instead of surfacing rules the analyst didn't ask for by default.
+turned on by hand behind the pattern picker. Every rule used to start switched on, including the one with no checksum to
+confirm its matches, on the reasoning that a spurious match is obvious on the graph and ignorable, while a run that
+quietly matched less than the analyst assumed looks identical to a clean one. That reasoning still holds for why turning
+a rule on is one click away rather than buried in a settings screen — it just no longer decides the starting state. The
+two Brazilian document identifiers are what nearly every upload is actually about, and defaulting the rest off keeps a
+first run's result legible instead of surfacing rules the analyst didn't ask for by default.
 
 A spreadsheet is handed to the backend as a file rather than being read in the browser and forwarded as text. The
 backend already flattens every sheet, cell by cell, including the last computed value of a formula, and applies its own
-size and row ceilings while doing it. Reading the workbook on the client would mean shipping a parser to the browser
-and reimplementing those ceilings a second time, where they could drift from the ones actually enforced. A plain text
-file still travels as text, since there is nothing to flatten and the backend offers no advantage over sending it
-directly.
+size and row ceilings while doing it. Reading the workbook on the client would mean shipping a parser to the browser and
+reimplementing those ceilings a second time, where they could drift from the ones actually enforced. A plain text file
+still travels as text, since there is nothing to flatten and the backend offers no advantage over sending it directly.
 
 The client mirrors the backend's file ceilings rather than inventing its own, so an oversized upload is refused before
 it occupies the network instead of after. This duplicates a constant across two repositories on purpose: the backend
@@ -40,5 +39,5 @@ twice with different selections legitimately yields different graphs. The rules 
 with the relationship, so the graph itself records what was looked for, not just what was found.
 
 The backend's named shortcuts are parsed and then ignored. If one ever grows into a genuinely useful preset, wiring it
-back in means presenting it alongside the individual rules rather than replacing them, since the reason for showing
-them individually was visibility, not the absence of a shortcut.
+back in means presenting it alongside the individual rules rather than replacing them, since the reason for showing them
+individually was visibility, not the absence of a shortcut.

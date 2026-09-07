@@ -22,7 +22,7 @@ Graph explorer front-end for [osint-engine](https://github.com/geldois/osint-eng
 - **Forms & validation:** react-hook-form + Zod (see `docs/architecture/validation.md`)
 - **Theme:** next-themes
 - **Linting:** ESLint 9 + typescript-eslint (`strictTypeChecked`)
-- **Formatting:** Prettier
+- **Formatting:** Prettier (JS/TS/JSON/CSS), dprint (Markdown/YAML/TOML)
 - **Testing:** Vitest (pure logic only — see `docs/architecture/tooling.md`)
 
 ## Setup
@@ -47,8 +47,8 @@ pnpm dev
 
 ### Windows
 
-1. Install [mise](https://mise.jdx.dev) via `scoop install mise` (or `winget install jdx.mise`) and activate it in
-   your shell (see [getting started](https://mise.jdx.dev/getting-started.html)).
+1. Install [mise](https://mise.jdx.dev) via `scoop install mise` (or `winget install jdx.mise`) and activate it in your
+   shell (see [getting started](https://mise.jdx.dev/getting-started.html)).
 2. Install the project toolchain and activate the versioned git config:
 
 ```powershell
@@ -58,11 +58,11 @@ pnpm install
 pnpm dev
 ```
 
-> `.gitconfig` points `core.hooksPath` at the versioned `.githooks/`, so the hooks are whatever is committed —
-> nothing is generated into `.git/`. The commit-time gate (lint, format, type-check, build, unit tests) runs
-> entirely from these git hooks, identically for every contributor — no editor or Claude Code required, and there
-> is no `pre-push`, so pushing is never blocked. The same gate also runs in CI on every push and pull request, as a
-> backstop for a clone with hooks not activated or a commit made with `--no-verify`.
+> `.gitconfig` points `core.hooksPath` at the versioned `.githooks/`, so the hooks are whatever is committed — nothing
+> is generated into `.git/`. The commit-time gate (lint, format, type-check, build, unit tests) runs entirely from these
+> git hooks, identically for every contributor — no editor or Claude Code required, and there is no `pre-push`, so
+> pushing is never blocked. The same gate also runs in CI on every push and pull request, as a backstop for a clone with
+> hooks not activated or a commit made with `--no-verify`.
 
 ## Routes
 
@@ -87,22 +87,22 @@ NEXT_PUBLIC_PORTFOLIO=false
 `scripts/run check|fix|verify|precommit [files...]` is the single entry point into every linter, formatter,
 type-checker, build, and test the project owns.
 
-- `fix` runs every safe fixer (Prettier, ESLint `--fix`, dprint, shfmt, markdownlint-cli2 `--fix`) on the given
-  files, or the whole repo with none given, and re-stages any file it rewrites that was already staged.
+- `fix` runs every safe fixer (Prettier, ESLint `--fix`, dprint, shfmt) on the given files, or the whole repo with none
+  given, and re-stages any file it rewrites that was already staged.
 - `check` runs every lint/type/build/test gate against the current working tree, `--max-warnings 0` included.
-- `precommit` runs `fix` then `check` on the whole repo — what `.githooks/pre-commit` and
-  `.githooks/pre-merge-commit` both call. If the working tree hasn't changed a single byte since the last time
-  this ran, it skips straight to replaying that run's result instead of doing the work again.
-- `verify [files...]` runs `fix` then `check` on the given files, or the whole repo with none given, for a quick
-  manual pass.
+- `precommit` runs `fix` then `check` on the whole repo — what `.githooks/pre-commit` and `.githooks/pre-merge-commit`
+  both call. If the working tree hasn't changed a single byte since the last time this ran, it skips straight to
+  replaying that run's result instead of doing the work again.
+- `verify [files...]` runs `fix` then `check` on the given files, or the whole repo with none given, for a quick manual
+  pass.
 
 Run any of these yourself at any time — they're exactly what the git hooks run.
 
 ## Release
 
-Releases are triggered manually from the **Release** workflow (`Actions → Release → Run workflow` on `main`).
-It runs [semantic-release](https://semantic-release.gitbook.io): Conventional Commits since the last tag determine the
-next SemVer; it updates `package.json` + `CHANGELOG.md`, tags, and publishes a GitHub release.
+Releases are triggered manually from the **Release** workflow (`Actions → Release → Run workflow` on `main`). It runs
+[semantic-release](https://semantic-release.gitbook.io): Conventional Commits since the last tag determine the next
+SemVer; it updates `package.json` + `CHANGELOG.md`, tags, and publishes a GitHub release.
 
 | Commit type                  | Bump  |
 | ---------------------------- | ----- |
