@@ -26,6 +26,12 @@ Before writing any visual, dashboard, chart, or table element, check `docs/archi
 it. Never hand-roll a parallel one for something reusable/centralizable — one source of truth per component class,
 visual coherence across the app, is non-negotiable.
 
+This is absolute, not a style preference: no color, border, radius, spacing, or active/hover/focus state is ever
+declared locally when a token or primitive already owns it — fix it in the primitive (`ui/toggle.tsx`, `ui/button.tsx`)
+so every caller inherits it, never patch one caller and leave the rest to drift. Two components solving the same UX
+problem (a confirmation, a version picker, a card) in two different ways is the same violation as duplicated code —
+merge them into one before adding a third.
+
 ## Code
 
 No comments and no docstrings anywhere in this repository, ever — not `src/`, not `.claude/hooks/`, `.github/`, nor any
