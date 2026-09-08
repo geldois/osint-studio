@@ -1,12 +1,11 @@
 # Harness — what it does
 
 This is the editor/agent integration layer under `.claude/` — distinct from the developer-facing gate façade
-`tooling.md` documents, though it calls into that same façade's own tools. Under half the hooks only ever read and
+`tooling.md` documents, though it calls into that same façade's own tools. Three of the five hooks only ever read and
 report; none of them rewrites a file the assistant might be holding in context, so a fixer's rewrite can never leave
-that in-context copy silently wrong. The rest touch only their own session-scoped marker files under the system temp
-directory, entirely outside the repository, never a tracked file: one pair records and reads back before/after state
-around each shell command, and a separate marker is set by either that pair or a per-edit hook and consumed exactly
-once, at the end of the turn.
+that in-context copy silently wrong. The other two touch only their own session-scoped marker files under the system
+temp directory, entirely outside the repository, never a tracked file: a per-edit hook sets one the moment a relevant
+file changes, and the end-of-turn hook consumes it exactly once.
 
 ## Decisions
 
@@ -50,17 +49,11 @@ still uncommitted doesn't keep re-firing the same nudge forever. A doc file, a g
 lockfile are the only paths that never count as "touched" for this purpose — everything else does, including a project's
 own root-level configuration, since a tooling decision lives there as often as in application source.
 
-A shell command has no per-file signal to hook into the way an edit does, so catching one that changes something
-relevant — deleting a file, a package-manager or codegen rewrite — needs its own mechanism: a check immediately before
-the command records every currently-dirty path's own modification time, and a check immediately after compares the same
-paths' modification times against that record, marking the turn only for whichever paths actually moved. Comparing
-modification times rather than the command's own git-status text is what tells a file that was already dirty and
-rewritten again apart from one that was already dirty and left alone — the two would otherwise be indistinguishable
-text, and conflating them either re-fires on old, already-handled drift or misses a real further edit to it. Git's own
-path-quoting for unusual filenames is turned off at the source (a machine-readable status form) rather than parsed back
-out, so a modification time is always looked up under the real name, never a quoted, escaped stand-in for it that can
-never exist on disk.
-
 The marker mechanism is entirely local to this project's own hook suite: no shared state, directory name, or import
 connects it to any other project's or the wider agent harness's own equivalent, so these hooks keep working unmodified
-on a machine that has none of that wider harness installed at all.
+on a machine that has none of that wider harness installed at all. A shell command has no per-file signal to hook into
+the way an edit does, so the docs nudge only ever tracks a change made through Edit/Write/MultiEdit — a rename,
+deletion, or codegen rewrite made by a shell command doesn't set the marker. That gap was previously covered by a
+before/after modification-time comparison around every shell command; it was cut because the race between two Bash calls
+issued in the same turn made it unreliable in exactly the case it existed for, at the cost of a second hook process and
+its own test suite on every single shell command.

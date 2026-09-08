@@ -1,6 +1,14 @@
 #!/bin/sh
+command -v mise >/dev/null 2>&1 || {
+    echo "osint-studio: 'mise' not found on PATH — activate it (see README: Setup), or bypass once with 'git commit --no-verify'." >&2
+    exit 1
+}
 command -v pnpm >/dev/null 2>&1 || {
-    echo "osint-studio: 'pnpm' not found on PATH — activate mise (see README: Setup), or bypass once with 'git commit --no-verify'." >&2
+    echo "osint-studio: 'pnpm' not found on PATH — run 'mise install' (see README: Setup), or bypass once with 'git commit --no-verify'." >&2
+    exit 1
+}
+command -v jq >/dev/null 2>&1 || {
+    echo "osint-studio: 'jq' not found on PATH — run 'mise install' (see README: Setup), or bypass once with 'git commit --no-verify'." >&2
     exit 1
 }
 exec scripts/run precommit
