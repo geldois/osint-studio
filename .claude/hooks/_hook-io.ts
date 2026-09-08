@@ -11,14 +11,6 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
-export const GENERATED_PREFIXES = [
-  "node_modules/",
-  ".next/",
-  ".cache/",
-  "build/",
-  "coverage/",
-];
-
 export type JsonRecord = Record<string, unknown>;
 
 let eventCache: JsonRecord | null = null;
@@ -95,7 +87,7 @@ export function repoRelative(file: string): RepoRelative | null {
 export function gitRoot(start: string): string | null {
   const projectDir = process.env["CLAUDE_PROJECT_DIR"];
   if (projectDir !== undefined && projectDir !== "") {
-    return projectDir;
+    return resolve(projectDir);
   }
   const cwd =
     existsSync(start) && statSync(start).isDirectory() ? start : dirname(start);
@@ -104,16 +96,6 @@ export function gitRoot(start: string): string | null {
     return null;
   }
   return result.stdout.trim();
-}
-
-export function deny(reason: string): void {
-  emit({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: reason,
-    },
-  });
 }
 
 export function addContext(text: string): void {
@@ -140,7 +122,7 @@ export function setMarker(prefix: string, session: string, value = ""): void {
     const directory = markerDir();
     mkdirSync(directory, { recursive: true, mode: 0o700 });
     const safePrefix = safe(prefix);
-    sweepStaleMarkers(directory, safePrefix);
+    sweepStaleMarkers(directory);
     writeFileSync(join(directory, `${safePrefix}-${safe(session)}`), value);
   } catch {
     return;
@@ -178,7 +160,7 @@ function safe(prefix: string): string {
   return prefix.replace(/[^A-Za-z0-9_-]/g, "_");
 }
 
-function sweepStaleMarkers(directory: string, prefix: string): void {
+function sweepStaleMarkers(directory: string): void {
   const cutoff = Date.now() - MARKER_STALE_MS;
   let entries: string[];
   try {
@@ -187,9 +169,6 @@ function sweepStaleMarkers(directory: string, prefix: string): void {
     return;
   }
   for (const name of entries) {
-    if (!name.startsWith(`${prefix}-`)) {
-      continue;
-    }
     const path = join(directory, name);
     try {
       if (statSync(path).mtimeMs < cutoff) {
@@ -209,14 +188,7 @@ export function stopReinvoked(event: JsonRecord): boolean {
   );
 }
 
-export function context(
-  hookEventName: string,
-  text: string,
-  oncePerChain = true,
-): void {
-  if (oncePerChain && stopReinvoked(readEvent())) {
-    return;
-  }
+export function context(hookEventName: string, text: string): void {
   emit({
     hookSpecificOutput: {
       hookEventName,

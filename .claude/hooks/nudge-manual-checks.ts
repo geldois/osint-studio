@@ -1,11 +1,47 @@
 import { context, readEvent, toolInput } from "./_hook-io";
 
-const STATEMENT_SPLIT = /&&|[;\n]|\|+|[()]/;
-
 const HEREDOC = /<<-?(['"]?)(\w+)\1\n[\s\S]*?\n\s*\2(?=\s|$)/g;
 
 function stripHeredocs(command: string): string {
   return command.replace(HEREDOC, (_match, _quote, marker: string) => `<<${marker}`);
+}
+
+function splitStatements(command: string): string[] {
+  const statements: string[] = [];
+  let current = "";
+  let quote: "'" | '"' | null = null;
+  for (let i = 0; i < command.length; i += 1) {
+    const char = command[i];
+    if (char === undefined) {
+      continue;
+    }
+    if (quote !== null) {
+      current += char;
+      if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      quote = char;
+      current += char;
+      continue;
+    }
+    if (char === "&" && command[i + 1] === "&") {
+      statements.push(current);
+      current = "";
+      i += 1;
+      continue;
+    }
+    if (char === ";" || char === "\n" || char === "|" || char === "(" || char === ")") {
+      statements.push(current);
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  statements.push(current);
+  return statements;
 }
 
 const LEADING = /^(?:pnpm|npx|mise|exec|run|--?\S+)\s+/;
@@ -60,7 +96,7 @@ function main(): void {
     return;
   }
 
-  for (const statement of stripHeredocs(command).split(STATEMENT_SPLIT)) {
+  for (const statement of splitStatements(stripHeredocs(command))) {
     const { normalized, stripped } = normalize(statement);
     if (!normalized) {
       continue;

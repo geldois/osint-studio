@@ -10,6 +10,7 @@ import {
 
 const HEREDOC = /<<-?(['"]?)(\w+)\1\n[\s\S]*?\n\s*\2(?=\s|$)/g;
 const GIT_COMMIT_OR_MERGE = /\bgit\s+(?:commit|merge)\b/;
+const GIT_FATAL = /^(?:fatal|error):/m;
 
 function stripHeredocs(command: string): string {
   return command.replace(HEREDOC, (_match, _quote, marker: string) => `<<${marker}`);
@@ -29,7 +30,11 @@ function main(): void {
   const response = toolResponse(event);
   const stdout = typeof response["stdout"] === "string" ? response["stdout"] : "";
   const stderr = typeof response["stderr"] === "string" ? response["stderr"] : "";
-  if (stdout.includes("[FAIL]") || stderr.includes("[FAIL]")) {
+  if (
+    stdout.includes("[FAIL]") ||
+    stderr.includes("[FAIL]") ||
+    GIT_FATAL.test(stderr)
+  ) {
     return;
   }
 

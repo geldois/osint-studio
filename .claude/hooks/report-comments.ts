@@ -1,9 +1,9 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename } from "node:path";
 import { newCommentLines, newCommentLinesHash } from "./_comment-scan";
+import { GENERATED_PREFIXES } from "./_docs-nudge";
 import {
   addContext,
-  GENERATED_PREFIXES,
   readEvent,
   repoRelative,
   run,
@@ -12,7 +12,7 @@ import {
   type RepoRelative,
 } from "./_hook-io";
 
-const TS_SUFFIXES = new Set([".ts", ".tsx"]);
+const TS_SUFFIXES = new Set([".ts", ".tsx", ".mts", ".cts", ".mjs", ".cjs"]);
 const HASH_SUFFIXES = new Set([".sh", ".yml", ".yaml", ".toml"]);
 const HASH_FILENAMES = new Set([
   "Dockerfile",
@@ -21,6 +21,9 @@ const HASH_FILENAMES = new Set([
   ".dockerignore",
   ".editorconfig",
   "run",
+  "pre-commit",
+  "pre-merge-commit",
+  "post-commit",
 ]);
 const HUNK_HEADER = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
 const MAX_REPORTED_LINES = 20;

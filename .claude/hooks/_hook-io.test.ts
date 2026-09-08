@@ -1,7 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, utimesSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  utimesSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   gitRoot,
   markerDir,
@@ -11,6 +19,24 @@ import {
   setMarker,
   takeMarker,
 } from "./_hook-io";
+
+let originalTmpdir: string | undefined;
+let isolatedTmpdir: string;
+
+beforeAll(() => {
+  originalTmpdir = process.env["TMPDIR"];
+  isolatedTmpdir = mkdtempSync(join(tmpdir(), "hook-io-test-"));
+  process.env["TMPDIR"] = isolatedTmpdir;
+});
+
+afterAll(() => {
+  if (originalTmpdir === undefined) {
+    delete process.env["TMPDIR"];
+  } else {
+    process.env["TMPDIR"] = originalTmpdir;
+  }
+  rmSync(isolatedTmpdir, { recursive: true, force: true });
+});
 
 describe("setMarker / takeMarker", () => {
   it("round-trips a marker for one session", () => {
@@ -154,6 +180,18 @@ describe("gitRoot without CLAUDE_PROJECT_DIR", () => {
   it("still resolves repoRelative for a real file with no CLAUDE_PROJECT_DIR set", () => {
     vi.stubEnv("CLAUDE_PROJECT_DIR", "");
     const target = repoRelative(join(process.cwd(), "package.json"));
+    expect(target?.rel).toBe("package.json");
+  });
+});
+
+describe("gitRoot with CLAUDE_PROJECT_DIR", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("normalizes a trailing slash so repoRelative can still match", () => {
+    vi.stubEnv("CLAUDE_PROJECT_DIR", `${process.cwd()}/`);
+    const target = repoRelative("package.json");
     expect(target?.rel).toBe("package.json");
   });
 });

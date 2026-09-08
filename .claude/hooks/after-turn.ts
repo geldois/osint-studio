@@ -18,6 +18,10 @@ function main(): void {
     return;
   }
 
+  if (!takeMarker("docs-nudge-pending", sessionId(event))) {
+    return;
+  }
+
   const root = gitRoot(process.cwd());
   if (root === null) {
     return;
@@ -25,10 +29,6 @@ function main(): void {
 
   const architectureDir = resolve(root, ARCHITECTURE_DIR);
   if (!existsSync(architectureDir)) {
-    return;
-  }
-
-  if (!takeMarker("docs-nudge-pending", sessionId(event))) {
     return;
   }
 
