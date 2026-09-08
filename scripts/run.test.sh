@@ -34,8 +34,9 @@ new_repo() {
   git init -q
   git config user.email t@t.com
   git config user.name t
+  echo '/build' >.gitignore
   echo 'echo seed' >seed.sh
-  git add seed.sh
+  git add .gitignore seed.sh
   git commit -qm seed
 }
 
@@ -187,6 +188,27 @@ test_precommit_survives_a_staged_deletion() {
   assert_eq "$(printf 'a.sh\nb.sh')" "$(git diff --cached --name-only)" "the deletion itself stays staged"
 }
 
+test_precommit_survives_a_staged_cached_removal() {
+  new_repo
+  printf 'echo hi\n' >a.sh
+  git add a.sh
+  git commit -qm a
+  git rm -q --cached a.sh
+  printf 'echo hi\n' >b.sh
+  git add b.sh
+
+  # shellcheck disable=SC1090
+  source "$run_script"
+  fake_shfmt_mise
+  # shellcheck disable=SC2329
+  run_check() { return 0; }
+
+  run_precommit >/dev/null
+
+  assert_eq "$(printf 'D\ta.sh\nA\tb.sh')" "$(git diff --cached --name-status)" \
+    "the cached removal stays a deletion instead of being resurrected by the fixer"
+}
+
 test_precommit_skips_check_when_tree_unchanged() {
   new_repo
 
@@ -215,6 +237,7 @@ test_fix_writes_no_marker_when_nothing_was_rewritten
 test_failed_check_unstages_a_rewritten_staged_file
 test_unstaged_rewrite_stays_unstaged
 test_precommit_survives_a_staged_deletion
+test_precommit_survives_a_staged_cached_removal
 test_precommit_skips_check_when_tree_unchanged
 
 cd "$start_dir"

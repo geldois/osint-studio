@@ -15,6 +15,7 @@ cd "$root"
 report=""
 failed=0
 last_gate_status=""
+env_sync_status=""
 gate_names=()
 gate_statuses=()
 gate_durations=()
@@ -45,20 +46,24 @@ gate() {
 
 write_report() {
     mkdir -p "$(dirname "$_REPORT_PATH")"
+    # shellcheck disable=SC2016
+    local gate_filter='{name: $name, status: $status, duration_s: $duration, output: $output}'
     local gate_json_lines=()
     local i
     for i in "${!gate_names[@]}"; do
-        gate_json_lines+=("$(jq -n \
+        gate_json_lines+=("$(mise exec -- jq -n \
             --arg name "${gate_names[$i]}" \
             --arg status "${gate_statuses[$i]}" \
             --argjson duration "${gate_durations[$i]}" \
             --arg output "${gate_outputs[$i]}" \
-            '{name: $name, status: $status, duration_s: $duration, output: $output}')")
+            "$gate_filter")")
     done
-    printf '%s\n' "${gate_json_lines[@]}" | jq -s \
+    # shellcheck disable=SC2016
+    local report_filter='{generated_at: $generated_at, passed: $passed, gates: .}'
+    printf '%s\n' "${gate_json_lines[@]}" | mise exec -- jq -s \
         --arg generated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         --argjson passed "$([ "$failed" = 0 ] && echo true || echo false)" \
-        '{generated_at: $generated_at, passed: $passed, gates: .}' \
+        "$report_filter" \
         >"$_REPORT_PATH"
 }
 
@@ -74,8 +79,9 @@ run_check() {
     gate actionlint mise exec -- actionlint "${_WORKFLOW_FILES[@]}"
     gate dprint mise exec -- dprint check
     gate env-sync mise exec -- pnpm install --frozen-lockfile
+    env_sync_status="$last_gate_status"
 
-    if [ "$last_gate_status" = "pass" ]; then
+    if [ "$env_sync_status" = "pass" ]; then
         gate eslint mise exec -- pnpm run lint
         gate prettier mise exec -- pnpm exec prettier --check . --cache --cache-location "$_PRETTIER_CACHE"
         gate type-check mise exec -- pnpm run type-check
@@ -91,7 +97,12 @@ run_check() {
 tree_hash() {
     local hash
     set +o pipefail
-    hash="$(git ls-files -z | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)"
+    hash="$(
+        {
+            git ls-files -z
+            git ls-files -z --others --exclude-standard
+        } | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1
+    )"
     set -o pipefail
     printf '%s' "$hash"
 }
@@ -106,6 +117,10 @@ run_precommit() {
 
     local hash
     hash="$(tree_hash)"
+    if [ -z "$hash" ]; then
+        echo "gate: tree hash unavailable" >&2
+        return 1
+    fi
 
     if [ -f "$_TREE_HASH_FILE" ] && [ "$(cat "$_TREE_HASH_FILE")" = "$hash" ] &&
         [ -f "$_TREE_REPORT_FILE" ] && [ -f "$_TREE_EXIT_FILE" ]; then
@@ -126,9 +141,9 @@ run_precommit() {
     fi
 
     mkdir -p "$(dirname "$_TREE_HASH_FILE")"
-    printf '%s' "$status" >"$_TREE_EXIT_FILE"
-    printf '%s' "$out" >"$_TREE_REPORT_FILE"
-    printf '%s' "$hash" >"$_TREE_HASH_FILE"
+    printf '%s' "$status" >"$_TREE_EXIT_FILE.tmp" && mv -f "$_TREE_EXIT_FILE.tmp" "$_TREE_EXIT_FILE"
+    printf '%s' "$out" >"$_TREE_REPORT_FILE.tmp" && mv -f "$_TREE_REPORT_FILE.tmp" "$_TREE_REPORT_FILE"
+    printf '%s' "$hash" >"$_TREE_HASH_FILE.tmp" && mv -f "$_TREE_HASH_FILE.tmp" "$_TREE_HASH_FILE"
 
     printf '%s\n' "$out"
     return "$status"
@@ -151,9 +166,9 @@ run_fix() {
             {
                 git ls-files "${exts[@]}"
                 git ls-files --others --exclude-standard "${exts[@]}"
+                printf '%s\n' "${_SHELL_FILES[@]}"
             } | sort -u
         )
-        files+=("${_SHELL_FILES[@]}")
     fi
 
     local -A staged=() pre_hash=() pre_blob=()
@@ -162,9 +177,9 @@ run_fix() {
         [ -n "$staged_file" ] || continue
         [ -f "$staged_file" ] || continue
         staged["$staged_file"]=1
-        pre_hash["$staged_file"]="$(git hash-object -- "$staged_file" 2>/dev/null)"
-        pre_blob["$staged_file"]="$(git rev-parse :"$staged_file" 2>/dev/null)"
-    done < <(git diff --name-only --cached)
+        pre_hash["$staged_file"]="$(git hash-object -- "$staged_file" 2>/dev/null || true)"
+        pre_blob["$staged_file"]="$(git rev-parse :"$staged_file" 2>/dev/null || true)"
+    done < <(git diff --name-only --cached --diff-filter=d)
 
     local prettier_files=() eslint_files=() dprint_files=() shfmt_files=() staged_files=()
     local file
@@ -182,8 +197,8 @@ run_fix() {
         esac
         case "$file" in
         *.sh) shfmt_files+=("$file") ;;
+        *) is_shell_file "$file" && shfmt_files+=("$file") ;;
         esac
-        is_shell_file "$file" && shfmt_files+=("$file")
     done
 
     local did_something=0
