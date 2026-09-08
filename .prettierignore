@@ -3,4 +3,5 @@ node_modules/
 public/
 pnpm-lock.yaml
 .cache/
+build/
 *.md
