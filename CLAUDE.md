@@ -19,6 +19,13 @@ Quality gates section for what the git hook actually runs and how a human runs i
 Activate the git hooks once per clone — `git config --local include.path ../.gitconfig` — or every commit lands
 unchecked. Needs `mise` active on `PATH`.
 
+## Frontend
+
+Before writing any visual, dashboard, chart, or table element, check `docs/architecture/ui.md` and `src/components/ui/`,
+`src/components/dashboard/`, `src/components/data-table/` for a primitive that already covers it, and reuse or extend
+it. Never hand-roll a parallel one for something reusable/centralizable — one source of truth per component class,
+visual coherence across the app, is non-negotiable.
+
 ## Code
 
 No comments and no docstrings anywhere in this repository, ever — not `src/`, not `.claude/hooks/`, `.github/`, nor any

@@ -121,6 +121,15 @@ each column to its widest cell instead. Both the generic and the per-type views 
 filtering rather than before, so the free-text filter always matches against every row that meets the current type
 filter, not just whichever 50 happen to be on screen.
 
+The Dashboard's charts all compose the same vendored Recharts wrapper (`src/components/ui/chart.tsx` —
+`ChartContainer`/`ChartTooltip`/`ChartConfig`) rather than calling Recharts' own primitives directly, and its tabular
+data (the Whiteboard's own Table view) runs on one `@tanstack/react-table` instance
+(`src/components/data-table/data-table.tsx`) with sorting, global filtering, and pagination wired once — no second table
+implementation exists anywhere in the app. No separate charting or dashboard framework (Tremor, Visx, Nivo, and similar)
+is installed; the two above are the full inventory. Before adding one, or before writing any new chart/table/list
+rendering pattern that doesn't go through them, this file needs a decision entry first, weighing the addition against
+extending what's already here — the frontend does not get a second parallel way to render the same kind of data.
+
 ## Consequences
 
 shadcn's own `Card` component (`src/components/ui/card.tsx`) is a generic container, unrelated to this project's own
