@@ -9,11 +9,11 @@ import { EntityIcon } from "@/components/nodes/entity-icon";
 import { FilterBar } from "@/components/filter-bar";
 import { FilterChips, FilterChipsTags } from "@/components/filter-chips";
 import { Flyout } from "@/components/flyout";
+import { VersionChips } from "@/components/temporal/version-chips";
 import { useGraphCatalog } from "@/hooks/use-graph-catalog";
 import { useOverlay } from "@/hooks/use-overlay";
 import { fetchGraphHistory } from "@/lib/api";
 import { extractLabel } from "@/lib/graph-adapter";
-import { formatFetchedAt } from "@/lib/overlay";
 import { nodeTypeAccentBorder } from "@/lib/relationships";
 import { itemsForTypeFilter, typeFilterOptionsFor } from "@/lib/table";
 import { cn } from "@/lib/utils";
@@ -59,10 +59,6 @@ export function GraphInfoButton() {
     [entries],
   );
 
-  if (entries.length === 0) {
-    return null;
-  }
-
   const allContentIds = historyQueries.flatMap(
     (query) => query.data?.map((schema) => schema.content_id) ?? [],
   );
@@ -94,8 +90,9 @@ export function GraphInfoButton() {
           type="button"
           variant="outline"
           size="icon"
+          disabled={entries.length === 0}
           aria-label="Informações do grafo"
-          title={summary}
+          title={entries.length === 0 ? "Nenhum grafo buscado ainda." : summary}
           className="size-8 rounded-md"
         >
           <Info size={14} />
@@ -196,40 +193,17 @@ export function GraphInfoButton() {
                     todas ({entry.revision_count})
                   </label>
                 </div>
-                <div className="flex flex-wrap gap-1">
-                  {history.map((revision) => {
-                    const isSelected = selected.includes(revision.content_id);
-                    return (
-                      <button
-                        key={revision.content_id}
-                        type="button"
-                        onClick={() => {
-                          selectRevisions(
-                            isSelected
-                              ? selected.filter((id) => id !== revision.content_id)
-                              : [...selected, revision.content_id],
-                          );
-                        }}
-                        className={cn(
-                          "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] transition-colors",
-                          isSelected
-                            ? "border-primary bg-primary/15 text-primary"
-                            : "border-border bg-surface text-muted hover:bg-foreground/5",
-                        )}
-                      >
-                        {formatFetchedAt(revision.revision.fetched_at)}
-                        <span className="opacity-70">
-                          · {revision.revision.provider}
-                        </span>
-                        {revision.revision.merged_at !== null ? (
-                          <span className="rounded-sm bg-foreground/5 px-1 text-[9px] uppercase">
-                            mesclado
-                          </span>
-                        ) : null}
-                      </button>
+                <VersionChips
+                  candidates={history}
+                  isSelected={(revision) => selected.includes(revision.content_id)}
+                  onToggle={(revision) => {
+                    selectRevisions(
+                      selected.includes(revision.content_id)
+                        ? selected.filter((id) => id !== revision.content_id)
+                        : [...selected, revision.content_id],
                     );
-                  })}
-                </div>
+                  }}
+                />
               </div>
             );
           })

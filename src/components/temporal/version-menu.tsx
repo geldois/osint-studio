@@ -2,14 +2,15 @@
 
 import { History } from "lucide-react";
 import { useState } from "react";
+import {
+  VersionChips,
+  type VersionCandidate,
+} from "@/components/temporal/version-chips";
 import { useEdgeHistory, useNodeHistory } from "@/hooks/use-entity-history";
-import { formatFetchedAt } from "@/lib/overlay";
 import { useGraphStore } from "@/store/graph";
 import type { ApiEdge, ApiNode } from "@/types/api";
 
-function VersionList<
-  T extends { content_id: string; revision: { fetched_at: string; provider: string } },
->({
+function VersionList<T extends VersionCandidate>({
   candidates,
   currentOverrideContentId,
   onChoose,
@@ -25,26 +26,11 @@ function VersionList<
   return (
     <div className="space-y-1.5">
       <h4 className="text-[11px] text-muted uppercase tracking-wide">Versões</h4>
-      <ul className="space-y-1">
-        {candidates.map((candidate) => (
-          <li key={candidate.content_id}>
-            <button
-              type="button"
-              onClick={() => {
-                onChoose(candidate);
-              }}
-              className={`w-full rounded-sm px-1.5 py-1 text-left text-[11px] ${
-                currentOverrideContentId === candidate.content_id
-                  ? "bg-white/10"
-                  : "hover:bg-foreground/5"
-              }`}
-            >
-              {formatFetchedAt(candidate.revision.fetched_at)} ·{" "}
-              {candidate.revision.provider}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <VersionChips
+        candidates={candidates}
+        isSelected={(candidate) => currentOverrideContentId === candidate.content_id}
+        onToggle={onChoose}
+      />
       {!expanded ? (
         <button
           type="button"

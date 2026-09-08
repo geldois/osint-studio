@@ -130,6 +130,11 @@ is installed; the two above are the full inventory. Before adding one, or before
 rendering pattern that doesn't go through them, this file needs a decision entry first, weighing the addition against
 extending what's already here — the frontend does not get a second parallel way to render the same kind of data.
 
+`GraphInfoButton` no longer unmounts when the graph catalog is empty — it stays in the header, disabled, with a `title`
+explaining why. This reverses a guard both `OverlaySummary` (the component it replaced) and `GraphInfoButton` itself
+carried from the start, on explicit product request: always-visible chrome was judged more legible than chrome that
+appears and disappears depending on data state, even at the cost of one more always-present element on an empty screen.
+
 ## Consequences
 
 shadcn's own `Card` component (`src/components/ui/card.tsx`) is a generic container, unrelated to this project's own
