@@ -11,7 +11,7 @@ const victorMono = Victor_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://osint.angelitochagas.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: "OSINT Studio",
   description: "Corporate intelligence graph explorer",
 };
