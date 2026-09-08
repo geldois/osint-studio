@@ -7,7 +7,7 @@
 
 Graph explorer front-end for [osint-engine](https://github.com/geldois/osint-engine).
 
-**Live:** [osint.angelitochagas.com](https://osint.angelitochagas.com)
+**Live:** [osint-studio.duckdns.org](https://osint-studio.duckdns.org)
 
 ## Stack
 
