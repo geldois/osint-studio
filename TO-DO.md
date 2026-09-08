@@ -1,11 +1,5 @@
 # TO-DO
 
-## chore(ci)
-
-- No lint/test CI workflow yet — only a manual release workflow. A project adopting this reference gate set should add
-  one calling `scripts/run check`, the same façade the git hooks call, rather than leaving CI to trust local hooks
-  alone.
-
 ## chore(deploy)
 
 - `NEXT_PUBLIC_API_URL` is only ever set for local dev (defaults to `http://localhost:8000`); no Vercel deployment
@@ -14,15 +8,14 @@
 
 ## feat(design-system)
 
-- Adendo 4 of `~/+ME/brain/notes/specs/osint-studio/reforma-visual-compacta.md` covers a design-system centralization
-  pass. Done: `ui/toggle.tsx`/`ui/button.tsx` own the active-state token, every caller override removed; every hardcoded
-  `white` ring/border/stroke/hover across nodes, edges, chips, and menus reads `foreground`/`foreground/5` instead,
-  correct in both themes. Not started: `FilterBar` shared shell (D) to replace the three divergent
-  filter-input-plus-chips layouts in `/table`, `RelationshipList`, `GraphInfoButton`; `FilterChips`'s trigger reshaped
-  into the header's attach-button slot with a corner count badge, `PatternSelect` migrated onto it (E); `/table`'s
-  horizontal scrollbar styled like the vertical one (F); `/settings`'s spacing scale and the API-key
-  mask-with-reveal-on-demand flow, which needs a new `GET /credentials/{provider}/reveal` on the backend too (G); the
-  same eye-toggle on `/login`'s password field (H).
+- A design-system centralization pass (spec: `reforma-visual-compacta`, Adendo 4). Done: `ui/toggle.tsx`/`ui/button.tsx`
+  own the active-state token, every caller override removed; every hardcoded `white` ring/border/stroke/hover across
+  nodes, edges, chips, and menus reads `foreground`/`foreground/5` instead, correct in both themes. Not started:
+  `FilterBar` shared shell (D) to replace the three divergent filter-input-plus-chips layouts in `/table`,
+  `RelationshipList`, `GraphInfoButton`; `FilterChips`'s trigger reshaped into the header's attach-button slot with a
+  corner count badge, `PatternSelect` migrated onto it (E); `/table`'s horizontal scrollbar styled like the vertical one
+  (F); `/settings`'s spacing scale and the API-key mask-with-reveal-on-demand flow, which needs a new
+  `GET /credentials/{provider}/reveal` on the backend too (G); the same eye-toggle on `/login`'s password field (H).
 
 ## fix(api)
 

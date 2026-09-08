@@ -91,11 +91,11 @@ empty every time. Real-working-tree cost is paid instead now: an unrelated broke
 commit until it's fixed too, in exchange for every gate run reusing the same installed dependencies, build cache, and
 test cache the previous run already warmed.
 
-A content hash of every tracked file is taken right after fixing, right before checking. If it matches the hash from the
-previous time this ran, the check is skipped entirely and that previous run's exact output and exit status are replayed
-instead — the working tree provably hasn't changed since that result was produced, so re-running would only reproduce
-it. This is what makes a long run of small, split commits cheap: the first commit in a batch pays for the real run, and
-every later one that leaves the tree exactly as it was replays for free.
+A content hash of every tracked and untracked-but-visible file is taken right after fixing, right before checking. If it
+matches the hash from the previous time this ran, the check is skipped entirely and that previous run's exact output and
+exit status are replayed instead — the working tree provably hasn't changed since that result was produced, so
+re-running would only reproduce it. This is what makes a long run of small, split commits cheap: the first commit in a
+batch pays for the real run, and every later one that leaves the tree exactly as it was replays for free.
 
 The manual-run nudge treats a bare `test` invocation as the POSIX shell builtin, not the test script, and lets it
 through unflagged. Only a package-manager prefix in front of it proves the word was invoked as the script rather than

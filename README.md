@@ -93,10 +93,13 @@ type-checker, build, and test the project owns.
 - `precommit` runs `fix` then `check` on the whole repo — what `.githooks/pre-commit` and `.githooks/pre-merge-commit`
   both call. If the working tree hasn't changed a single byte since the last time this ran, it skips straight to
   replaying that run's result instead of doing the work again.
-- `verify [files...]` runs `fix` then `check` on the given files, or the whole repo with none given, for a quick manual
-  pass.
+- `verify [files...]` runs `fix` on the given files, or the whole repo with none given, then always runs `check` against
+  the whole repo — the same full gate the git hooks run, for a quick manual pass after a local fix.
+- `pnpm run lint:fix`/`pnpm run format` reformat the same files as plain developer conveniences, without `fix`'s staged-
+  index bookkeeping — prefer `scripts/run fix` right before a commit.
 
-Run any of these yourself at any time — they're exactly what the git hooks run.
+A human contributor can run any of these at any time. Claude Code must not (see `CLAUDE.md`) — the git hook already runs
+the same gate on every commit and merge attempt, so a manual run mid-turn only duplicates a guarantee already given.
 
 ## Release
 
