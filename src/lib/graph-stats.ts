@@ -1,8 +1,8 @@
 import { extractLabel } from "@/lib/graph-adapter";
 import type { Finding, FindingSeverity } from "@/lib/findings";
 import type { OverlayResult } from "@/lib/overlay";
-import { nodeTypeLabel } from "@/lib/relationships";
-import type { ApiNode, EdgeType } from "@/types/api";
+import { nodeTypeLabel, nodeTypePluralLabel } from "@/lib/relationships";
+import type { ApiNode, NodeType, EdgeType } from "@/types/api";
 
 export interface EntityDegree {
   degree: number;
@@ -297,6 +297,27 @@ export function investigationCoverage(overlay: OverlayResult): CoverageMetric[] 
         ? 0
         : Math.round((coveredByKey[key].size / eligibleIds.size) * 100),
   }));
+}
+
+export interface EntityTypeBreakdown {
+  type: NodeType;
+  label: string;
+  count: number;
+}
+
+const ENTITY_BREAKDOWN_EXCLUDED_TYPES = new Set<NodeType>(["text_source"]);
+
+export function entityTypeBreakdown(overlay: OverlayResult): EntityTypeBreakdown[] {
+  const counts = new Map<NodeType, number>();
+  for (const node of overlay.nodes) {
+    if (ENTITY_BREAKDOWN_EXCLUDED_TYPES.has(node.type)) {
+      continue;
+    }
+    counts.set(node.type, (counts.get(node.type) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([type, count]) => ({ count, label: nodeTypePluralLabel(type), type }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "pt-BR"));
 }
 
 export interface RiskRankedEntity {

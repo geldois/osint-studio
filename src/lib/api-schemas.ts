@@ -236,6 +236,7 @@ export const GraphSchemaSchema = z.object({
 });
 
 export const GraphCatalogEntrySchema = z.object({
+  fetched_routes: z.array(z.string()),
   first_fetched_at: z.iso.datetime(),
   last_fetched_at: z.iso.datetime(),
   providers: z.array(z.string()),

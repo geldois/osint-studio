@@ -134,8 +134,12 @@ export async function loginAsVisitor(): Promise<TokenResponse> {
   return parseJson(TokenResponseSchema, res);
 }
 
-export async function fetchGraph(cnpj: string, token: string): Promise<GraphSchema> {
-  const res = await fetch(`${API_URL}/cnpj/${cnpj}`, {
+export async function fetchGraph(
+  cnpj: string,
+  token: string,
+  force = false,
+): Promise<GraphSchema> {
+  const res = await fetch(`${API_URL}/cnpj/${cnpj}?force=${String(force)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
@@ -165,8 +169,9 @@ async function fetchSanctions(
   path: "cnep" | "ceis" | "ceaf" | "cepim",
   cpfOrCnpj: string,
   token: string,
+  force: boolean,
 ): Promise<GraphSchema | null> {
-  const res = await fetch(`${API_URL}/${path}/${cpfOrCnpj}`, {
+  const res = await fetch(`${API_URL}/${path}/${cpfOrCnpj}?force=${String(force)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (res.status === 204) {
@@ -181,30 +186,41 @@ async function fetchSanctions(
 export function fetchCNEP(
   cpfOrCnpj: string,
   token: string,
+  force = false,
 ): Promise<GraphSchema | null> {
-  return fetchSanctions("cnep", cpfOrCnpj, token);
+  return fetchSanctions("cnep", cpfOrCnpj, token, force);
 }
 
 export function fetchCEIS(
   cpfOrCnpj: string,
   token: string,
+  force = false,
 ): Promise<GraphSchema | null> {
-  return fetchSanctions("ceis", cpfOrCnpj, token);
+  return fetchSanctions("ceis", cpfOrCnpj, token, force);
 }
 
-export function fetchCEAF(cpf: string, token: string): Promise<GraphSchema | null> {
-  return fetchSanctions("ceaf", cpf, token);
+export function fetchCEAF(
+  cpf: string,
+  token: string,
+  force = false,
+): Promise<GraphSchema | null> {
+  return fetchSanctions("ceaf", cpf, token, force);
 }
 
-export function fetchCEPIM(cnpj: string, token: string): Promise<GraphSchema | null> {
-  return fetchSanctions("cepim", cnpj, token);
+export function fetchCEPIM(
+  cnpj: string,
+  token: string,
+  force = false,
+): Promise<GraphSchema | null> {
+  return fetchSanctions("cepim", cnpj, token, force);
 }
 
 export async function fetchPEP(
   cpf: string,
   token: string,
+  force = false,
 ): Promise<GraphSchema | null> {
-  const res = await fetch(`${API_URL}/peps/${cpf}`, {
+  const res = await fetch(`${API_URL}/peps/${cpf}?force=${String(force)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (res.status === 204) {
@@ -219,10 +235,12 @@ export async function fetchPEP(
 export async function fetchLegalProcess(
   cpfOrCnpj: string,
   token: string,
+  force = false,
 ): Promise<GraphSchema | null> {
-  const res = await fetch(`${API_URL}/legal-process/${cpfOrCnpj}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const res = await fetch(
+    `${API_URL}/legal-process/${cpfOrCnpj}?force=${String(force)}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
   if (res.status === 204) {
     return null;
   }

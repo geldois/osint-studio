@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export interface DashboardChartCardProps {
   action?: ReactNode;
@@ -7,6 +14,7 @@ export interface DashboardChartCardProps {
   emptyMessage: string;
   footer?: ReactNode;
   isEmpty: boolean;
+  scrollable?: boolean;
   title: string;
 }
 
@@ -16,6 +24,7 @@ export function DashboardChartCard({
   emptyMessage,
   footer,
   isEmpty,
+  scrollable = false,
   title,
 }: DashboardChartCardProps) {
   return (
@@ -25,15 +34,19 @@ export function DashboardChartCard({
         {action}
       </CardHeader>
       <CardContent>
-        <div className="flex h-56 flex-col overflow-y-auto">
+        <div className={cn("h-56", scrollable ? "overflow-y-auto" : "overflow-hidden")}>
           {isEmpty ? (
-            <p className="m-auto text-center text-[12px] text-muted">{emptyMessage}</p>
+            <p className="flex h-full items-center justify-center text-center text-[12px] text-muted">
+              {emptyMessage}
+            </p>
           ) : (
             children
           )}
         </div>
-        {!isEmpty && footer ? footer : null}
       </CardContent>
+      {!isEmpty && footer ? (
+        <CardFooter className="mt-0 px-0">{footer}</CardFooter>
+      ) : null}
     </Card>
   );
 }

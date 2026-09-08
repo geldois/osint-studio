@@ -37,15 +37,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useConsumeCpf } from "@/hooks/use-consume-cpf";
 import { useConsumptionHistory } from "@/hooks/use-consumption-history";
 import { useExpand } from "@/hooks/use-expand";
-import { useGraphCatalog } from "@/hooks/use-graph-catalog";
 import { useOverlay } from "@/hooks/use-overlay";
 import { isMaskedCpf } from "@/lib/document";
-import {
-  documentExistsInCatalog,
-  edgeKey,
-  extractLabel,
-  nodeToRows,
-} from "@/lib/graph-adapter";
+import { edgeKey, extractLabel, nodeToRows } from "@/lib/graph-adapter";
 import { translateError, visibleErrorMessages } from "@/lib/errors";
 import { canFetchDocumentType, type FetchDocumentType } from "@/lib/permissions";
 import {
@@ -355,7 +349,6 @@ function NodePanel({ nodeId }: { nodeId: string }) {
   const nodeOverride = useGraphStore((s) => s.nodeOverrides[nodeId]);
   const role = useAuthStore((s) => s.role);
   const { mutate, isPending, error, data } = useExpand();
-  const { data: catalog } = useGraphCatalog();
   const backgroundErrors = data ? visibleErrorMessages(data.errors) : [];
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -375,9 +368,6 @@ function NodePanel({ nodeId }: { nodeId: string }) {
   const expandableDocument =
     node.type === "company" ? node.cnpj : node.type === "person" ? node.cpf : null;
   const maskedCpf = node.type === "person" && isMaskedCpf(node.cpf);
-  const existsInGraph =
-    expandableDocument !== null &&
-    documentExistsInCatalog(expandableDocument, catalog?.entries ?? []);
   const canExpand =
     !maskedCpf &&
     expandableDocument !== null &&
@@ -444,12 +434,11 @@ function NodePanel({ nodeId }: { nodeId: string }) {
                       <ExpansionMenu
                         document={expandableDocument}
                         isPending={isPending}
-                        existsInGraph={existsInGraph}
                         onClose={() => {
                           setMenuOpen(false);
                         }}
-                        onConfirm={(routes, force) => {
-                          mutate({ document: expandableDocument, routes, force });
+                        onConfirm={(routes, forced) => {
+                          mutate({ document: expandableDocument, routes, forced });
                           setMenuOpen(false);
                         }}
                       />

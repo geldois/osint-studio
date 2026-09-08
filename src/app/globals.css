@@ -23,6 +23,8 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-chart-8: var(--chart-8);
+  --color-chart-7: var(--chart-7);
   --color-chart-6: var(--chart-6);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
@@ -83,6 +85,8 @@
   --chart-4: #3db9cf;
   --chart-5: #00a2c7;
   --chart-6: #ab6400;
+  --chart-7: #6e56cf;
+  --chart-8: #46a758;
   --radius: 0.4rem;
   --sidebar: var(--surface);
   --sidebar-foreground: var(--foreground);

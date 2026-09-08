@@ -171,6 +171,7 @@ describe("extractLabel", () => {
 describe("documentExistsInCatalog", () => {
   function catalogEntry(root: CompanyNode | PersonNode): GraphCatalogEntry {
     return {
+      fetched_routes: ["brasilapi"],
       first_fetched_at: "2026-08-21T14:03:00Z",
       last_fetched_at: "2026-08-21T14:03:00Z",
       providers: ["brasilapi"],

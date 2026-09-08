@@ -8,11 +8,9 @@ import { FieldWarning } from "@/components/field-warning";
 import { IngestFlyout } from "@/components/ingest/ingest-flyout";
 import { Input } from "@/components/ui/input";
 import { useExpand } from "@/hooks/use-expand";
-import { useGraphCatalog } from "@/hooks/use-graph-catalog";
 import { RateLimitError } from "@/lib/api";
 import { documentKind } from "@/lib/document";
 import { translateError, visibleErrorMessages } from "@/lib/errors";
-import { documentExistsInCatalog } from "@/lib/graph-adapter";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
 
@@ -23,11 +21,9 @@ export function WhiteboardSearchBar() {
   const [menuGeneration, setMenuGeneration] = useState(0);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const { mutate, isPending, error, data } = useExpand();
-  const { data: catalog } = useGraphCatalog();
   const searchPlaceholder = role === "VIEWER" ? "CNPJ" : "CPF ou CNPJ";
   const recognizedKind = documentKind(query);
   const trimmedQuery = query.trim();
-  const existsInGraph = documentExistsInCatalog(trimmedQuery, catalog?.entries ?? []);
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) {
@@ -121,13 +117,12 @@ export function WhiteboardSearchBar() {
           key={`${trimmedQuery}-${String(menuGeneration)}`}
           document={trimmedQuery}
           isPending={isPending}
-          existsInGraph={existsInGraph}
           onClose={() => {
             setMenuOpen(false);
           }}
-          onConfirm={(routes, force) => {
+          onConfirm={(routes, forced) => {
             mutate(
-              { document: trimmedQuery, routes, force },
+              { document: trimmedQuery, routes, forced },
               {
                 onError: (mutationError) => {
                   if (mutationError instanceof RateLimitError) {

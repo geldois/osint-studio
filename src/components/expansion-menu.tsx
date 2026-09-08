@@ -3,9 +3,11 @@
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AlreadyFetchedNotice } from "@/components/already-fetched-notice";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCredentialStatus } from "@/hooks/use-credential-status";
+import { useFetchedRoutes } from "@/hooks/use-fetched-routes";
 import { documentKind, documentKindLabel } from "@/lib/document";
 import {
   credentialConfiguredFor,
@@ -20,15 +22,13 @@ import { cn } from "@/lib/utils";
 interface ExpansionMenuProps {
   document: string;
   isPending: boolean;
-  existsInGraph?: boolean;
   onClose: () => void;
-  onConfirm: (routes: ExpansionRouteKey[], force: boolean) => void;
+  onConfirm: (routes: ExpansionRouteKey[], forced: Set<ExpansionRouteKey>) => void;
 }
 
 export function ExpansionMenu({
   document,
   isPending,
-  existsInGraph = true,
   onClose,
   onConfirm,
 }: ExpansionMenuProps) {
@@ -36,9 +36,10 @@ export function ExpansionMenu({
   const documentIsCpf = kind === "cpf";
   const routes = expansionRoutesFor(documentIsCpf);
   const { data: credentialStatuses } = useCredentialStatus();
+  const { data: fetchedRoutes } = useFetchedRoutes(document);
 
   const [selected, setSelected] = useState<Set<ExpansionRouteKey>>(new Set());
-  const [force, setForce] = useState(false);
+  const [forced, setForced] = useState<Set<ExpansionRouteKey>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -76,7 +77,30 @@ export function ExpansionMenu({
       }
       return next;
     });
+    if (!checked) {
+      setForced((current) => {
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
+    }
   }
+
+  function toggleForced(key: ExpansionRouteKey, force: boolean): void {
+    setForced((current) => {
+      const next = new Set(current);
+      if (force) {
+        next.add(key);
+      } else {
+        next.delete(key);
+      }
+      return next;
+    });
+  }
+
+  const hasUnconfirmedReuse = [...selected].some(
+    (key) => (fetchedRoutes?.has(key) ?? false) && !forced.has(key),
+  );
 
   return (
     <div
@@ -109,47 +133,53 @@ export function ExpansionMenu({
             route.provider,
             credentialStatuses ?? [],
           );
+          const alreadyFetched = fetchedRoutes?.has(route.key) ?? false;
           return (
-            <label
-              key={route.key}
-              className="flex cursor-pointer items-center gap-2 rounded-md p-1.5 text-[12px] hover:bg-foreground/5"
-            >
-              <Checkbox
-                checked={selected.has(route.key)}
-                onCheckedChange={(checked) => {
-                  toggle(route.key, checked);
-                }}
-              />
-              <span className="min-w-0 flex-1 truncate">{route.label}</span>
-              <span className="shrink-0 text-[10px] text-muted">
-                {providerLabel(route.provider)}
-                {configured === false ? " · sem credencial" : ""}
-              </span>
-              <span
-                className={cn(
-                  "shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-medium",
-                  route.priceBRL === 0
-                    ? "bg-emerald-500/15 text-emerald-500"
-                    : "bg-amber-500/15 text-amber-500",
-                )}
-              >
-                {formatPriceBRL(route.priceBRL)}
-              </span>
-            </label>
+            <div key={route.key}>
+              <label className="flex cursor-pointer items-center gap-2 rounded-md p-1.5 text-[12px] hover:bg-foreground/5">
+                <Checkbox
+                  checked={selected.has(route.key)}
+                  onCheckedChange={(checked) => {
+                    toggle(route.key, checked);
+                  }}
+                />
+                <span className="min-w-0 flex-1 truncate text-left">{route.label}</span>
+                {alreadyFetched ? (
+                  <Badge variant="secondary" className="shrink-0">
+                    já buscado
+                  </Badge>
+                ) : null}
+                <span className="shrink-0 text-[10px] text-muted">
+                  {providerLabel(route.provider)}
+                  {configured === false ? " · sem credencial" : ""}
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-medium",
+                    route.priceBRL === 0
+                      ? "bg-emerald-500/15 text-emerald-500"
+                      : "bg-amber-500/15 text-amber-500",
+                  )}
+                >
+                  {formatPriceBRL(route.priceBRL)}
+                </span>
+              </label>
+              {selected.has(route.key) ? (
+                <div className="px-1.5 pb-1.5">
+                  <AlreadyFetchedNotice
+                    alreadyFetched={alreadyFetched}
+                    force={forced.has(route.key)}
+                    onForceChange={(force) => {
+                      toggleForced(route.key, force);
+                    }}
+                    label={`Reconsultar ${route.label} mesmo assim${route.priceBRL > 0 ? ", cobrando novamente" : ""}.`}
+                  />
+                </div>
+              ) : null}
+            </div>
           );
         })}
       </div>
-
-      {existsInGraph ? (
-        <div className="border-border border-t p-2">
-          <AlreadyFetchedNotice
-            alreadyFetched
-            force={force}
-            onForceChange={setForce}
-            label={`Forçar nova busca — só reaplica a ${documentIsCpf ? "Pessoa" : "Empresa"}; as demais rotas marcadas sempre reconsultam a fonte, com custo se forem pagas.`}
-          />
-        </div>
-      ) : null}
 
       <div className="flex items-center justify-between gap-2 border-border border-t p-2">
         <span className="text-[11px] text-muted">
@@ -158,9 +188,9 @@ export function ExpansionMenu({
         <Button
           type="button"
           size="sm"
-          disabled={selected.size === 0 || isPending}
+          disabled={selected.size === 0 || isPending || hasUnconfirmedReuse}
           onClick={() => {
-            onConfirm([...selected], force);
+            onConfirm([...selected], forced);
           }}
         >
           {isPending ? "Buscando..." : `Buscar · ${formatPriceBRL(total)}`}

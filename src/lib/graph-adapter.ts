@@ -80,11 +80,18 @@ function rootMatchesDocument(root: ApiNode, document: string): boolean {
   return false;
 }
 
+export function findCatalogEntryForDocument(
+  document: string,
+  entries: GraphCatalogEntry[],
+): GraphCatalogEntry | undefined {
+  return entries.find((entry) => rootMatchesDocument(entry.root, document));
+}
+
 export function documentExistsInCatalog(
   document: string,
   entries: GraphCatalogEntry[],
 ): boolean {
-  return entries.some((entry) => rootMatchesDocument(entry.root, document));
+  return findCatalogEntryForDocument(document, entries) !== undefined;
 }
 
 const EMPTY = "—";

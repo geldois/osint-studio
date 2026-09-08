@@ -16,7 +16,6 @@ export interface ExpansionRoute {
   label: string;
   priceBRL: number;
   provider: RouteProvider;
-  supportsForce: boolean;
 }
 
 const PROVIDER_LABELS: Record<RouteProvider, string> = {
@@ -35,42 +34,36 @@ const CPF_ROUTES: ExpansionRoute[] = [
     label: "Pessoa (dados básicos)",
     priceBRL: KIPFLOW_CPF_COST_BRL,
     provider: "KIPFLOW",
-    supportsForce: true,
   },
   {
     key: "cnep",
     label: "CNEP",
     priceBRL: 0,
     provider: "PORTAL_TRANSPARENCIA",
-    supportsForce: false,
   },
   {
     key: "ceis",
     label: "CEIS",
     priceBRL: 0,
     provider: "PORTAL_TRANSPARENCIA",
-    supportsForce: false,
   },
   {
     key: "ceaf",
     label: "CEAF",
     priceBRL: 0,
     provider: "PORTAL_TRANSPARENCIA",
-    supportsForce: false,
   },
   {
     key: "pep",
     label: "PEP",
     priceBRL: 0,
     provider: "PORTAL_TRANSPARENCIA",
-    supportsForce: false,
   },
   {
     key: "legal_process",
     label: "Processo jurídico",
     priceBRL: KIPFLOW_LEGAL_PROCESS_CPF_COST_BRL,
     provider: "KIPFLOW",
-    supportsForce: false,
   },
 ];
 
@@ -80,40 +73,57 @@ const CNPJ_ROUTES: ExpansionRoute[] = [
     label: "Empresa (dados básicos)",
     priceBRL: 0,
     provider: "BRASIL_API",
-    supportsForce: false,
   },
   {
     key: "cnep",
     label: "CNEP",
     priceBRL: 0,
     provider: "PORTAL_TRANSPARENCIA",
-    supportsForce: false,
   },
   {
     key: "ceis",
     label: "CEIS",
     priceBRL: 0,
     provider: "PORTAL_TRANSPARENCIA",
-    supportsForce: false,
   },
   {
     key: "cepim",
     label: "CEPIM",
     priceBRL: 0,
     provider: "PORTAL_TRANSPARENCIA",
-    supportsForce: false,
   },
   {
     key: "legal_process",
     label: "Processo jurídico",
     priceBRL: KIPFLOW_LEGAL_PROCESS_CNPJ_COST_BRL,
     provider: "KIPFLOW",
-    supportsForce: false,
   },
 ];
 
 export function expansionRoutesFor(documentIsCpf: boolean): ExpansionRoute[] {
   return documentIsCpf ? CPF_ROUTES : CNPJ_ROUTES;
+}
+
+const BACKEND_PROVIDER_TO_ROUTE_KEY: Record<string, ExpansionRouteKey> = {
+  brasilapi: "root",
+  ceaf: "ceaf",
+  ceis: "ceis",
+  cepim: "cepim",
+  cnep: "cnep",
+  kipflow: "root",
+  legal_process: "legal_process",
+  pep: "pep",
+};
+
+export function fetchedRouteKeys(fetchedRoutes: string[]): Set<ExpansionRouteKey> {
+  const keys = new Set<ExpansionRouteKey>();
+  for (const provider of fetchedRoutes) {
+    const key = BACKEND_PROVIDER_TO_ROUTE_KEY[provider];
+    if (key !== undefined) {
+      keys.add(key);
+    }
+  }
+  return keys;
 }
 
 export function formatPriceBRL(priceBRL: number): string {

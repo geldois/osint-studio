@@ -19,7 +19,7 @@ import type { GraphSchema } from "@/types/api";
 interface ExpandVars {
   document: string;
   routes: ExpansionRouteKey[];
-  force?: boolean;
+  forced?: Set<ExpansionRouteKey>;
 }
 
 interface ExpandResult {
@@ -39,19 +39,19 @@ function fetchForRoute(
     case "root":
       return documentIsCpf
         ? fetchGraphByCpf(document, token, force)
-        : fetchGraph(document, token);
+        : fetchGraph(document, token, force);
     case "cnep":
-      return fetchCNEP(document, token);
+      return fetchCNEP(document, token, force);
     case "ceis":
-      return fetchCEIS(document, token);
+      return fetchCEIS(document, token, force);
     case "ceaf":
-      return fetchCEAF(document, token);
+      return fetchCEAF(document, token, force);
     case "cepim":
-      return fetchCEPIM(document, token);
+      return fetchCEPIM(document, token, force);
     case "pep":
-      return fetchPEP(document, token);
+      return fetchPEP(document, token, force);
     case "legal_process":
-      return fetchLegalProcess(document, token);
+      return fetchLegalProcess(document, token, force);
   }
 }
 
@@ -66,7 +66,7 @@ export function useExpand() {
     mutationFn: async ({
       document,
       routes,
-      force = false,
+      forced,
     }: ExpandVars): Promise<ExpandResult> => {
       if (token === null) {
         throw new Error("Sessão expirada. Faça login novamente.");
@@ -79,7 +79,13 @@ export function useExpand() {
 
       const results = await Promise.allSettled(
         routes.map((route) =>
-          fetchForRoute(route, document, documentIsCpf, token, force),
+          fetchForRoute(
+            route,
+            document,
+            documentIsCpf,
+            token,
+            forced?.has(route) ?? false,
+          ),
         ),
       );
 

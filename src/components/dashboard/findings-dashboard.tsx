@@ -76,6 +76,8 @@ const CHART_COLOR_VARS = [
   "var(--color-chart-4)",
   "var(--color-chart-5)",
   "var(--color-chart-6)",
+  "var(--color-chart-7)",
+  "var(--color-chart-8)",
 ];
 
 function chartColorAt(index: number): string {
@@ -102,7 +104,7 @@ function SeverityDonut({ counts }: { counts: Record<FindingSeverity, number> }) 
       isEmpty={data.length === 0}
       emptyMessage="Sem achados."
     >
-      <ChartContainer config={SEVERITY_CONFIG} className="size-full">
+      <ChartContainer config={SEVERITY_CONFIG} className="aspect-auto size-full">
         <PieChart>
           <ChartTooltip content={<ChartTooltipContent hideLabel />} />
           <Pie
@@ -176,7 +178,7 @@ function CategoryBars({ findings }: { findings: ReturnType<typeof evaluateFindin
       isEmpty={data.length === 0}
       emptyMessage="Sem achados."
     >
-      <ChartContainer config={CATEGORY_CONFIG} className="size-full">
+      <ChartContainer config={CATEGORY_CONFIG} className="aspect-auto size-full">
         <BarChart data={data} layout="vertical" margin={{ left: 12, right: 12 }}>
           <CartesianGrid horizontal={false} />
           <XAxis type="number" hide />
@@ -216,6 +218,7 @@ function PossibleMatchesCard({ overlay }: { overlay: ReturnType<typeof useOverla
       title="Possíveis identidades"
       isEmpty={pairs.length === 0}
       emptyMessage="Nenhuma possível correspondência de identidade."
+      scrollable
     >
       <ul className="space-y-2">
         {pairs.map((pair) => (
@@ -276,7 +279,7 @@ function SanctionOrganBars({ overlay }: { overlay: ReturnType<typeof useOverlay>
         ) : null
       }
     >
-      <ChartContainer config={SANCTION_ORGAN_CONFIG} className="size-full">
+      <ChartContainer config={SANCTION_ORGAN_CONFIG} className="aspect-auto size-full">
         <BarChart data={breakdown} layout="vertical" margin={{ left: 12, right: 12 }}>
           <CartesianGrid horizontal={false} />
           <XAxis type="number" hide allowDecimals={false} />
@@ -305,6 +308,7 @@ function OwnershipChainCard({ overlay }: { overlay: ReturnType<typeof useOverlay
       title="Cadeia societária mais profunda"
       isEmpty={deepest === undefined}
       emptyMessage="Nenhuma cadeia de posse entre empresas."
+      scrollable
     >
       {deepest !== undefined ? (
         <>
@@ -349,7 +353,7 @@ function SectorBars({ overlay }: { overlay: ReturnType<typeof useOverlay> }) {
       isEmpty={data.length === 0}
       emptyMessage="Nenhuma empresa com CNAE identificado."
     >
-      <ChartContainer config={SECTOR_CONFIG} className="size-full">
+      <ChartContainer config={SECTOR_CONFIG} className="aspect-auto size-full">
         <BarChart data={data} layout="vertical" margin={{ left: 12, right: 12 }}>
           <CartesianGrid horizontal={false} />
           <XAxis type="number" hide allowDecimals={false} />
@@ -397,7 +401,7 @@ function ProviderBreakdownCard({
       isEmpty={data.length === 0}
       emptyMessage="Nenhuma entidade com fonte identificada."
     >
-      <ChartContainer config={config} className="size-full">
+      <ChartContainer config={config} className="aspect-auto size-full">
         <PieChart>
           <ChartTooltip content={<ChartTooltipContent hideLabel />} />
           <Pie
@@ -442,7 +446,7 @@ function EdgeTypeBreakdownCard({
       isEmpty={data.length === 0}
       emptyMessage="Nenhuma relação neste grafo."
     >
-      <ChartContainer config={config} className="size-full">
+      <ChartContainer config={config} className="aspect-auto size-full">
         <BarChart data={data} layout="vertical" margin={{ left: 12, right: 12 }}>
           <CartesianGrid horizontal={false} />
           <XAxis type="number" hide allowDecimals={false} />
@@ -508,7 +512,7 @@ function CoverageRadialCard({ overlay }: { overlay: ReturnType<typeof useOverlay
         </ul>
       }
     >
-      <ChartContainer config={config} className="size-full">
+      <ChartContainer config={config} className="aspect-auto size-full">
         <RadialBarChart
           data={data}
           innerRadius="30%"
@@ -547,6 +551,7 @@ function RiskRankedEntitiesCard({
       title="Entidades de maior risco"
       isEmpty={ranked.length === 0}
       emptyMessage="Nenhuma entidade com achados ainda."
+      scrollable
     >
       <ul className="space-y-1.5">
         {ranked.map((entry) => (
