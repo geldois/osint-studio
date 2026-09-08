@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
+import type { Finding } from "@/lib/findings";
 import {
   deepestOwnershipChains,
+  edgeTypeBreakdown,
+  investigationCoverage,
   possibleMatchPairs,
+  providerBreakdown,
+  riskRankedEntities,
   sanctionsByOrgan,
   sectorBreakdown,
   topConnectedEntities,
@@ -16,12 +21,14 @@ import type {
   OwnsCompanyEdge,
   PersonNode,
   PlainEdge,
+  PoliticalExposureNode,
   PossiblyMatchesEdge,
   SanctionNode,
+  TextSourceNode,
 } from "@/types/api";
 
-function revision() {
-  return { fetched_at: "2026-08-21T14:00:00Z", merged_at: null, provider: "brasilapi" };
+function revision(provider = "brasilapi") {
+  return { fetched_at: "2026-08-21T14:00:00Z", merged_at: null, provider };
 }
 
 function person(id: string, name: string, cpf = id): PersonNode {
@@ -80,6 +87,34 @@ function sanction(
     source_id: `s-${id}`,
     start_date: "2025-01-01",
     type: "sanction",
+  };
+}
+
+function textSource(id: string): TextSourceNode {
+  return {
+    content_id: `c-${id}`,
+    id,
+    revision: revision(),
+    text: "texto",
+    type: "text_source",
+  };
+}
+
+function politicalExposure(id: string): PoliticalExposureNode {
+  return {
+    content_id: `c-${id}`,
+    cpf: "cpf1",
+    exercise_end_date: null,
+    exercise_start_date: null,
+    function_acronym: null,
+    function_description: "Deputado",
+    function_level: null,
+    government_body_code: null,
+    government_body_name: "Câmara",
+    grace_period_end_date: null,
+    id,
+    revision: revision(),
+    type: "political_exposure",
   };
 }
 
@@ -310,5 +345,132 @@ describe("sectorBreakdown", () => {
     expect(sectorBreakdown(overlay([company("cnpj1", "Acme LTDA")], []))).toHaveLength(
       0,
     );
+  });
+});
+
+describe("providerBreakdown", () => {
+  it("counts nodes per provider, excluding text sources", () => {
+    const a = { ...person("cpf1", "Fulano"), revision: revision("kipflow") };
+    const b = { ...person("cpf2", "Beltrano"), revision: revision("kipflow") };
+    const c = { ...company("cnpj1", "Acme LTDA"), revision: revision("brasilapi") };
+    const breakdown = providerBreakdown(overlay([a, b, c, textSource("t1")], []));
+    expect(breakdown).toEqual([
+      { count: 2, provider: "kipflow" },
+      { count: 1, provider: "brasilapi" },
+    ]);
+  });
+
+  it("returns an empty list for an overlay with no nodes", () => {
+    expect(providerBreakdown(overlay([], []))).toHaveLength(0);
+  });
+});
+
+describe("edgeTypeBreakdown", () => {
+  it("counts edges per type, omitting types absent from the overlay", () => {
+    const a = person("cpf1", "Fulano");
+    const b = person("cpf2", "Beltrano");
+    const c = company("cnpj1", "Acme LTDA");
+    const breakdown = edgeTypeBreakdown(
+      overlay(
+        [a, b, c],
+        [
+          edge("person_has_email", "cpf1", "cpf1"),
+          edge("person_has_email", "cpf2", "cpf2"),
+          ownsEdge("person_owns_company", "cpf1", "cnpj1"),
+        ],
+      ),
+    );
+    expect(breakdown).toEqual([
+      { count: 2, type: "person_has_email" },
+      { count: 1, type: "person_owns_company" },
+    ]);
+  });
+
+  it("returns an empty list for an overlay with no edges", () => {
+    expect(edgeTypeBreakdown(overlay([person("cpf1", "Fulano")], []))).toHaveLength(0);
+  });
+});
+
+describe("investigationCoverage", () => {
+  it("computes the fraction of person/company nodes covered by each signal", () => {
+    const sanctioned = person("cpf1", "Fulano");
+    const exposed = person("cpf2", "Beltrano");
+    const clean = company("cnpj1", "Acme LTDA");
+    const metrics = investigationCoverage(
+      overlay(
+        [sanctioned, exposed, clean, sanction("s1"), politicalExposure("pe1")],
+        [
+          edge("person_received_sanction", "cpf1", "s1"),
+          edge("person_has_political_exposure", "cpf2", "pe1"),
+        ],
+      ),
+    );
+    const byKey = Object.fromEntries(metrics.map((m) => [m.key, m.percent]));
+    expect(byKey["sanction"]).toBe(33);
+    expect(byKey["political_exposure"]).toBe(33);
+    expect(byKey["legal_process"]).toBe(0);
+  });
+
+  it("returns zero for every metric when no person/company node exists", () => {
+    const metrics = investigationCoverage(overlay([textSource("t1")], []));
+    for (const metric of metrics) {
+      expect(metric.percent).toBe(0);
+      expect(Number.isNaN(metric.percent)).toBe(false);
+    }
+  });
+});
+
+describe("riskRankedEntities", () => {
+  function finding(overrides: Partial<Finding>): Finding {
+    return {
+      category: "fraude",
+      description: "desc",
+      id: `f-${String(Math.random())}`,
+      nodeIds: [],
+      severity: "alto",
+      title: "titulo",
+      ...overrides,
+    };
+  }
+
+  it("ranks a single high-severity citation above two low-severity citations", () => {
+    const highRisk = person("cpf1", "Fulano");
+    const lowRisk = person("cpf2", "Beltrano");
+    const ranked = riskRankedEntities(
+      overlay([highRisk, lowRisk], []),
+      [
+        finding({ nodeIds: ["cpf1"], severity: "alto" }),
+        finding({ nodeIds: ["cpf2"], severity: "baixo" }),
+        finding({ nodeIds: ["cpf2"], severity: "baixo" }),
+      ],
+      5,
+    );
+    expect(ranked[0]?.node.id).toBe("cpf1");
+    expect(ranked[0]?.score).toBe(3);
+    expect(ranked[0]?.topSeverity).toBe("alto");
+    expect(ranked[1]?.score).toBe(2);
+  });
+
+  it("breaks a score tie by degree", () => {
+    const hub = company("cnpj1", "Acme LTDA");
+    const leaf = person("cpf1", "Fulano");
+    const ranked = riskRankedEntities(
+      overlay(
+        [hub, leaf, person("cpf2", "Ciclano")],
+        [ownsEdge("person_owns_company", "cpf2", "cnpj1")],
+      ),
+      [
+        finding({ nodeIds: ["cnpj1"], severity: "medio" }),
+        finding({ nodeIds: ["cpf1"], severity: "medio" }),
+      ],
+      5,
+    );
+    expect(ranked[0]?.node.id).toBe("cnpj1");
+  });
+
+  it("returns an empty list when no finding cites a node in the overlay", () => {
+    expect(
+      riskRankedEntities(overlay([person("cpf1", "Fulano")], []), [], 5),
+    ).toHaveLength(0);
   });
 });

@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useFindingsFilterStore } from "@/store/findings-filter";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import { SeverityBadge } from "@/components/findings/severity-badge";
 import {
@@ -79,8 +80,10 @@ export function FindingsPanel() {
   const findings = useMemo(() => evaluateFindings(overlay), [overlay]);
   const nodeById = new Map(overlay.nodes.map((node) => [node.id, node]));
 
-  const [selectedSeverities, setSelectedSeverities] = useState<FindingSeverity[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<FindingCategory[]>([]);
+  const selectedSeverities = useFindingsFilterStore((s) => s.selectedSeverities);
+  const selectedCategories = useFindingsFilterStore((s) => s.selectedCategories);
+  const setSelectedSeverities = useFindingsFilterStore((s) => s.setSeverities);
+  const setSelectedCategories = useFindingsFilterStore((s) => s.setCategories);
   const [filter, setFilter] = useState("");
 
   const selectNode = useSelectionStore((s) => s.selectNode);

@@ -1,4 +1,5 @@
 import { extractLabel } from "@/lib/graph-adapter";
+import type { Finding, FindingSeverity } from "@/lib/findings";
 import type { OverlayResult } from "@/lib/overlay";
 import { nodeTypeLabel } from "@/lib/relationships";
 import type { ApiNode, EdgeType } from "@/types/api";
@@ -214,4 +215,154 @@ export function sectorBreakdown(overlay: OverlayResult): SectorBreakdown[] {
       b.count - a.count ||
       extractLabel(a.cnae).localeCompare(extractLabel(b.cnae), "pt-BR"),
   );
+}
+
+export interface ProviderBreakdown {
+  count: number;
+  provider: string;
+}
+
+export function providerBreakdown(overlay: OverlayResult): ProviderBreakdown[] {
+  const counts = new Map<string, number>();
+  for (const node of overlay.nodes) {
+    if (node.type === "text_source") {
+      continue;
+    }
+    const provider = node.revision.provider;
+    counts.set(provider, (counts.get(provider) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([provider, count]) => ({ count, provider }))
+    .sort((a, b) => b.count - a.count || a.provider.localeCompare(b.provider, "pt-BR"));
+}
+
+export interface EdgeTypeBreakdown {
+  count: number;
+  type: EdgeType;
+}
+
+export function edgeTypeBreakdown(overlay: OverlayResult): EdgeTypeBreakdown[] {
+  const counts = new Map<EdgeType, number>();
+  for (const edge of overlay.edges) {
+    counts.set(edge.type, (counts.get(edge.type) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([type, count]) => ({ count, type }))
+    .sort((a, b) => b.count - a.count || a.type.localeCompare(b.type));
+}
+
+export type CoverageKey = "legal_process" | "political_exposure" | "sanction";
+
+export interface CoverageMetric {
+  key: CoverageKey;
+  percent: number;
+}
+
+const COVERAGE_EDGE_TYPES: Record<CoverageKey, Set<EdgeType>> = {
+  legal_process: new Set<EdgeType>([
+    "person_is_party_in_legal_process",
+    "company_is_party_in_legal_process",
+  ]),
+  political_exposure: new Set<EdgeType>(["person_has_political_exposure"]),
+  sanction: new Set<EdgeType>([
+    "person_received_sanction",
+    "company_received_sanction",
+  ]),
+};
+
+const COVERAGE_ELIGIBLE_TYPES = new Set<ApiNode["type"]>(["company", "person"]);
+
+export function investigationCoverage(overlay: OverlayResult): CoverageMetric[] {
+  const eligibleIds = new Set(
+    overlay.nodes
+      .filter((node) => COVERAGE_ELIGIBLE_TYPES.has(node.type))
+      .map((node) => node.id),
+  );
+  const coveredByKey: Record<CoverageKey, Set<string>> = {
+    legal_process: new Set(),
+    political_exposure: new Set(),
+    sanction: new Set(),
+  };
+  for (const edge of overlay.edges) {
+    for (const key of Object.keys(coveredByKey) as CoverageKey[]) {
+      if (COVERAGE_EDGE_TYPES[key].has(edge.type) && eligibleIds.has(edge.source_id)) {
+        coveredByKey[key].add(edge.source_id);
+      }
+    }
+  }
+  return (Object.keys(coveredByKey) as CoverageKey[]).map((key) => ({
+    key,
+    percent:
+      eligibleIds.size === 0
+        ? 0
+        : Math.round((coveredByKey[key].size / eligibleIds.size) * 100),
+  }));
+}
+
+export interface RiskRankedEntity {
+  label: string;
+  node: ApiNode;
+  score: number;
+  topSeverity: FindingSeverity | null;
+}
+
+const SEVERITY_WEIGHT: Record<FindingSeverity, number> = {
+  alto: 3,
+  baixo: 1,
+  medio: 2,
+};
+const SEVERITY_RANK: Record<FindingSeverity, number> = { alto: 0, baixo: 2, medio: 1 };
+
+export function riskRankedEntities(
+  overlay: OverlayResult,
+  findings: Finding[],
+  limit: number,
+): RiskRankedEntity[] {
+  const nodeById = new Map(overlay.nodes.map((node) => [node.id, node]));
+  const degreeByNode = new Map<string, number>(
+    topConnectedEntities(overlay, overlay.nodes.length).map((entry) => [
+      entry.node.id,
+      entry.degree,
+    ]),
+  );
+  const scoreByNode = new Map<string, number>();
+  const topSeverityByNode = new Map<string, FindingSeverity>();
+  for (const finding of findings) {
+    for (const nodeId of finding.nodeIds) {
+      if (!nodeById.has(nodeId)) {
+        continue;
+      }
+      scoreByNode.set(
+        nodeId,
+        (scoreByNode.get(nodeId) ?? 0) + SEVERITY_WEIGHT[finding.severity],
+      );
+      const currentTop = topSeverityByNode.get(nodeId);
+      if (
+        currentTop === undefined ||
+        SEVERITY_RANK[finding.severity] < SEVERITY_RANK[currentTop]
+      ) {
+        topSeverityByNode.set(nodeId, finding.severity);
+      }
+    }
+  }
+  return [...scoreByNode.entries()]
+    .map(([nodeId, score]) => {
+      const node = nodeById.get(nodeId);
+      return node === undefined
+        ? null
+        : {
+            label: extractLabel(node),
+            node,
+            score,
+            topSeverity: topSeverityByNode.get(nodeId) ?? null,
+          };
+    })
+    .filter((entry): entry is RiskRankedEntity => entry !== null)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (degreeByNode.get(b.node.id) ?? 0) - (degreeByNode.get(a.node.id) ?? 0) ||
+        a.label.localeCompare(b.label, "pt-BR"),
+    )
+    .slice(0, limit);
 }

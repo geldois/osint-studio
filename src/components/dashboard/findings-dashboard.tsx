@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-deprecated */
 
 import { Link2, Printer } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Bar,
   BarChart,
@@ -11,17 +11,26 @@ import {
   Cell,
   Pie,
   PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  RadialBar,
+  RadialBarChart,
   XAxis,
   YAxis,
 } from "recharts";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ChartAxisTick,
+  type ChartAxisTickProps,
+} from "@/components/dashboard/chart-axis-tick";
+import { DashboardChartCard } from "@/components/dashboard/dashboard-chart-card";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { SeverityBadge } from "@/components/findings/severity-badge";
 import { FindingsPanel } from "@/components/findings/findings-panel";
 import { DashboardStat } from "@/components/dashboard/dashboard-stat";
 import { useOverlay } from "@/hooks/use-overlay";
@@ -35,13 +44,21 @@ import {
   type FindingSeverity,
 } from "@/lib/findings";
 import {
+  type CoverageKey,
   deepestOwnershipChains,
+  edgeTypeBreakdown,
+  investigationCoverage,
   possibleMatchPairs,
+  providerBreakdown,
+  riskRankedEntities,
   sanctionsByOrgan,
   sectorBreakdown,
-  topConnectedEntities,
   totalFineAmount,
 } from "@/lib/graph-stats";
+import { edgeTypeLabel } from "@/lib/relationships";
+import { useFindingsFilterStore } from "@/store/findings-filter";
+import { useGraphStore } from "@/store/graph";
+import { useSelectionStore } from "@/store/selection";
 
 const GENERATED_AT_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "long",
@@ -53,6 +70,28 @@ const BRL_FORMATTER = new Intl.NumberFormat("pt-BR", {
   style: "currency",
 });
 
+const CHART_COLOR_VARS = [
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
+  "var(--color-chart-6)",
+];
+
+function chartColorAt(index: number): string {
+  return CHART_COLOR_VARS[index % CHART_COLOR_VARS.length] ?? "var(--color-chart-1)";
+}
+
+function useEntityJump() {
+  const selectNode = useSelectionStore((s) => s.selectNode);
+  const setFocusNode = useGraphStore((s) => s.setFocusNode);
+  return (nodeId: string) => {
+    setFocusNode(nodeId);
+    selectNode(nodeId);
+  };
+}
+
 const SEVERITY_ORDER: FindingSeverity[] = ["alto", "medio", "baixo"];
 
 const SEVERITY_CONFIG: ChartConfig = {
@@ -60,6 +99,45 @@ const SEVERITY_CONFIG: ChartConfig = {
   baixo: { color: "var(--color-muted)", label: "Baixo" },
   medio: { color: "var(--color-warning)", label: "Médio" },
 };
+
+function SeverityDonut({ counts }: { counts: Record<FindingSeverity, number> }) {
+  const setSeverities = useFindingsFilterStore((s) => s.setSeverities);
+  const data = SEVERITY_ORDER.filter((severity) => counts[severity] > 0).map(
+    (severity) => ({ count: counts[severity], severity }),
+  );
+
+  return (
+    <DashboardChartCard
+      title="Achados por severidade"
+      isEmpty={data.length === 0}
+      emptyMessage="Sem achados."
+    >
+      <ChartContainer config={SEVERITY_CONFIG} className="mx-auto aspect-square w-full">
+        <PieChart>
+          <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+          <Pie
+            data={data}
+            dataKey="count"
+            nameKey="severity"
+            innerRadius={48}
+            strokeWidth={4}
+          >
+            {data.map((entry) => (
+              <Cell
+                key={entry.severity}
+                fill={`var(--color-${entry.severity})`}
+                className="cursor-pointer"
+                onClick={() => {
+                  setSeverities([entry.severity]);
+                }}
+              />
+            ))}
+          </Pie>
+        </PieChart>
+      </ChartContainer>
+    </DashboardChartCard>
+  );
+}
 
 const CATEGORY_ORDER: FindingCategory[] = [
   "fraude",
@@ -86,50 +164,8 @@ const CATEGORY_CONFIG: ChartConfig = Object.fromEntries(
   ]),
 );
 
-const CENTRALITY_CONFIG = {
-  degree: { color: "var(--color-chart-4)", label: "Conexões" },
-} satisfies ChartConfig;
-
-function SeverityDonut({ counts }: { counts: Record<FindingSeverity, number> }) {
-  const data = SEVERITY_ORDER.filter((severity) => counts[severity] > 0).map(
-    (severity) => ({ count: counts[severity], severity }),
-  );
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Achados por severidade</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {data.length === 0 ? (
-          <p className="py-8 text-center text-[12px] text-muted">Sem achados.</p>
-        ) : (
-          <ChartContainer
-            config={SEVERITY_CONFIG}
-            className="mx-auto aspect-square max-h-64"
-          >
-            <PieChart>
-              <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-              <Pie
-                data={data}
-                dataKey="count"
-                nameKey="severity"
-                innerRadius={48}
-                strokeWidth={4}
-              >
-                {data.map((entry) => (
-                  <Cell key={entry.severity} fill={`var(--color-${entry.severity})`} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ChartContainer>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
 function CategoryBars({ findings }: { findings: ReturnType<typeof evaluateFindings> }) {
+  const setCategories = useFindingsFilterStore((s) => s.setCategories);
   const data = useMemo(() => {
     const counts = new Map<FindingCategory, number>();
     for (const finding of findings) {
@@ -141,119 +177,83 @@ function CategoryBars({ findings }: { findings: ReturnType<typeof evaluateFindin
   }, [findings]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Achados por categoria</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {data.length === 0 ? (
-          <p className="py-8 text-center text-[12px] text-muted">Sem achados.</p>
-        ) : (
-          <ChartContainer config={CATEGORY_CONFIG} className="max-h-64 w-full">
-            <BarChart data={data} layout="vertical" margin={{ left: 12, right: 12 }}>
-              <CartesianGrid horizontal={false} />
-              <XAxis type="number" hide />
-              <YAxis
-                type="category"
-                dataKey="category"
-                tickFormatter={(value: FindingCategory) => categoryLabel(value)}
-                width={140}
-                tickLine={false}
-                axisLine={false}
+    <DashboardChartCard
+      title="Achados por categoria"
+      isEmpty={data.length === 0}
+      emptyMessage="Sem achados."
+    >
+      <ChartContainer config={CATEGORY_CONFIG} className="size-full">
+        <BarChart data={data} layout="vertical" margin={{ left: 12, right: 12 }}>
+          <CartesianGrid horizontal={false} />
+          <XAxis type="number" hide />
+          <YAxis
+            type="category"
+            dataKey="category"
+            tick={<ChartAxisTick />}
+            width={140}
+            tickLine={false}
+            axisLine={false}
+          />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          <Bar dataKey="count" radius={4}>
+            {data.map((entry) => (
+              <Cell
+                key={entry.category}
+                fill={`var(--color-${entry.category})`}
+                className="cursor-pointer"
+                onClick={() => {
+                  setCategories([entry.category]);
+                }}
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="count" radius={4}>
-                {data.map((entry) => (
-                  <Cell key={entry.category} fill={`var(--color-${entry.category})`} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function CentralityBars({ overlay }: { overlay: ReturnType<typeof useOverlay> }) {
-  const data = useMemo(() => topConnectedEntities(overlay, 6), [overlay]);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Entidades mais conectadas</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {data.length === 0 ? (
-          <p className="py-8 text-center text-[12px] text-muted">
-            Nenhuma entidade com relacionamentos ainda.
-          </p>
-        ) : (
-          <ChartContainer config={CENTRALITY_CONFIG} className="max-h-64 w-full">
-            <BarChart data={data} layout="vertical" margin={{ left: 12, right: 12 }}>
-              <CartesianGrid horizontal={false} />
-              <XAxis type="number" hide allowDecimals={false} />
-              <YAxis
-                type="category"
-                dataKey="label"
-                width={140}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value: string) =>
-                  value.length > 18 ? `${value.slice(0, 18)}…` : value
-                }
-              />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="degree" fill="var(--color-degree)" radius={4} />
-            </BarChart>
-          </ChartContainer>
-        )}
-      </CardContent>
-    </Card>
+            ))}
+          </Bar>
+        </BarChart>
+      </ChartContainer>
+    </DashboardChartCard>
   );
 }
 
 function PossibleMatchesCard({ overlay }: { overlay: ReturnType<typeof useOverlay> }) {
   const pairs = useMemo(() => possibleMatchPairs(overlay), [overlay]);
+  const jumpTo = useEntityJump();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Possíveis identidades</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {pairs.length === 0 ? (
-          <p className="py-8 text-center text-[12px] text-muted">
-            Nenhuma possível correspondência de identidade.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {pairs.map((pair) => (
-              <li key={`${pair.a.id}:${pair.b.id}`} className="text-[12px]">
-                <div className="flex items-center gap-1.5">
-                  <Link2 size={12} className="shrink-0 text-muted" />
-                  <span className="truncate">
-                    {extractLabel(pair.a)} ≈ {extractLabel(pair.b)}
-                  </span>
-                  <span className="ml-auto shrink-0 text-muted">
-                    {pair.confidencePercent}%
-                  </span>
-                </div>
-                <div className="mt-1 h-1 overflow-hidden rounded-full bg-surface-2">
-                  <div
-                    className={cn(
-                      "h-full",
-                      pair.confidencePercent >= 80 ? "bg-destructive" : "bg-warning",
-                    )}
-                    style={{ width: `${String(pair.confidencePercent)}%` }}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+    <DashboardChartCard
+      title="Possíveis identidades"
+      isEmpty={pairs.length === 0}
+      emptyMessage="Nenhuma possível correspondência de identidade."
+    >
+      <ul className="space-y-2">
+        {pairs.map((pair) => (
+          <li key={`${pair.a.id}:${pair.b.id}`} className="min-w-0 text-[12px]">
+            <button
+              type="button"
+              onClick={() => {
+                jumpTo(pair.a.id);
+              }}
+              className="flex w-full items-center gap-1.5 text-left hover:underline"
+            >
+              <Link2 size={12} className="shrink-0 text-muted" />
+              <span className="min-w-0 truncate">
+                {extractLabel(pair.a)} ≈ {extractLabel(pair.b)}
+              </span>
+              <span className="ml-auto shrink-0 text-muted">
+                {pair.confidencePercent}%
+              </span>
+            </button>
+            <div className="mt-1 h-1 overflow-hidden rounded-full bg-surface-2">
+              <div
+                className={cn(
+                  "h-full",
+                  pair.confidencePercent >= 80 ? "bg-destructive" : "bg-warning",
+                )}
+                style={{ width: `${String(pair.confidencePercent)}%` }}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </DashboardChartCard>
   );
 }
 
@@ -266,85 +266,79 @@ function SanctionOrganBars({ overlay }: { overlay: ReturnType<typeof useOverlay>
   const { total, unparsedCount } = useMemo(() => totalFineAmount(overlay), [overlay]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Sanções por órgão</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {breakdown.length === 0 ? (
-          <p className="py-8 text-center text-[12px] text-muted">Nenhuma sanção.</p>
-        ) : (
-          <>
-            <ChartContainer config={SANCTION_ORGAN_CONFIG} className="max-h-56 w-full">
-              <BarChart
-                data={breakdown}
-                layout="vertical"
-                margin={{ left: 12, right: 12 }}
-              >
-                <CartesianGrid horizontal={false} />
-                <XAxis type="number" hide allowDecimals={false} />
-                <YAxis
-                  type="category"
-                  dataKey="organ"
-                  width={60}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" fill="var(--color-count)" radius={4} />
-              </BarChart>
-            </ChartContainer>
-            {total > 0 ? (
-              <p className="mt-2 text-[11px] text-muted">
-                Total em multas:{" "}
-                <span className="text-foreground">{BRL_FORMATTER.format(total)}</span>
-                {unparsedCount > 0
-                  ? ` (+${String(unparsedCount)} valor(es) não legível(is) no total)`
-                  : null}
-              </p>
-            ) : null}
-          </>
-        )}
-      </CardContent>
-    </Card>
+    <DashboardChartCard
+      title="Sanções por órgão"
+      isEmpty={breakdown.length === 0}
+      emptyMessage="Nenhuma sanção."
+      footer={
+        total > 0 ? (
+          <p className="mt-2 text-[11px] text-muted">
+            Total em multas:{" "}
+            <span className="text-foreground">{BRL_FORMATTER.format(total)}</span>
+            {unparsedCount > 0
+              ? ` (+${String(unparsedCount)} valor(es) não legível(is) no total)`
+              : null}
+          </p>
+        ) : null
+      }
+    >
+      <ChartContainer config={SANCTION_ORGAN_CONFIG} className="size-full">
+        <BarChart data={breakdown} layout="vertical" margin={{ left: 12, right: 12 }}>
+          <CartesianGrid horizontal={false} />
+          <XAxis type="number" hide allowDecimals={false} />
+          <YAxis
+            type="category"
+            dataKey="organ"
+            width={60}
+            tickLine={false}
+            axisLine={false}
+          />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+        </BarChart>
+      </ChartContainer>
+    </DashboardChartCard>
   );
 }
 
 function OwnershipChainCard({ overlay }: { overlay: ReturnType<typeof useOverlay> }) {
   const chains = useMemo(() => deepestOwnershipChains(overlay, 3), [overlay]);
   const deepest = chains[0];
+  const jumpTo = useEntityJump();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Cadeia societária mais profunda</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {deepest === undefined ? (
-          <p className="py-8 text-center text-[12px] text-muted">
-            Nenhuma cadeia de posse entre empresas.
+    <DashboardChartCard
+      title="Cadeia societária mais profunda"
+      isEmpty={deepest === undefined}
+      emptyMessage="Nenhuma cadeia de posse entre empresas."
+    >
+      {deepest !== undefined ? (
+        <>
+          <p className="font-bold text-2xl">{deepest.depth}</p>
+          <p className="mb-2 text-[11px] text-muted">
+            nível(is) acima de {extractLabel(deepest.company)}
           </p>
-        ) : (
-          <>
-            <p className="font-bold text-2xl">{deepest.depth}</p>
-            <p className="mb-2 text-[11px] text-muted">
-              nível(is) acima de {extractLabel(deepest.company)}
-            </p>
-            <ul className="space-y-1">
-              {chains.map((chain) => (
-                <li
-                  key={chain.company.id}
-                  className="flex items-center justify-between text-[12px]"
+          <ul className="space-y-1">
+            {chains.map((chain) => (
+              <li key={chain.company.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    jumpTo(chain.company.id);
+                  }}
+                  className="flex w-full min-w-0 items-center justify-between gap-2 text-[12px] hover:underline"
                 >
-                  <span className="truncate">{extractLabel(chain.company)}</span>
+                  <span className="min-w-0 truncate">
+                    {extractLabel(chain.company)}
+                  </span>
                   <span className="shrink-0 text-muted">{chain.depth} elo(s)</span>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </CardContent>
-    </Card>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+    </DashboardChartCard>
   );
 }
 
@@ -356,39 +350,228 @@ function SectorBars({ overlay }: { overlay: ReturnType<typeof useOverlay> }) {
   const data = useMemo(() => sectorBreakdown(overlay), [overlay]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Distribuição por setor (CNAE)</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {data.length === 0 ? (
-          <p className="py-8 text-center text-[12px] text-muted">
-            Nenhuma empresa com CNAE identificado.
-          </p>
-        ) : (
-          <ChartContainer config={SECTOR_CONFIG} className="max-h-64 w-full">
-            <BarChart data={data} layout="vertical" margin={{ left: 12, right: 12 }}>
-              <CartesianGrid horizontal={false} />
-              <XAxis type="number" hide allowDecimals={false} />
-              <YAxis
-                type="category"
-                dataKey={(entry: (typeof data)[number]) => entry.cnae.id}
-                tickFormatter={(value: string) => {
-                  const entry = data.find((d) => d.cnae.id === value);
-                  const label = entry === undefined ? value : extractLabel(entry.cnae);
-                  return label.length > 18 ? `${label.slice(0, 18)}…` : label;
-                }}
-                width={140}
-                tickLine={false}
-                axisLine={false}
+    <DashboardChartCard
+      title="Distribuição por setor (CNAE)"
+      isEmpty={data.length === 0}
+      emptyMessage="Nenhuma empresa com CNAE identificado."
+    >
+      <ChartContainer config={SECTOR_CONFIG} className="size-full">
+        <BarChart data={data} layout="vertical" margin={{ left: 12, right: 12 }}>
+          <CartesianGrid horizontal={false} />
+          <XAxis type="number" hide allowDecimals={false} />
+          <YAxis
+            type="category"
+            dataKey={(entry: (typeof data)[number]) => entry.cnae.id}
+            tick={(props: ChartAxisTickProps) => {
+              const value = props.payload?.value ?? "";
+              const entry = data.find((d) => d.cnae.id === value);
+              const label = entry === undefined ? value : extractLabel(entry.cnae);
+              return <ChartAxisTick {...props} payload={{ value: label }} />;
+            }}
+            width={140}
+            tickLine={false}
+            axisLine={false}
+          />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+        </BarChart>
+      </ChartContainer>
+    </DashboardChartCard>
+  );
+}
+
+function ProviderBreakdownCard({
+  overlay,
+}: {
+  overlay: ReturnType<typeof useOverlay>;
+}) {
+  const data = useMemo(() => providerBreakdown(overlay), [overlay]);
+  const config: ChartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        data.map((entry, index) => [
+          entry.provider,
+          { color: chartColorAt(index), label: entry.provider },
+        ]),
+      ),
+    [data],
+  );
+
+  return (
+    <DashboardChartCard
+      title="Distribuição por fonte"
+      isEmpty={data.length === 0}
+      emptyMessage="Nenhuma entidade com fonte identificada."
+    >
+      <ChartContainer config={config} className="mx-auto aspect-square w-full">
+        <PieChart>
+          <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+          <Pie
+            data={data}
+            dataKey="count"
+            nameKey="provider"
+            innerRadius={48}
+            strokeWidth={4}
+          >
+            {data.map((entry, index) => (
+              <Cell key={entry.provider} fill={chartColorAt(index)} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ChartContainer>
+    </DashboardChartCard>
+  );
+}
+
+function EdgeTypeBreakdownCard({
+  overlay,
+}: {
+  overlay: ReturnType<typeof useOverlay>;
+}) {
+  const data = useMemo(
+    () =>
+      edgeTypeBreakdown(overlay).map((entry) => ({
+        count: entry.count,
+        label: edgeTypeLabel(entry.type),
+        type: entry.type,
+      })),
+    [overlay],
+  );
+  const config: ChartConfig = {
+    count: { color: "var(--color-chart-2)", label: "Relações" },
+  };
+
+  return (
+    <DashboardChartCard
+      title="Tipos de relação"
+      isEmpty={data.length === 0}
+      emptyMessage="Nenhuma relação neste grafo."
+    >
+      <ChartContainer config={config} className="size-full">
+        <BarChart data={data} layout="vertical" margin={{ left: 12, right: 12 }}>
+          <CartesianGrid horizontal={false} />
+          <XAxis type="number" hide allowDecimals={false} />
+          <YAxis
+            type="category"
+            dataKey="label"
+            tick={<ChartAxisTick />}
+            width={140}
+            tickLine={false}
+            axisLine={false}
+          />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          <Bar dataKey="count" fill="var(--color-count)" radius={4} />
+        </BarChart>
+      </ChartContainer>
+    </DashboardChartCard>
+  );
+}
+
+const COVERAGE_LABELS: Record<CoverageKey, string> = {
+  legal_process: "Processos",
+  political_exposure: "PEP",
+  sanction: "Sanções",
+};
+
+const COVERAGE_COLORS: Record<CoverageKey, string> = {
+  legal_process: "var(--color-chart-6)",
+  political_exposure: "var(--color-chart-4)",
+  sanction: "var(--color-chart-5)",
+};
+
+function CoverageRadialCard({ overlay }: { overlay: ReturnType<typeof useOverlay> }) {
+  const metrics = useMemo(() => investigationCoverage(overlay), [overlay]);
+  const hasEligible = overlay.nodes.some(
+    (node) => node.type === "person" || node.type === "company",
+  );
+  const data = metrics.map((metric) => ({
+    fill: COVERAGE_COLORS[metric.key],
+    key: metric.key,
+    label: COVERAGE_LABELS[metric.key],
+    percent: metric.percent,
+  }));
+  const config: ChartConfig = Object.fromEntries(
+    data.map((entry) => [entry.key, { color: entry.fill, label: entry.label }]),
+  );
+
+  return (
+    <DashboardChartCard
+      title="Cobertura da investigação"
+      isEmpty={!hasEligible}
+      emptyMessage="Nenhuma pessoa ou empresa investigada ainda."
+      footer={
+        <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
+          {data.map((entry) => (
+            <li key={entry.key} className="flex items-center gap-1">
+              <span
+                className="size-2 rounded-full"
+                style={{ backgroundColor: entry.fill }}
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="count" fill="var(--color-count)" radius={4} />
-            </BarChart>
-          </ChartContainer>
-        )}
-      </CardContent>
-    </Card>
+              {entry.label}: {entry.percent}%
+            </li>
+          ))}
+        </ul>
+      }
+    >
+      <ChartContainer config={config} className="mx-auto aspect-square w-full">
+        <RadialBarChart
+          data={data}
+          innerRadius="30%"
+          outerRadius="100%"
+          startAngle={90}
+          endAngle={-270}
+        >
+          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+          <PolarGrid gridType="circle" radialLines={false} />
+          <RadialBar dataKey="percent" background cornerRadius={4}>
+            {data.map((entry) => (
+              <Cell key={entry.key} fill={entry.fill} />
+            ))}
+          </RadialBar>
+        </RadialBarChart>
+      </ChartContainer>
+    </DashboardChartCard>
+  );
+}
+
+function RiskRankedEntitiesCard({
+  overlay,
+}: {
+  overlay: ReturnType<typeof useOverlay>;
+}) {
+  const findings = useMemo(() => evaluateFindings(overlay), [overlay]);
+  const ranked = useMemo(
+    () => riskRankedEntities(overlay, findings, 6),
+    [overlay, findings],
+  );
+  const jumpTo = useEntityJump();
+
+  return (
+    <DashboardChartCard
+      title="Entidades de maior risco"
+      isEmpty={ranked.length === 0}
+      emptyMessage="Nenhuma entidade com achados ainda."
+    >
+      <ul className="space-y-1.5">
+        {ranked.map((entry) => (
+          <li key={entry.node.id}>
+            <button
+              type="button"
+              onClick={() => {
+                jumpTo(entry.node.id);
+              }}
+              className="flex w-full min-w-0 items-center gap-2 rounded-md p-1 text-left text-[12px] hover:bg-foreground/5"
+            >
+              <span className="min-w-0 flex-1 truncate">{entry.label}</span>
+              {entry.topSeverity !== null ? (
+                <SeverityBadge severity={entry.topSeverity} />
+              ) : null}
+              <span className="shrink-0 text-muted">{entry.score}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </DashboardChartCard>
   );
 }
 
@@ -469,6 +652,7 @@ export function FindingsDashboard() {
   const overlay = useOverlay();
   const findings = useMemo(() => evaluateFindings(overlay), [overlay]);
   const counts = countBySeverity(findings);
+  const resetFindingsFilter = useFindingsFilterStore((s) => s.reset);
   const pepCount = overlay.edges.filter(
     (edge) => edge.type === "person_has_political_exposure",
   ).length;
@@ -480,6 +664,10 @@ export function FindingsDashboard() {
   const investigatedCount = overlay.nodes.filter(
     (node) => node.type === "person" || node.type === "company",
   ).length;
+
+  useEffect(() => {
+    resetFindingsFilter();
+  }, [resetFindingsFilter]);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto print:h-auto print:overflow-visible">
@@ -505,10 +693,20 @@ export function FindingsDashboard() {
           Rede e identidade
         </h2>
         <div className="grid gap-3 md:grid-cols-3">
-          <CentralityBars overlay={overlay} />
+          <RiskRankedEntitiesCard overlay={overlay} />
           <PossibleMatchesCard overlay={overlay} />
           <OwnershipChainCard overlay={overlay} />
           <SectorBars overlay={overlay} />
+        </div>
+      </div>
+      <div className="p-3 pt-0">
+        <h2 className="mb-2 font-medium text-muted text-xs uppercase">
+          Cobertura e fontes
+        </h2>
+        <div className="grid gap-3 md:grid-cols-3">
+          <ProviderBreakdownCard overlay={overlay} />
+          <EdgeTypeBreakdownCard overlay={overlay} />
+          <CoverageRadialCard overlay={overlay} />
         </div>
       </div>
       <div className="min-h-0 flex-1 border-border border-t">
