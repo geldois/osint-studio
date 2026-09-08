@@ -312,6 +312,7 @@ const SEVERITY_WEIGHT: Record<FindingSeverity, number> = {
   medio: 2,
 };
 const SEVERITY_RANK: Record<FindingSeverity, number> = { alto: 0, baixo: 2, medio: 1 };
+const RISK_RANKABLE_TYPES = new Set<ApiNode["type"]>(["company", "person"]);
 
 export function riskRankedEntities(
   overlay: OverlayResult,
@@ -329,7 +330,8 @@ export function riskRankedEntities(
   const topSeverityByNode = new Map<string, FindingSeverity>();
   for (const finding of findings) {
     for (const nodeId of finding.nodeIds) {
-      if (!nodeById.has(nodeId)) {
+      const node = nodeById.get(nodeId);
+      if (node === undefined || !RISK_RANKABLE_TYPES.has(node.type)) {
         continue;
       }
       scoreByNode.set(

@@ -83,17 +83,22 @@ export function GraphInfoButton() {
   return (
     <Flyout
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(next) => {
+        if (entries.length === 0) {
+          return;
+        }
+        setOpen(next);
+      }}
       title="Informações do grafo"
       trigger={
         <Button
           type="button"
           variant="outline"
           size="icon"
-          disabled={entries.length === 0}
+          aria-disabled={entries.length === 0}
           aria-label="Informações do grafo"
           title={entries.length === 0 ? "Nenhum grafo buscado ainda." : summary}
-          className="size-8 rounded-md"
+          className={cn("size-8 rounded-md", entries.length === 0 && "opacity-50")}
         >
           <Info size={14} />
         </Button>

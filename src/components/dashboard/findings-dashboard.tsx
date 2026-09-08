@@ -56,9 +56,8 @@ import {
   totalFineAmount,
 } from "@/lib/graph-stats";
 import { edgeTypeLabel } from "@/lib/relationships";
+import { useEntityJump } from "@/hooks/use-entity-jump";
 import { useFindingsFilterStore } from "@/store/findings-filter";
-import { useGraphStore } from "@/store/graph";
-import { useSelectionStore } from "@/store/selection";
 
 const GENERATED_AT_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "long",
@@ -83,15 +82,6 @@ function chartColorAt(index: number): string {
   return CHART_COLOR_VARS[index % CHART_COLOR_VARS.length] ?? "var(--color-chart-1)";
 }
 
-function useEntityJump() {
-  const selectNode = useSelectionStore((s) => s.selectNode);
-  const setFocusNode = useGraphStore((s) => s.setFocusNode);
-  return (nodeId: string) => {
-    setFocusNode(nodeId);
-    selectNode(nodeId);
-  };
-}
-
 const SEVERITY_ORDER: FindingSeverity[] = ["alto", "medio", "baixo"];
 
 const SEVERITY_CONFIG: ChartConfig = {
@@ -112,7 +102,7 @@ function SeverityDonut({ counts }: { counts: Record<FindingSeverity, number> }) 
       isEmpty={data.length === 0}
       emptyMessage="Sem achados."
     >
-      <ChartContainer config={SEVERITY_CONFIG} className="mx-auto aspect-square w-full">
+      <ChartContainer config={SEVERITY_CONFIG} className="size-full">
         <PieChart>
           <ChartTooltip content={<ChartTooltipContent hideLabel />} />
           <Pie
@@ -172,7 +162,11 @@ function CategoryBars({ findings }: { findings: ReturnType<typeof evaluateFindin
       counts.set(finding.category, (counts.get(finding.category) ?? 0) + 1);
     }
     return CATEGORY_ORDER.filter((category) => (counts.get(category) ?? 0) > 0).map(
-      (category) => ({ category, count: counts.get(category) ?? 0 }),
+      (category) => ({
+        category,
+        count: counts.get(category) ?? 0,
+        label: categoryLabel(category),
+      }),
     );
   }, [findings]);
 
@@ -188,7 +182,7 @@ function CategoryBars({ findings }: { findings: ReturnType<typeof evaluateFindin
           <XAxis type="number" hide />
           <YAxis
             type="category"
-            dataKey="category"
+            dataKey="label"
             tick={<ChartAxisTick />}
             width={140}
             tickLine={false}
@@ -403,7 +397,7 @@ function ProviderBreakdownCard({
       isEmpty={data.length === 0}
       emptyMessage="Nenhuma entidade com fonte identificada."
     >
-      <ChartContainer config={config} className="mx-auto aspect-square w-full">
+      <ChartContainer config={config} className="size-full">
         <PieChart>
           <ChartTooltip content={<ChartTooltipContent hideLabel />} />
           <Pie
@@ -428,15 +422,16 @@ function EdgeTypeBreakdownCard({
 }: {
   overlay: ReturnType<typeof useOverlay>;
 }) {
-  const data = useMemo(
-    () =>
-      edgeTypeBreakdown(overlay).map((entry) => ({
-        count: entry.count,
-        label: edgeTypeLabel(entry.type),
-        type: entry.type,
-      })),
-    [overlay],
-  );
+  const data = useMemo(() => {
+    const countByLabel = new Map<string, number>();
+    for (const entry of edgeTypeBreakdown(overlay)) {
+      const label = edgeTypeLabel(entry.type);
+      countByLabel.set(label, (countByLabel.get(label) ?? 0) + entry.count);
+    }
+    return [...countByLabel.entries()]
+      .map(([label, count]) => ({ count, label }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "pt-BR"));
+  }, [overlay]);
   const config: ChartConfig = {
     count: { color: "var(--color-chart-2)", label: "Relações" },
   };
@@ -513,7 +508,7 @@ function CoverageRadialCard({ overlay }: { overlay: ReturnType<typeof useOverlay
         </ul>
       }
     >
-      <ChartContainer config={config} className="mx-auto aspect-square w-full">
+      <ChartContainer config={config} className="size-full">
         <RadialBarChart
           data={data}
           innerRadius="30%"
@@ -535,11 +530,12 @@ function CoverageRadialCard({ overlay }: { overlay: ReturnType<typeof useOverlay
 }
 
 function RiskRankedEntitiesCard({
+  findings,
   overlay,
 }: {
+  findings: ReturnType<typeof evaluateFindings>;
   overlay: ReturnType<typeof useOverlay>;
 }) {
-  const findings = useMemo(() => evaluateFindings(overlay), [overlay]);
   const ranked = useMemo(
     () => riskRankedEntities(overlay, findings, 6),
     [overlay, findings],
@@ -693,7 +689,7 @@ export function FindingsDashboard() {
           Rede e identidade
         </h2>
         <div className="grid gap-3 md:grid-cols-3">
-          <RiskRankedEntitiesCard overlay={overlay} />
+          <RiskRankedEntitiesCard findings={findings} overlay={overlay} />
           <PossibleMatchesCard overlay={overlay} />
           <OwnershipChainCard overlay={overlay} />
           <SectorBars overlay={overlay} />
@@ -710,7 +706,7 @@ export function FindingsDashboard() {
         </div>
       </div>
       <div className="min-h-0 flex-1 border-border border-t">
-        <FindingsPanel />
+        <FindingsPanel findings={findings} />
       </div>
     </div>
   );

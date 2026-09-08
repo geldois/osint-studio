@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useEntityJump } from "@/hooks/use-entity-jump";
 import { useFindingsFilterStore } from "@/store/findings-filter";
 import { EntityIcon } from "@/components/nodes/entity-icon";
 import { SeverityBadge } from "@/components/findings/severity-badge";
@@ -24,8 +25,6 @@ import { extractLabel } from "@/lib/graph-adapter";
 import { nodeTypeAccentBorder } from "@/lib/relationships";
 import { itemsMatchingSelection } from "@/lib/table";
 import { cn } from "@/lib/utils";
-import { useGraphStore } from "@/store/graph";
-import { useSelectionStore } from "@/store/selection";
 import type { ApiNode } from "@/types/api";
 
 const SEVERITY_ORDER = ["alto", "medio", "baixo"] as const;
@@ -75,9 +74,15 @@ export function FindingCard({
   );
 }
 
-export function FindingsPanel() {
+export function FindingsPanel({
+  findings: findingsProp,
+}: { findings?: ReturnType<typeof evaluateFindings> } = {}) {
   const overlay = useOverlay();
-  const findings = useMemo(() => evaluateFindings(overlay), [overlay]);
+  const ownFindings = useMemo(
+    () => (findingsProp === undefined ? evaluateFindings(overlay) : []),
+    [overlay, findingsProp],
+  );
+  const findings = findingsProp ?? ownFindings;
   const nodeById = new Map(overlay.nodes.map((node) => [node.id, node]));
 
   const selectedSeverities = useFindingsFilterStore((s) => s.selectedSeverities);
@@ -86,13 +91,7 @@ export function FindingsPanel() {
   const setSelectedCategories = useFindingsFilterStore((s) => s.setCategories);
   const [filter, setFilter] = useState("");
 
-  const selectNode = useSelectionStore((s) => s.selectNode);
-  const setFocusNode = useGraphStore((s) => s.setFocusNode);
-
-  function jumpTo(nodeId: string): void {
-    setFocusNode(nodeId);
-    selectNode(nodeId);
-  }
+  const jumpTo = useEntityJump();
 
   const severityOptions = useMemo(() => {
     const counts = new Map<FindingSeverity, number>();

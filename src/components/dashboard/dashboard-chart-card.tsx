@@ -25,9 +25,9 @@ export function DashboardChartCard({
         {action}
       </CardHeader>
       <CardContent>
-        <div className="flex h-56 flex-col justify-center">
+        <div className="flex h-56 flex-col overflow-y-auto">
           {isEmpty ? (
-            <p className="text-center text-[12px] text-muted">{emptyMessage}</p>
+            <p className="m-auto text-center text-[12px] text-muted">{emptyMessage}</p>
           ) : (
             children
           )}

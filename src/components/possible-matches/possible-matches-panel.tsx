@@ -67,7 +67,7 @@ export function PossibleMatchesPanel({ node }: { node: PersonNode }) {
               <span
                 className={`shrink-0 rounded-sm px-1 text-[9px] uppercase ${
                   masked
-                    ? "bg-white/10 text-muted"
+                    ? "bg-surface-2 text-muted"
                     : "bg-emerald-500/20 text-emerald-500"
                 }`}
               >
