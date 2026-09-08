@@ -3,6 +3,7 @@
 import { LayoutDashboard, Network, Table2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import { evaluateFindings } from "@/lib/findings";
 import { useOverlay } from "@/hooks/use-overlay";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -11,7 +12,7 @@ import { cn } from "@/lib/utils";
 export function ViewSwitch() {
   const pathname = usePathname();
   const overlay = useOverlay();
-  const findings = evaluateFindings(overlay);
+  const findings = useMemo(() => evaluateFindings(overlay), [overlay]);
   const highSeverityCount = findings.filter((f) => f.severity === "alto").length;
 
   return (

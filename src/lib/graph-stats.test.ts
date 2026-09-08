@@ -3,6 +3,7 @@ import type { Finding } from "@/lib/findings";
 import {
   deepestOwnershipChains,
   edgeTypeBreakdown,
+  entityTypeBreakdown,
   investigationCoverage,
   possibleMatchPairs,
   providerBreakdown,
@@ -472,5 +473,33 @@ describe("riskRankedEntities", () => {
     expect(
       riskRankedEntities(overlay([person("cpf1", "Fulano")], []), [], 5),
     ).toHaveLength(0);
+  });
+});
+
+describe("entityTypeBreakdown", () => {
+  it("returns an empty list for an empty overlay", () => {
+    expect(entityTypeBreakdown(overlay([], []))).toEqual([]);
+  });
+
+  it("excludes text_source nodes entirely", () => {
+    expect(entityTypeBreakdown(overlay([textSource("t1")], []))).toEqual([]);
+  });
+
+  it("counts one entry per node type present, sorted by count desc", () => {
+    const breakdown = entityTypeBreakdown(
+      overlay(
+        [
+          company("cnpj1", "Acme LTDA"),
+          person("cpf1", "Fulano"),
+          person("cpf2", "Beltrano"),
+          textSource("t1"),
+        ],
+        [],
+      ),
+    );
+    expect(breakdown).toEqual([
+      { count: 2, label: "Pessoas", type: "person" },
+      { count: 1, label: "Empresas", type: "company" },
+    ]);
   });
 });

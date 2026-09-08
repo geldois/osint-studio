@@ -15,6 +15,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AlreadyFetchedNotice } from "@/components/already-fetched-notice";
 import { Button } from "@/components/ui/button";
+import { CollectionPanel } from "@/components/detail-panel/collection-panel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -638,10 +639,12 @@ export function DetailPanel() {
   const overlay = useOverlay();
   const selectedNodeId = useSelectionStore((s) => s.selectedNodeId);
   const selectedEdgeId = useSelectionStore((s) => s.selectedEdgeId);
+  const selectedCollection = useSelectionStore((s) => s.selectedCollection);
   const clearSelection = useSelectionStore((s) => s.clearSelection);
   const [tab, setTab] = useState<DetailPanelTab>("detalhes");
 
-  const hasSelection = selectedNodeId !== null || selectedEdgeId !== null;
+  const hasSelection =
+    selectedNodeId !== null || selectedEdgeId !== null || selectedCollection !== null;
   const selectedEdge =
     selectedEdgeId !== null
       ? overlay.edges.find((e) => edgeKey(e) === selectedEdgeId)
@@ -651,7 +654,9 @@ export function DetailPanel() {
       ? [selectedNodeId]
       : selectedEdge !== undefined
         ? [selectedEdge.source_id, selectedEdge.target_id]
-        : [];
+        : selectedCollection !== null
+          ? selectedCollection.nodeIds
+          : [];
 
   return (
     <aside
@@ -706,6 +711,11 @@ export function DetailPanel() {
       <div className="min-h-0 flex-1">
         {tab === "relatorio" ? (
           <EntityFindings entityIds={entityIds} />
+        ) : selectedCollection !== null ? (
+          <CollectionPanel
+            title={selectedCollection.title}
+            nodeIds={selectedCollection.nodeIds}
+          />
         ) : selectedNodeId !== null ? (
           <NodePanel nodeId={selectedNodeId} />
         ) : selectedEdgeId !== null ? (
