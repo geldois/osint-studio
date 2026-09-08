@@ -121,6 +121,15 @@ each column to its widest cell instead. Both the generic and the per-type views 
 filtering rather than before, so the free-text filter always matches against every row that meets the current type
 filter, not just whichever 50 happen to be on screen.
 
+The Dashboard's 7-then-11 cards no longer each hand-compose `Card`/`ChartContainer`/empty-state on their own —
+`DashboardChartCard` owns that shell (a fixed body height, a shared empty-state paragraph, an optional header action and
+footer) once three divergent height strategies across the cards made grid rows stop aligning. A severity/category chart
+click now writes into a small shared filter store instead of only looking clickable, letting the findings list below
+react to it — the same "two components solving one UX problem" pattern that also showed up between `ExpansionMenu`'s and
+`ConsumeCpfBlock`'s "document already fetched, force?" checkbox (now one `AlreadyFetchedNotice`) and between
+`GraphInfoButton`'s and `version-menu.tsx`'s revision pickers (now one `VersionChips`, chip-shaped either way, single-
+or multi-select decided entirely by the caller's own toggle logic rather than a mode flag on the component).
+
 The Dashboard's charts all compose the same vendored Recharts wrapper (`src/components/ui/chart.tsx` —
 `ChartContainer`/`ChartTooltip`/`ChartConfig`) rather than calling Recharts' own primitives directly, and its tabular
 data (the Whiteboard's own Table view) runs on one `@tanstack/react-table` instance
