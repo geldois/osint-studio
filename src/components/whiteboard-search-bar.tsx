@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ExpansionMenu } from "@/components/expansion-menu";
 import { FieldWarning } from "@/components/field-warning";
@@ -20,6 +20,8 @@ export function WhiteboardSearchBar() {
   const role = useAuthStore((s) => s.role);
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const confirmRef = useRef<HTMLDivElement>(null);
   const [menuGeneration, setMenuGeneration] = useState(0);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const { mutate, isPending, error, data } = useExpand();
@@ -41,6 +43,32 @@ export function WhiteboardSearchBar() {
     };
   }, [retryAfterSeconds]);
 
+  useEffect(() => {
+    if (!confirmOpen) {
+      return;
+    }
+    function handlePointerDown(event: PointerEvent): void {
+      if (
+        confirmRef.current !== null &&
+        event.target instanceof Node &&
+        !confirmRef.current.contains(event.target)
+      ) {
+        setConfirmOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        setConfirmOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [confirmOpen]);
+
   const isBlocked = retryAfterSeconds > 0;
   const visibleErrors = data ? visibleErrorMessages(data.errors) : [];
   const warningMessage = isBlocked
@@ -53,16 +81,9 @@ export function WhiteboardSearchBar() {
   const warningTone: "error" | "warning" =
     isBlocked || visibleErrors.length > 0 ? "warning" : "error";
 
-  function submit(): void {
-    if (isPending || isBlocked || recognizedKind === null) {
-      return;
-    }
-    if (role === "ADMIN") {
-      setMenuOpen(true);
-      return;
-    }
+  function fireRootSearch(force: boolean): void {
     mutate(
-      { document: trimmedQuery, routes: ["root"] },
+      { document: trimmedQuery, force, routes: ["root"] },
       {
         onError: (mutationError) => {
           if (mutationError instanceof RateLimitError) {
@@ -71,6 +92,21 @@ export function WhiteboardSearchBar() {
         },
       },
     );
+  }
+
+  function submit(): void {
+    if (isPending || isBlocked || recognizedKind === null) {
+      return;
+    }
+    if (role === "ADMIN") {
+      setMenuOpen(true);
+      return;
+    }
+    if (existsInGraph) {
+      setConfirmOpen(true);
+      return;
+    }
+    fireRootSearch(false);
   }
 
   return (
@@ -139,6 +175,27 @@ export function WhiteboardSearchBar() {
             setMenuGeneration((generation) => generation + 1);
           }}
         />
+      ) : null}
+      {confirmOpen ? (
+        <div
+          ref={confirmRef}
+          className="absolute inset-x-0 top-full z-20 mt-1 space-y-2 rounded-lg border border-border bg-surface-2 p-2 shadow-lg"
+        >
+          <p className="text-[11px] text-muted">
+            Este documento já foi consultado antes.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              fireRootSearch(true);
+              setConfirmOpen(false);
+            }}
+          >
+            Buscar mesmo assim
+          </Button>
+        </div>
       ) : null}
     </div>
   );

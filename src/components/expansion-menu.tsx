@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { AlreadyFetchedNotice } from "@/components/already-fetched-notice";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCredentialStatus } from "@/hooks/use-credential-status";
@@ -64,9 +65,6 @@ export function ExpansionMenu({
   }, [onClose]);
 
   const total = totalPriceBRL(routes, selected);
-  const showForce =
-    existsInGraph &&
-    routes.some((route) => route.supportsForce && selected.has(route.key));
 
   function toggle(key: ExpansionRouteKey, checked: boolean): void {
     setSelected((current) => {
@@ -142,12 +140,15 @@ export function ExpansionMenu({
         })}
       </div>
 
-      {showForce ? (
-        <label className="flex items-center gap-2 border-border border-t p-2 text-[11px] text-muted">
-          <Checkbox checked={force} onCheckedChange={setForce} />
-          Forçar nova busca — só reaplica a {documentIsCpf ? "Pessoa" : "Empresa"}; as
-          demais rotas marcadas sempre reconsultam a fonte, com custo se forem pagas.
-        </label>
+      {existsInGraph ? (
+        <div className="border-border border-t p-2">
+          <AlreadyFetchedNotice
+            alreadyFetched
+            force={force}
+            onForceChange={setForce}
+            label={`Forçar nova busca — só reaplica a ${documentIsCpf ? "Pessoa" : "Empresa"}; as demais rotas marcadas sempre reconsultam a fonte, com custo se forem pagas.`}
+          />
+        </div>
       ) : null}
 
       <div className="flex items-center justify-between gap-2 border-border border-t p-2">

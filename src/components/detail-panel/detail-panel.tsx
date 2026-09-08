@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { AlreadyFetchedNotice } from "@/components/already-fetched-notice";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -315,17 +315,12 @@ function ConsumeCpfBlock({
 
   return (
     <div className="space-y-2">
-      {alreadyFetched ? (
-        <label className="flex items-center gap-1.5 text-[11px] text-muted">
-          <Checkbox
-            checked={force}
-            onCheckedChange={(checked) => {
-              setForce(checked);
-            }}
-          />
-          consultar de novo (já buscado)
-        </label>
-      ) : null}
+      <AlreadyFetchedNotice
+        alreadyFetched={alreadyFetched}
+        force={force}
+        onForceChange={setForce}
+        label="consultar de novo (já buscado)"
+      />
       <Button
         type="button"
         className="w-full"
