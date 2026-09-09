@@ -93,7 +93,6 @@ function SeverityDonut({ counts }: { counts: Record<FindingSeverity, number> }) 
       title="Achados por severidade"
       data={data}
       emptyMessage="Sem achados."
-      defaultVariant="pie"
       onSelect={(datum) => {
         setSeverities([datum.key as FindingSeverity]);
       }}
@@ -321,7 +320,6 @@ function ProviderBreakdownCard({
       title="Distribuição por fonte"
       data={data}
       emptyMessage="Nenhuma entidade com fonte identificada."
-      defaultVariant="pie"
       onSelect={(datum) => {
         const nodeIds = overlay.nodes
           .filter(
