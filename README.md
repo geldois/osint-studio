@@ -40,7 +40,8 @@ cd osint-studio
 2. Install the project toolchain and activate the versioned git config:
 
 ```bash
-mise install  # pins Node, pnpm, dprint, shellcheck, shfmt, actionlint, jq
+mise install  # pins Node, dprint, shellcheck, shfmt, actionlint, jq
+corepack enable  # activates the pnpm version package.json's packageManager pins
 git config --local include.path ../.gitconfig
 pnpm install
 pnpm dev
@@ -53,7 +54,8 @@ pnpm dev
 2. Install the project toolchain and activate the versioned git config:
 
 ```powershell
-mise install  # pins Node, pnpm, dprint, shellcheck, shfmt, actionlint, jq
+mise install  # pins Node, dprint, shellcheck, shfmt, actionlint, jq
+corepack enable  # activates the pnpm version package.json's packageManager pins
 git config --local include.path ../.gitconfig
 pnpm install
 pnpm dev
