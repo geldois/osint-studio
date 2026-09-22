@@ -19,6 +19,7 @@ Graph explorer front-end for [osint-engine](https://github.com/geldois/osint-eng
 - **Server state:** TanStack Query
 - **Styling:** Tailwind CSS v4.1+
 - **Components:** shadcn/ui (Base UI primitive, "Nova" preset)
+- **Charts:** Recharts (via shadcn `ui/chart.tsx` wrapper)
 - **Forms & validation:** react-hook-form + Zod (see `docs/architecture/validation.md`)
 - **Theme:** next-themes
 - **Linting:** ESLint 9 + typescript-eslint (`strictTypeChecked`)
@@ -66,21 +67,25 @@ pnpm dev
 
 ## Routes
 
-| Path          | Screen     | Role    |
-| ------------- | ---------- | ------- |
-| `/login`      | Auth       | public  |
-| `/whiteboard` | Whiteboard | any     |
-| `/ingest`     | Ingestion  | `ADMIN` |
-| `/settings`   | Settings   | `ADMIN` |
+| Path         | Screen    | Role    |
+| ------------ | --------- | ------- |
+| `/login`     | Auth      | public  |
+| `/graph`     | Graph     | any     |
+| `/table`     | Table     | any     |
+| `/dashboard` | Dashboard | any     |
+| `/ingest`    | Ingestion | `ADMIN` |
+| `/settings`  | Settings  | `ADMIN` |
 
 ## Environment
 
 ```http
 NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_PORTFOLIO=false
 ```
 
-`NEXT_PUBLIC_PORTFOLIO=true` shows the GitHub/LinkedIn links on `/login`; `false` or unset hides them.
+`NEXT_PUBLIC_SITE_URL` sets `metadataBase` for generated Open Graph/social preview URLs. `NEXT_PUBLIC_PORTFOLIO=true`
+shows the GitHub/LinkedIn links on `/login`; `false` or unset hides them.
 
 ## Quality gates
 

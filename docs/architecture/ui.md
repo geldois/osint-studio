@@ -11,12 +11,13 @@ existing Radix dependency creating inertia toward it, and Base UI is the primiti
 default starting with its March 2026 rewrite. The "Nova" preset (Lucide icons) was picked because it already matched
 what this project used before adopting shadcn, not because it's the CLI's own default.
 
-The whole app renders in one locally vendored monospaced face (ZedMono Nerd Font Mono, `src/app/fonts/`) instead of
-Geist Sans paired with a separate Geist Mono for code-like text — a deliberate compact, terminal-flavored look rather
-than the CLI preset's own choice, applied to both the `--font-sans` and `--font-mono` tokens so nothing on screen falls
-back to a proportional face. The one cost accepted for it: a Nerd Fonts build embeds every icon glyph the patcher adds
-on top of the base face, so the vendored file is several megabytes heavier than an unpatched monospaced font would be —
-paid once at load (`next/font/local`, swap display) rather than per request.
+The whole app renders in one monospaced face (Victor Mono, via `next/font/google`) instead of Geist Sans paired with a
+separate Geist Mono for code-like text — a deliberate compact, terminal-flavored look rather than the CLI preset's own
+choice, applied to both the `--font-sans` and `--font-mono` tokens so nothing on screen falls back to a proportional
+face. An earlier choice, Zed Mono Nerd Font, was dropped for the cost its icon glyphs carried: a Nerd Fonts build embeds
+every icon the patcher adds on top of the base face, so the vendored TTFs cost ~6.2MB of repo weight the app never
+actually rendered through the font. Victor Mono is Google-hosted, self-hosted at build time by `next/font/google` with
+no repo weight, and keeps the same monospace/tabular alignment.
 
 Every color token in `globals.css` is pulled from Radix Colors' published scales rather than picked by eye or left at
 the shadcn CLI's own generated gray — a neutral scale for background/surface/border/text, plus one accent scale for

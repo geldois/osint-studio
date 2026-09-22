@@ -4,8 +4,10 @@ Renders the graph osint-engine returns and lets an analyst walk it outward, one 
 
 ## Language
 
-- **Whiteboard**: The canvas screen (`/whiteboard`) where the graph is drawn and explored. Two views over the same data:
-  **Graph** (node-and-edge canvas) and **Table** (`data-table`, one row per node). *Avoid*: canvas, board
+- **Whiteboard**: The workspace where the graph is drawn and explored, not tied to one route. Three views over the same
+  data, each its own screen under the shared workspace layout: **Graph** (`/graph`, node-and-edge canvas), **Table**
+  (`/table`, `data-table`, one row per node), and **Dashboard** (`/dashboard`, findings and stats). *Avoid*: canvas,
+  board
 - **Root**: A node fetched directly by its own identifier (CPF/CNPJ), rather than discovered through another node's
   edges. Tracked as a set (`roots`) since more than one search can accumulate in the same graph. *Avoid*: origin
 - **Expansion**: Fetching everything connected to one identifier and merging it into the current graph (`useExpand`).
