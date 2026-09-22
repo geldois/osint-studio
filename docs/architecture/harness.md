@@ -41,13 +41,22 @@ assistant makes and checks `git status` itself: if anything is left, it asks the
 leftover fix output that deserves its own commit now, or a deliberate work-in-progress being set aside for later — never
 deciding that automatically.
 
-The end-of-turn pass nudges toward updating a touched area's own `docs/architecture/<area>.md`, leaving the judgment of
-whether the change was actually semantic — versus a rename or a purely mechanical refactor — to whoever is finishing the
-turn. What counts as "touched this turn" is a marker, not a live git query: a per-edit hook sets it the moment a
+The end-of-turn pass nudges toward checking the whole docs surface, not one matched area: every `docs/architecture/*.md`
+in this repo, plus `README.md`, `CONTEXT.md`, and `TO-DO.md`, since a change can invalidate a doc's claim without living
+in that doc's own matching directory — naming a single guessed file traded real cross-doc drift for a smaller nudge.
+When `osint-engine` sits beside this repo on disk, the nudge names it too, since the two share this system's contract
+and a frontend-only change can leave the backend's own docs silently wrong, or the reverse from that repo's own hook — a
+plain existence check, not shared state, so the nudge still says nothing about the sibling on a machine or clone where
+it isn't there. The judgment of whether any of it was actually semantic — versus a rename or a purely mechanical
+refactor — still belongs to whoever is finishing the turn; the hook only ever names the surface, never reads or rewrites
+it. What counts as "touched this turn" is still a marker, not a live git query: a per-edit hook sets it the moment a
 relevant file is written, and the end-of-turn pass only ever consumes it once, so a file dirtied three turns ago and
-still uncommitted doesn't keep re-firing the same nudge forever. A doc file, a generated or vendored path, and the
-lockfile are the only paths that never count as "touched" for this purpose — everything else does, including a project's
-own root-level configuration, since a tooling decision lives there as often as in application source.
+still uncommitted doesn't keep re-firing the same nudge forever. Only a named root doc — `README.md`, `TO-DO.md`,
+`CLAUDE.md`, `CONTEXT.md` — or a path under `docs/`, generated, or vendored never counts as "touched" for this purpose;
+the lockfile and `CHANGELOG.md` do, deliberately, since a lockfile change is itself the "a new library" signal the nudge
+text already asks about, and lumping either in with the real docs traded that signal away for no reason — everything
+else counts too, including a project's own root-level configuration, since a tooling decision lives there as often as in
+application source.
 
 The marker mechanism is entirely local to this project's own hook suite: no shared state, directory name, or import
 connects it to any other project's or the wider agent harness's own equivalent, so these hooks keep working unmodified

@@ -14,13 +14,16 @@ describe("isRelevantChange", () => {
     expect(isRelevantChange("coverage/index.html")).toBe(false);
   });
 
-  it("excludes named root docs and the lockfile", () => {
+  it("excludes named root docs", () => {
     expect(isRelevantChange("README.md")).toBe(false);
     expect(isRelevantChange("TO-DO.md")).toBe(false);
     expect(isRelevantChange("CLAUDE.md")).toBe(false);
     expect(isRelevantChange("CONTEXT.md")).toBe(false);
-    expect(isRelevantChange("CHANGELOG.md")).toBe(false);
-    expect(isRelevantChange("pnpm-lock.yaml")).toBe(false);
+  });
+
+  it("includes the changelog and the lockfile", () => {
+    expect(isRelevantChange("CHANGELOG.md")).toBe(true);
+    expect(isRelevantChange("pnpm-lock.yaml")).toBe(true);
   });
 
   it("includes a config file at repo root", () => {
@@ -35,13 +38,16 @@ describe("isRelevantChange", () => {
 });
 
 describe("docsNudgeText", () => {
-  it("lists existing areas when given any", () => {
-    const text = docsNudgeText(["harness", "tooling", "ui"]);
-    expect(text).toContain("(existing: harness, tooling, ui)");
+  it("always names the whole docs surface", () => {
+    const text = docsNudgeText(null);
+    expect(text).toContain("every docs/architecture/*.md");
+    expect(text).toContain("README.md, CONTEXT.md, and TO-DO.md");
   });
 
-  it("omits the parenthetical when there are no areas", () => {
-    const text = docsNudgeText([]);
-    expect(text).not.toContain("(existing:");
+  it("names the sibling repo only when its path is given", () => {
+    expect(docsNudgeText(null)).not.toContain("osint-engine");
+    expect(docsNudgeText("/home/x/osint-engine")).toContain(
+      "osint-engine at /home/x/osint-engine",
+    );
   });
 });

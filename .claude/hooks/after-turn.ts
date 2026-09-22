@@ -1,6 +1,6 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { docsNudgeText } from "./_docs-nudge";
+import { docsNudgeText, SIBLING_REPO_NAME } from "./_docs-nudge";
 import {
   context,
   gitRoot,
@@ -32,12 +32,10 @@ function main(): void {
     return;
   }
 
-  const areas = readdirSync(architectureDir)
-    .filter((name) => name.endsWith(".md"))
-    .map((name) => name.slice(0, -".md".length))
-    .sort();
+  const siblingDir = resolve(root, "..", SIBLING_REPO_NAME);
+  const siblingPath = existsSync(siblingDir) ? siblingDir : null;
 
-  context("Stop", docsNudgeText(areas));
+  context("Stop", docsNudgeText(siblingPath));
 }
 
 main();
